@@ -21,6 +21,33 @@ export default function Home() {
   const linesRef = useRef<Line[]>([]);
   const drawingRef = useRef<{ x: number; y: number } | null>(null);
 
+const startCountdown = () => {
+  gameStartedRef.current = false;
+  setGameStarted(false);
+  setCountdown(3);
+
+  let count = 3;
+
+  const timer = setInterval(() => {
+    count--;
+
+    if (count > 0) {
+      setCountdown(count);
+    } else {
+      clearInterval(timer);
+
+      setCountdown("BATTLE!");
+      navigator.vibrate?.(30);
+
+      setTimeout(() => {
+        setCountdown(null);
+        gameStartedRef.current = true;
+        setGameStarted(true);
+      }, 700);
+    }
+  }, 1000);
+};
+
   const currentLineRef = useRef<{
     x1: number;
     y1: number;
@@ -279,6 +306,7 @@ if (score.player >= 7) {
 
         score.messageLife = 70;
         resetBall("down");
+        startCountdown();
       }
 
       if (ball.y > H - 22) {
@@ -295,6 +323,7 @@ if (score.ai >= 7) {
 
         score.messageLife = 70;
         resetBall("up");
+        startCountdown();
       }
 
       const current = currentLineRef.current;
