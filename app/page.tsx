@@ -190,7 +190,7 @@ const up = () => {
       const energyWidth = 160;
 const energyHeight = 8;
 const energyX = W / 2 - energyWidth / 2;
-const energyY = H - 85;
+const energyY = 72;
 
 ctx.fillStyle = "rgba(255,255,255,0.12)";
 ctx.fillRect(energyX, energyY, energyWidth, energyHeight);
@@ -205,7 +205,7 @@ ctx.fillRect(
 
 ctx.fillStyle = "rgba(255,255,255,0.35)";
 ctx.font = "10px monospace";
-ctx.fillText("ENERGY", W / 2, energyY - 8);
+ctx.fillText("ENERGY", W / 2, energyY + 22);
 
       if (score.messageLife > 0) {
         ctx.fillStyle = "rgba(255,255,255,0.9)";
