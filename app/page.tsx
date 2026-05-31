@@ -16,6 +16,8 @@ export default function Home() {
   const [gameStarted, setGameStarted] = useState(false);
   const gameStartedRef = useRef(false);
   
+const [goalFlash, setGoalFlash] = useState(false);
+
   const [countdown, setCountdown] = useState<number | string | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const linesRef = useRef<Line[]>([]);
@@ -218,6 +220,51 @@ if (!gameStartedRef.current) {
 
       ctx.fillStyle = "#020204";
       ctx.fillRect(0, 0, W, H);
+// BASE NEON BACKGROUND
+const gradient = ctx.createRadialGradient(
+  W / 2,
+  H / 2,
+  40,
+  W / 2,
+  H / 2,
+  H / 1.2
+);
+
+gradient.addColorStop(0, "rgba(0,82,255,0.16)");
+gradient.addColorStop(0.45, "rgba(0,82,255,0.05)");
+gradient.addColorStop(1, "rgba(0,0,0,0)");
+
+ctx.fillStyle = gradient;
+ctx.fillRect(0, 0, W, H);
+
+// subtle vertical grid
+ctx.strokeStyle = "rgba(0,82,255,0.08)";
+ctx.lineWidth = 1;
+
+for (let x = 40; x < W; x += 40) {
+  ctx.beginPath();
+  ctx.moveTo(x, 12);
+  ctx.lineTo(x, H - 12);
+  ctx.stroke();
+}
+
+for (let y = 60; y < H; y += 60) {
+  ctx.beginPath();
+  ctx.moveTo(12, y);
+  ctx.lineTo(W - 12, y);
+  ctx.stroke();
+}
+
+// BASE center ring
+ctx.beginPath();
+ctx.arc(W / 2, H / 2, 80, 0, Math.PI * 2);
+ctx.strokeStyle = "rgba(0,82,255,0.22)";
+ctx.lineWidth = 2;
+ctx.shadowColor = "#0052FF";
+ctx.shadowBlur = 12;
+ctx.stroke();
+ctx.shadowBlur = 0;
+
 
       ctx.strokeStyle = "rgba(255,255,255,0.15)";
       ctx.lineWidth = 2;
@@ -301,8 +348,14 @@ if (score.player >= 7) {
   setWinner("YOU WIN");
   setGameStarted(false);
         } else {
-          score.message = "YOU SCORE";
-        }
+  score.message = "YOU SCORE";
+
+  setGoalFlash(true);
+
+  setTimeout(() => {
+    setGoalFlash(false);
+  }, 250);
+}
 
         score.messageLife = 70;
         resetBall("down");
@@ -319,6 +372,11 @@ if (score.ai >= 7) {
 
         } else {
           score.message = "AI SCORES";
+          setGoalFlash(true);
+
+setTimeout(() => {
+  setGoalFlash(false);
+}, 250);
         }
 
         score.messageLife = 70;
@@ -530,6 +588,10 @@ setTimeout(() => {
     gameStarted ? "opacity-100" : "opacity-0"
   }`}
 />
+{goalFlash && (
+  <div className="absolute inset-0 bg-[#0052FF]/20 pointer-events-none z-40" />
+)}
+
 
 {countdown !== null && (
   <div className="absolute inset-0 flex flex-col items-center justify-center z-40 pointer-events-none">
