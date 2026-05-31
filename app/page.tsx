@@ -14,6 +14,7 @@ type Line = {
 export default function Home() {
   const [winner, setWinner] = useState<string | null>(null);
   const [gameStarted, setGameStarted] = useState(false);
+  
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const linesRef = useRef<Line[]>([]);
   const drawingRef = useRef<{ x: number; y: number } | null>(null);
@@ -446,13 +447,28 @@ return (
     )}
 
     <canvas
-      ref={canvasRef}
-      width={400}
-      height={700}
-      className={`w-[400px] h-[700px] max-w-[94vw] max-h-[92vh] rounded-3xl border border-white/15 touch-none transition ${
-        gameStarted ? "opacity-100" : "opacity-20 blur-sm"
-      }`}
-    />
+  ref={canvasRef}
+  width={400}
+  height={700}
+  className={`w-[400px] h-[700px] max-w-[94vw] max-h-[92vh] rounded-3xl border border-white/15 touch-none transition ${
+    gameStarted ? "opacity-100" : "opacity-20 blur-sm"
+  }`}
+/>
+
+{winner && (
+  <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm z-50">
+    <h1 className="text-4xl font-black text-white mb-6">
+      {winner}
+    </h1>
+
+    <button
+      onClick={() => window.location.reload()}
+      className="px-6 py-3 bg-blue-500 hover:bg-blue-600 rounded-xl font-bold text-white"
+    >
+      PLAY AGAIN
+    </button>
+  </div>
+)}
 </main>
 );
 }
