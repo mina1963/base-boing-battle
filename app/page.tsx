@@ -14,7 +14,9 @@ type Line = {
 export default function Home() {
   const [winner, setWinner] = useState<string | null>(null);
   const [gameStarted, setGameStarted] = useState(false);
+  const gameStartedRef = useRef(false);
   
+  const [countdown, setCountdown] = useState<number | string | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const linesRef = useRef<Line[]>([]);
   const drawingRef = useRef<{ x: number; y: number } | null>(null);
@@ -39,13 +41,14 @@ export default function Home() {
 
 
   const trailRef = useRef<{ x: number; y: number }[]>([]);
-  const ballRef = useRef({
-    x: 200,
-    y: 350,
-    r: 8,
-   vx: 1.2,
-   vy: 1.8,
-  });
+const ballRef = useRef({
+  x: 200,
+  y: 350,
+  r: 8,
+  vx: 0.6,
+  vy: 0.9,
+  scored: false,
+});
 
   const sparksRef = useRef<
   {
@@ -82,13 +85,25 @@ export default function Home() {
       };
     };
 
-    const resetBall = (direction: "up" | "down") => {
-      ballRef.current.x = W / 2;
-      ballRef.current.y = H / 2;
-      ballRef.current.vx = direction === "up" ? -1.2 : 1.2;
-      ballRef.current.vy = direction === "up" ? -1.8 : 1.8;
-      linesRef.current = [];
-    };
+const resetBall = (direction: "up" | "down") => {
+  ballRef.current.x = W / 2;
+
+  if (direction === "up") {
+    // oyuncu tarafından başla
+    ballRef.current.y = H - 140;
+    ballRef.current.vx = 0.3;
+    ballRef.current.vy = -0.9;
+  } else {
+    // AI tarafından başla
+    ballRef.current.y = 140;
+    ballRef.current.vx = -0.3;
+    ballRef.current.vy = 0.9;
+  }
+
+  linesRef.current = [];
+  trailRef.current = [];
+  sparksRef.current = [];
+};
 
     const getPos = (e: PointerEvent) => {
       const rect = canvas.getBoundingClientRect();
@@ -161,6 +176,12 @@ const up = () => {
 
     const loop = () => {
       frame++;
+
+if (!gameStartedRef.current) {
+  ctx.clearRect(0, 0, W, H);
+  animation = requestAnimationFrame(loop);
+  return;
+}
 
       if (energyRef.current.value < 100 && frame % 5 === 0) {
   energyRef.current.value += 1;
@@ -316,11 +337,12 @@ if (score.ai >= 7) {
         if (dist < ball.r + 5) {
           const angle = Math.atan2(dy, dx);
           const normal = angle + Math.PI / 2;
-          const speed = Math.min(
-  Math.hypot(ball.vx, ball.vy) + 0.25,
-  10
-);
+const currentSpeed = Math.hypot(ball.vx, ball.vy);
 
+const speed = Math.min(
+  currentSpeed + 0.02,
+  3
+);
           ball.vx = Math.cos(normal) * speed;
           ball.vy = Math.sin(normal) * speed;
           ball.vx += dx * 0.03;
@@ -417,7 +439,7 @@ ctx.shadowBlur = 0;
 
 return (
   <main className="w-screen h-screen bg-black flex items-center justify-center overflow-hidden">
-    {!gameStarted && (
+    {!gameStarted && countdown === null && (
       <div className="absolute z-20 flex flex-col items-center text-center">
         <h1 className="text-white text-4xl font-black tracking-[0.25em]">
           {winner ?? "BOING BATTLE"}
@@ -436,8 +458,33 @@ return (
   energyRef.current.value = 100;
   linesRef.current = [];
   trailRef.current = [];
+  sparksRef.current = [];
   setWinner(null);
+
+  setCountdown(3);
+
+  let count = 3;
+
+  const timer = setInterval(() => {
+    count--;
+
+    if (count > 0) {
+      setCountdown(count);
+    } else {
+clearInterval(timer);
+
+setCountdown("BATTLE!");
+
+navigator.vibrate?.(30);
+
+setTimeout(() => {
+  setCountdown(null);
+
+  gameStartedRef.current = true;
   setGameStarted(true);
+}, 700);
+    }
+  }, 1000);
 }}
           className="mt-10 px-8 py-4 rounded-full bg-blue-500 text-white font-bold tracking-[0.2em] hover:bg-blue-400 transition"
         >
@@ -446,24 +493,62 @@ return (
       </div>
     )}
 
-    <canvas
+  <canvas
   ref={canvasRef}
   width={400}
   height={700}
-  className={`w-[400px] h-[700px] max-w-[94vw] max-h-[92vh] rounded-3xl border border-white/15 touch-none transition ${
-    gameStarted ? "opacity-100" : "opacity-20 blur-sm"
+  className={`w-[100vw] h-[100dvh] max-w-[430px] max-h-[932px] rounded-none sm:rounded-3xl border border-white/15 touch-none transition ${
+    gameStarted ? "opacity-100" : "opacity-0"
   }`}
 />
 
+{countdown !== null && (
+  <div className="absolute inset-0 flex flex-col items-center justify-center z-40 pointer-events-none">
+    <div className="text-[#0052FF] text-sm font-black tracking-[0.5em] mb-3">
+      BASE READY
+    </div>
+
+<div
+  className={`font-black drop-shadow-[0_0_30px_rgba(0,82,255,0.9)] ${
+    countdown === "BATTLE!"
+      ? "text-[#0052FF] text-5xl"
+      : "text-white text-7xl"
+  }`}
+>
+  {countdown}
+</div>
+
+    <div className="mt-4 text-white/35 text-[10px] tracking-[0.35em]">
+      ONCHAIN ARCADE MODE
+    </div>
+  </div>
+)}
+
 {winner && (
-  <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm z-50">
-    <h1 className="text-4xl font-black text-white mb-6">
+  <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/85 backdrop-blur-sm z-50">
+    <h1 className="text-4xl font-black text-white mb-2">
       {winner}
     </h1>
 
+    <p className="mb-8 text-[#0052FF] text-xs font-black tracking-[0.35em]">
+      BASE BATTLE COMPLETE
+    </p>
+
     <button
-      onClick={() => window.location.reload()}
-      className="px-6 py-3 bg-blue-500 hover:bg-blue-600 rounded-xl font-bold text-white"
+      onClick={() => {
+        scoreRef.current.player = 0;
+        scoreRef.current.ai = 0;
+        scoreRef.current.message = "";
+        scoreRef.current.messageLife = 0;
+        energyRef.current.value = 100;
+        linesRef.current = [];
+        trailRef.current = [];
+        sparksRef.current = [];
+        gameStartedRef.current = true;
+        setWinner(null);
+        setGameStarted(true);
+      }}
+      className="px-7 py-3 rounded-full bg-[#0052FF] hover:bg-blue-500 font-black text-white tracking-[0.2em] shadow-[0_0_30px_rgba(0,82,255,0.45)]"
     >
       PLAY AGAIN
     </button>
