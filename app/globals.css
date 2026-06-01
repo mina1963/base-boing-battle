@@ -24,3 +24,43 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+@keyframes goalShake {
+  0% { transform: translateX(0px) scale(1); }
+  15% { transform: translateX(-14px) scale(1.01); }
+  30% { transform: translateX(14px) scale(1.01); }
+  45% { transform: translateX(-10px) scale(1.005); }
+  60% { transform: translateX(10px) scale(1.005); }
+  100% { transform: translateX(0px) scale(1); }
+}
+
+.goal-shake {
+  animation: goalShake 0.32s ease-in-out;
+}
+
+@keyframes menuBall {
+  0%, 100% {
+    transform: translate(-50%, 0) scale(1);
+  }
+
+  50% {
+    transform: translate(-50%, -28px) scale(1.08);
+  }
+}
+
+@keyframes countPop {
+  0% {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+
+  45% {
+    opacity: 1;
+    transform: scale(1.25);
+  }
+
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
