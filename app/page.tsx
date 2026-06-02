@@ -28,6 +28,13 @@ export default function Home() {
   const [showHowToPlay, setShowHowToPlay] = useState(false);
   const [showOnlineSoon, setShowOnlineSoon] = useState(false);
 
+const [copied, setCopied] = useState(false);
+
+const [roomCode, setRoomCode] = useState<string | null>(null);
+
+const [showJoinRoom, setShowJoinRoom] =
+  useState(false);
+
 const pauseRef = useRef(false);
 
   const gameStartedRef = useRef(false);
@@ -36,11 +43,23 @@ const pauseRef = useRef(false);
   const [goalFlash, setGoalFlash] = useState(false);
   const [countdown, setCountdown] = useState<number | string | null>(null);
 
+const [onlineStatus, setOnlineStatus] =
+  useState<string | null>(null);
+
+
+  const [showDifficulty, setShowDifficulty] = useState(false);
+const [aiDifficulty, setAiDifficulty] =
+  useState<"easy" | "normal" | "hard">("normal");
+
+
+
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const linesRef = useRef<Line[]>([]);
   const sparksRef = useRef<Spark[]>([]);
   const trailRef = useRef<{ x: number; y: number }[]>([]);
   const drawingRef = useRef<{ x: number; y: number } | null>(null);
+  const aiDifficultyRef =
+  useRef<"easy" | "normal" | "hard">("normal");
 
   const currentLineRef = useRef<{
     x1: number;
@@ -356,19 +375,37 @@ const pauseRef = useRef(false);
 
       const ball = ballRef.current;
 
-      if (frame % 40 === 0 && ball.y < H / 2 - 20 && ball.vy < 0) {
-        const aiY1 = Math.max(35, ball.y - 35);
-        const aiY2 = Math.max(35, ball.y - 10);
 
-        linesRef.current.push({
-          x1: ball.x - 55,
-          y1: Math.min(aiY1, H / 2 - 25),
-          x2: ball.x + 55,
-          y2: Math.min(aiY2, H / 2 - 25),
-          life: 80,
-          owner: "ai",
-        });
-      }
+const aiInterval =
+  aiDifficultyRef.current === "easy"
+    ? 95
+    : aiDifficultyRef.current === "hard"
+    ? 24
+    : 45;
+     if (
+  frame % aiInterval === 0 &&
+  ball.y < H / 2 - 20 &&
+  ball.vy < 0
+) {
+  const aiY1 = Math.max(35, ball.y - 35);
+  const aiY2 = Math.max(35, ball.y - 10);
+
+  const aiError =
+    aiDifficultyRef.current === "easy"
+      ? (Math.random() - 0.5) * 200
+      : aiDifficultyRef.current === "normal"
+      ? (Math.random() - 0.5) * 60
+      : 0;
+
+  linesRef.current.push({
+    x1: ball.x + aiError - 55,
+    y1: Math.min(aiY1, H / 2 - 25),
+    x2: ball.x + aiError + 55,
+    y2: Math.min(aiY2, H / 2 - 25),
+    life: 80,
+    owner: "ai",
+  });
+}
 
 if (!pauseRef.current) {
   ball.x += ball.vx;
@@ -381,9 +418,10 @@ if (!pauseRef.current) {
         trailRef.current.shift();
       }
 
-      if (ball.x < 22 || ball.x > W - 22) {
-        ball.vx *= -1;
-      }
+if (ball.x < 22 || ball.x > W - 22) {
+  ball.vx *= -1;
+  playSound("wall");
+}
 
       if (ball.y < 22) {
         score.player++;
@@ -398,6 +436,7 @@ if (!pauseRef.current) {
           pauseRef.current = true;
           setGoalFlash(true);
           setScreenShake(true);
+          playSound("goal");
 
           setTimeout(() => setGoalFlash(false), 250);
           setTimeout(() => setScreenShake(false), 320);
@@ -426,6 +465,7 @@ setTimeout(() => {
           pauseRef.current = true;
           setGoalFlash(true);
           setScreenShake(true);
+          playSound("goal");
 
           setTimeout(() => setGoalFlash(false), 250);
           setTimeout(() => setScreenShake(false), 320);
@@ -487,6 +527,7 @@ setTimeout(() => {
           }
 
           navigator.vibrate?.(12);
+          playSound("hit");
           line.life = 0;
         }
       }
@@ -604,6 +645,53 @@ setTimeout(() => {
     };
   }, []);
 
+
+const playSound = (
+  type: "hit" | "wall" | "goal"
+) => {
+  const AudioContextClass =
+    window.AudioContext;
+
+  const audioCtx = new AudioContextClass();
+
+  const oscillator =
+    audioCtx.createOscillator();
+
+  const gain =
+    audioCtx.createGain();
+
+  oscillator.connect(gain);
+  gain.connect(audioCtx.destination);
+
+  if (type === "hit") {
+    oscillator.frequency.value = 520;
+    gain.gain.value = 0.05;
+  }
+
+  if (type === "wall") {
+    oscillator.frequency.value = 220;
+    gain.gain.value = 0.04;
+  }
+
+  if (type === "goal") {
+    oscillator.frequency.value = 120;
+    gain.gain.value = 0.08;
+  }
+
+  oscillator.type = "square";
+
+  oscillator.start();
+
+  gain.gain.exponentialRampToValueAtTime(
+    0.001,
+    audioCtx.currentTime + 0.12
+  );
+
+  oscillator.stop(
+    audioCtx.currentTime + 0.12
+  );
+};
+
   const startGame = () => {
     scoreRef.current.player = 0;
     scoreRef.current.ai = 0;
@@ -719,12 +807,47 @@ setTimeout(() => {
               DEFLECT • SURVIVE • DOMINATE
             </p>
 
-            <button
-              onClick={startGame}
-              className="mt-12 w-[240px] h-[58px] rounded-full bg-[#0052FF] text-white font-black tracking-[0.2em] shadow-[0_0_30px_rgba(0,82,255,0.35)]"
-            >
-              PLAY VS AI
-            </button>
+<button
+  onClick={() => setShowDifficulty(true)}
+  className="mt-12 w-[240px] h-[58px] rounded-full bg-[#0052FF] text-white font-black tracking-[0.2em] shadow-[0_0_30px_rgba(0,82,255,0.35)]"
+>
+  PLAY VS AI
+</button>
+{showDifficulty && (
+  <div className="absolute inset-0 z-[90] bg-black/80 backdrop-blur-md flex items-center justify-center px-8">
+    <div className="w-full max-w-sm text-center bg-[#050814] border border-[#0052FF]/20 rounded-3xl p-8 shadow-[0_0_50px_rgba(0,82,255,0.15)]">
+      <h2 className="text-white text-3xl font-black mb-2">
+        SELECT AI
+      </h2>
+
+      <p className="text-[#0052FF] text-xs font-black tracking-[0.35em] mb-8">
+        DIFFICULTY
+      </p>
+
+      {(["easy", "normal", "hard"] as const).map((level) => (
+        <button
+          key={level}
+          onClick={() => {
+            setAiDifficulty(level);
+            aiDifficultyRef.current = level;
+            setShowDifficulty(false);
+            startGame();
+          }}
+          className="mt-3 w-full h-[54px] rounded-full border border-[#0052FF]/50 text-[#0052FF] font-black tracking-[0.2em] hover:bg-[#0052FF] hover:text-white transition"
+        >
+          {level.toUpperCase()}
+        </button>
+      ))}
+
+      <button
+        onClick={() => setShowDifficulty(false)}
+        className="mt-8 text-white/35 text-xs font-black tracking-[0.25em]"
+      >
+        BACK
+      </button>
+    </div>
+  </div>
+)}
 
             <button
               onClick={() => setShowOnlineSoon(true)}
@@ -767,30 +890,184 @@ setTimeout(() => {
         </div>
       )}
 
-      {showOnlineSoon && (
-        <div className="absolute inset-0 z-[80] bg-black/85 backdrop-blur-md flex items-center justify-center px-8">
-          <div className="max-w-sm text-center bg-[#050814] border border-[#0052FF]/20 rounded-3xl p-8 shadow-[0_0_50px_rgba(0,82,255,0.15)]">
-            <h2 className="text-white text-3xl font-black mb-3">
-              ONLINE 1V1
-            </h2>
+{showOnlineSoon && (
+  <div className="absolute inset-0 z-[80] bg-black/85 backdrop-blur-md flex items-center justify-center px-8">
+    <div className="w-full max-w-sm text-center bg-[#050814] border border-[#0052FF]/20 rounded-3xl p-8 shadow-[0_0_50px_rgba(0,82,255,0.15)]">
+      <h2 className="text-white text-3xl font-black mb-2">
+        ONLINE 1V1
+      </h2>
 
-            <p className="text-[#0052FF] text-xs font-black tracking-[0.35em] mb-6">
-              COMING SOON
-            </p>
+      <p className="text-[#0052FF] text-xs font-black tracking-[0.35em] mb-8">
+        BASE MULTIPLAYER
+      </p>
 
-            <p className="text-white/70 text-sm leading-7">
-              Real-time battles are being prepared for Base players.
-            </p>
+      <button className="w-full h-[54px] rounded-full bg-[#0052FF] text-white font-black tracking-[0.18em]">
+        CONNECT WALLET
+      </button>
 
-            <button
-              onClick={() => setShowOnlineSoon(false)}
-              className="mt-8 px-7 py-3 rounded-full bg-[#0052FF] text-white font-black tracking-[0.2em]"
-            >
-              GOT IT
-            </button>
-          </div>
-        </div>
-      )}
+<button
+onClick={() => {
+  const code = Math.random()
+    .toString(36)
+    .substring(2, 6)
+    .toUpperCase();
+
+  setRoomCode(code);
+  setShowJoinRoom(false);
+  setOnlineStatus("WAITING FOR PLAYER...");
+}}
+  className="mt-4 w-full h-[54px] rounded-full border border-[#0052FF]/50 text-[#0052FF] font-black tracking-[0.18em]"
+>
+  CREATE ROOM
+</button>
+
+<button
+  onClick={() => {
+    setShowJoinRoom(true);
+    setRoomCode(null);
+    setOnlineStatus(null);
+  }}
+  className="mt-4 w-full h-[54px] rounded-full border border-white/15 text-white/70 font-black tracking-[0.18em]"
+>
+  JOIN ROOM
+</button>
+
+{roomCode && (
+  <div className="mt-6">
+    <p className="text-white/35 text-[10px] tracking-[0.3em]">
+      ROOM CODE
+    </p>
+
+    <div className="mt-2 text-[#0052FF] text-3xl font-black tracking-[0.25em]">
+      {roomCode}
+    </div>
+
+    <p className="mt-2 text-white/30 text-[10px] tracking-[0.25em]">
+      SHARE THIS CODE WITH A FRIEND
+    </p>
+<button
+  onClick={() => {
+    if (roomCode) {
+      navigator.clipboard.writeText(roomCode);
+      setCopied(true);
+
+      setTimeout(() => {
+        setCopied(false);
+      }, 1500);
+    }
+  }}
+  className="mt-3 px-5 py-2 rounded-full border border-[#0052FF]/40 text-[#0052FF] text-[10px] font-black tracking-[0.25em]"
+>
+  {copied ? "COPIED ✓" : "COPY CODE"}
+</button>
+
+  </div>
+)}
+
+{roomCode && (
+  <div className="mt-4">
+    <p className="text-[#0052FF] text-[10px] font-black tracking-[0.25em] animate-pulse">
+      WAITING FOR PLAYER...
+    </p>
+
+    <div className="mt-2 flex justify-center gap-2">
+      <div className="w-2 h-2 rounded-full bg-[#0052FF] animate-bounce" />
+      <div
+        className="w-2 h-2 rounded-full bg-[#0052FF] animate-bounce"
+        style={{ animationDelay: "0.15s" }}
+      />
+      <div
+        className="w-2 h-2 rounded-full bg-[#0052FF] animate-bounce"
+        style={{ animationDelay: "0.3s" }}
+      />
+    </div>
+  </div>
+)}
+
+{showJoinRoom && (
+  <div className="mt-6">
+    <p className="text-white/35 text-[10px] tracking-[0.3em]">
+      ENTER CODE
+    </p>
+
+    <input
+      maxLength={4}
+      placeholder="ABCD"
+      className="
+        mt-3
+        w-full
+        h-[48px]
+        rounded-xl
+        bg-black/40
+        border
+        border-white/10
+        text-center
+        text-white
+        font-black
+        tracking-[0.25em]
+        outline-none
+      "
+    />
+
+<button
+onClick={() => {
+  setOnlineStatus("SEARCHING OPPONENT...");
+
+  setTimeout(() => {
+    setOnlineStatus("OPPONENT FOUND");
+  }, 2000);
+}}
+  className="
+    mt-3
+    w-full
+    h-[48px]
+    rounded-full
+    bg-[#0052FF]
+    text-white
+    font-black
+    tracking-[0.2em]
+  "
+>
+  JOIN
+</button>
+{onlineStatus && (
+  <div className="mt-5">
+    <p className="text-[#0052FF] text-xs font-black tracking-[0.25em] animate-pulse">
+      {onlineStatus}
+    </p>
+
+    <div className="mt-3 flex justify-center gap-2">
+      <div className="w-2 h-2 rounded-full bg-[#0052FF] animate-bounce" />
+      <div
+        className="w-2 h-2 rounded-full bg-[#0052FF] animate-bounce"
+        style={{ animationDelay: "0.15s" }}
+      />
+      <div
+        className="w-2 h-2 rounded-full bg-[#0052FF] animate-bounce"
+        style={{ animationDelay: "0.3s" }}
+      />
+    </div>
+  </div>
+)}
+
+
+  </div>
+)}
+
+<button
+  onClick={() => {
+    setShowOnlineSoon(false);
+    setRoomCode(null);
+    setShowJoinRoom(false);
+    setOnlineStatus(null);
+  }}
+  className="mt-8 text-white/35 text-xs font-black tracking-[0.25em]"
+>
+  BACK
+</button>
+    </div>
+  </div>
+)}
 
       <canvas
         ref={canvasRef}
