@@ -1,6 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useAccount } from "wagmi";
+import { useConnectModal } from "@rainbow-me/rainbowkit";
+import { io } from "socket.io-client";
+
 
 type Line = {
   x1: number;
@@ -21,13 +25,41 @@ type Spark = {
 };
 
 export default function Home() {
+
+  const socketRef = useRef<any>(null);
+  const { address, isConnected } = useAccount();
+const { openConnectModal } = useConnectModal();
   const [showSplash, setShowSplash] = useState(true);
   const [screen, setScreen] = useState<"menu" | "game">("menu");
   const [winner, setWinner] = useState<string | null>(null);
   const [gameStarted, setGameStarted] = useState(false);
   const [showHowToPlay, setShowHowToPlay] = useState(false);
   const [showOnlineSoon, setShowOnlineSoon] = useState(false);
+const [joinCode, setJoinCode] = useState("");
+const [activeRoomId, setActiveRoomId] =
+  useState<string | null>(null);
 
+const [isHost, setIsHost] = useState(false);
+const isHostRef = useRef(false);
+
+const receivedLinesRef = useRef<Set<string>>(
+  new Set()
+);
+
+const lastRemoteScoreTotalRef = useRef<number | null>(null);
+const guestRoundRestartingRef = useRef(false);
+
+const winnerRef = useRef<string | null>(null);
+
+const [roomId, setRoomId] = useState<string | null>(null);
+
+const [gameMode, setGameMode] =
+  useState<"ai" | "online">("ai");
+
+const gameModeRef =
+  useRef<"ai" | "online">("ai");
+
+const roomIdRef = useRef<string | null>(null);
 const [copied, setCopied] = useState(false);
 
 const [roomCode, setRoomCode] = useState<string | null>(null);
@@ -37,14 +69,28 @@ const [showJoinRoom, setShowJoinRoom] =
 
 const pauseRef = useRef(false);
 
+const countdownActiveRef = useRef(false);
+const countdownDelayTimerRef =
+  useRef<ReturnType<typeof setTimeout> | null>(null);
+const countdownIntervalRef =
+  useRef<ReturnType<typeof setInterval> | null>(null);
+const countdownBattleTimerRef =
+  useRef<ReturnType<typeof setTimeout> | null>(null);
+const lastCountdownKeyRef = useRef<string | null>(null);
+const goalLockRef = useRef(false);
+
   const gameStartedRef = useRef(false);
 
   const [screenShake, setScreenShake] = useState(false);
   const [goalFlash, setGoalFlash] = useState(false);
   const [countdown, setCountdown] = useState<number | string | null>(null);
 
+
 const [onlineStatus, setOnlineStatus] =
   useState<string | null>(null);
+const [playAgainWaiting, setPlayAgainWaiting] = useState(false);
+const [finalScore, setFinalScore] =
+  useState<{ player: number; ai: number } | null>(null);
 
 
   const [showDifficulty, setShowDifficulty] = useState(false);
@@ -52,6 +98,14 @@ const [aiDifficulty, setAiDifficulty] =
   useState<"easy" | "normal" | "hard">("normal");
 
 
+
+  const GAME_W = 400;
+  const GAME_H = 700;
+  const BALL_START_VX = 0.42;
+  const BALL_START_VY = 0.62;
+  const BALL_RESET_VX = 0.25;
+  const BALL_RESET_VY = 0.65;
+  const MAX_BALL_SPEED = 1.45;
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const linesRef = useRef<Line[]>([]);
@@ -83,35 +137,325 @@ const [aiDifficulty, setAiDifficulty] =
     x: 200,
     y: 350,
     r: 8,
-    vx: 0.6,
-    vy: 0.9,
+    vx: BALL_START_VX,
+    vy: BALL_START_VY,
   });
 
-  const startCountdown = () => {
+  const targetBallRef = useRef({
+    x: 200,
+    y: 350,
+    vx: BALL_START_VX,
+    vy: BALL_START_VY,
+  });
+
+  const targetBallUpdatedAtRef = useRef(Date.now());
+
+  const clearCountdownTimers = () => {
+    if (countdownDelayTimerRef.current) {
+      clearTimeout(countdownDelayTimerRef.current);
+      countdownDelayTimerRef.current = null;
+    }
+
+    if (countdownIntervalRef.current) {
+      clearInterval(countdownIntervalRef.current);
+      countdownIntervalRef.current = null;
+    }
+
+    if (countdownBattleTimerRef.current) {
+      clearTimeout(countdownBattleTimerRef.current);
+      countdownBattleTimerRef.current = null;
+    }
+  };
+
+  const startCountdown = (startAtMs?: number) => {
+    if (countdownActiveRef.current) return;
+
+    countdownActiveRef.current = true;
+    clearCountdownTimers();
+
+    const beginCountdown = () => {
+      pauseRef.current = true;
+      gameStartedRef.current = false;
+      setGameStarted(false);
+      setCountdown(3);
+
+      let count = 3;
+
+      countdownIntervalRef.current = setInterval(() => {
+        count--;
+
+        if (count > 0) {
+          setCountdown(count);
+        } else {
+          if (countdownIntervalRef.current) {
+            clearInterval(countdownIntervalRef.current);
+            countdownIntervalRef.current = null;
+          }
+
+          setCountdown("BATTLE!");
+          navigator.vibrate?.(30);
+
+          countdownBattleTimerRef.current = setTimeout(() => {
+            setCountdown(null);
+            countdownActiveRef.current = false;
+            pauseRef.current = false;
+            goalLockRef.current = false;
+            gameStartedRef.current = true;
+            setGameStarted(true);
+
+            if (
+              gameModeRef.current === "online" &&
+              isHostRef.current &&
+              roomIdRef.current
+            ) {
+              socketRef.current?.emit("host-state", {
+                roomCode: roomIdRef.current,
+                state: {
+                  phase: "playing",
+                  round_start_at: null,
+                  updated_at: Date.now(),
+                },
+              });
+            }
+          }, 700);
+        }
+      }, 1000);
+    };
+
+    const delay = startAtMs
+      ? Math.max(0, startAtMs - Date.now())
+      : 0;
+
+    if (delay > 0) {
+      countdownDelayTimerRef.current = setTimeout(
+        beginCountdown,
+        delay
+      );
+    } else {
+      beginCountdown();
+    }
+  };
+
+
+  const applySocketState = (state: any) => {
+    const hostScore = Number(state.host_score ?? state.hostScore ?? 0);
+    const guestScore = Number(state.guest_score ?? state.guestScore ?? 0);
+
+    if (isHostRef.current) {
+      scoreRef.current.player = hostScore;
+      scoreRef.current.ai = guestScore;
+    } else {
+      scoreRef.current.player = guestScore;
+      scoreRef.current.ai = hostScore;
+    }
+
+    const remoteBallX = Number(state.ball_x ?? state.ball?.x ?? ballRef.current.x);
+    const remoteBallY = Number(state.ball_y ?? state.ball?.y ?? ballRef.current.y);
+    const remoteBallVx = Number(state.ball_vx ?? state.ball?.vx ?? ballRef.current.vx);
+    const remoteBallVy = Number(state.ball_vy ?? state.ball?.vy ?? ballRef.current.vy);
+
+    const displayBallX = remoteBallX;
+    const displayBallY = isHostRef.current ? remoteBallY : GAME_H - remoteBallY;
+    const displayBallVx = remoteBallVx;
+    const displayBallVy = isHostRef.current ? remoteBallVy : -remoteBallVy;
+
+    if (!isHostRef.current) {
+      targetBallRef.current.x = displayBallX;
+      targetBallRef.current.y = displayBallY;
+      targetBallRef.current.vx = displayBallVx;
+      targetBallRef.current.vy = displayBallVy;
+      targetBallUpdatedAtRef.current = Date.now();
+    }
+
+    if (state.phase === "countdown" || state.phase === "finished") {
+      ballRef.current.x = displayBallX;
+      ballRef.current.y = displayBallY;
+      ballRef.current.vx = displayBallVx;
+      ballRef.current.vy = displayBallVy;
+
+      targetBallRef.current.x = displayBallX;
+      targetBallRef.current.y = displayBallY;
+      targetBallRef.current.vx = displayBallVx;
+      targetBallRef.current.vy = displayBallVy;
+    }
+
+    const roundStartRaw = state.round_start_at ?? state.roundStartAt;
+
+    if (
+      gameModeRef.current === "online" &&
+      state.phase === "countdown" &&
+      roundStartRaw
+    ) {
+      const countdownKey = String(roundStartRaw);
+
+      if (lastCountdownKeyRef.current !== countdownKey) {
+        lastCountdownKeyRef.current = countdownKey;
+
+        pauseRef.current = true;
+        gameStartedRef.current = false;
+        setGameStarted(false);
+
+        linesRef.current = [];
+        trailRef.current = [];
+        sparksRef.current = [];
+
+        const startAtMs = typeof roundStartRaw === "number"
+          ? roundStartRaw
+          : new Date(roundStartRaw).getTime();
+
+        startCountdown(startAtMs);
+      }
+    }
+
+    const resolvedWinner =
+      state.winner ||
+      (hostScore >= 7 ? "host" : guestScore >= 7 ? "guest" : null);
+
+    if (resolvedWinner) {
+      setFinalScore({
+        player: scoreRef.current.player,
+        ai: scoreRef.current.ai,
+      });
+
+      if (resolvedWinner === "host") {
+        const text = isHostRef.current ? "YOU WIN" : "P2 WINS";
+        winnerRef.current = text;
+        setWinner(text);
+      }
+
+      if (resolvedWinner === "guest") {
+        const text = isHostRef.current ? "P2 WINS" : "YOU WIN";
+        winnerRef.current = text;
+        setWinner(text);
+      }
+
+      pauseRef.current = true;
+      setGameStarted(false);
+      gameStartedRef.current = false;
+    }
+  };
+
+
+useEffect(() => {
+  const socket = io("http://localhost:4000", {
+    transports: ["websocket"],
+  });
+
+  socketRef.current = socket;
+
+  const prepareOnlineGame = () => {
+    scoreRef.current.player = 0;
+    scoreRef.current.ai = 0;
+    scoreRef.current.message = "";
+    scoreRef.current.messageLife = 0;
+    energyRef.current.value = 100;
+
+    ballRef.current.x = 200;
+    ballRef.current.y = 350;
+    ballRef.current.vx = BALL_START_VX;
+    ballRef.current.vy = BALL_START_VY;
+    targetBallRef.current.x = 200;
+    targetBallRef.current.y = 350;
+    targetBallRef.current.vx = BALL_START_VX;
+    targetBallRef.current.vy = BALL_START_VY;
+
+    linesRef.current = [];
+    trailRef.current = [];
+    sparksRef.current = [];
+
+    countdownActiveRef.current = false;
+    lastCountdownKeyRef.current = null;
+    goalLockRef.current = false;
+    clearCountdownTimers();
+
+    winnerRef.current = null;
+    pauseRef.current = true;
     gameStartedRef.current = false;
     setGameStarted(false);
-    setCountdown(3);
-
-    let count = 3;
-
-    const timer = setInterval(() => {
-      count--;
-
-      if (count > 0) {
-        setCountdown(count);
-      } else {
-        clearInterval(timer);
-        setCountdown("BATTLE!");
-        navigator.vibrate?.(30);
-
-        setTimeout(() => {
-          setCountdown(null);
-          gameStartedRef.current = true;
-          setGameStarted(true);
-        }, 700);
-      }
-    }, 1000);
+    setWinner(null);
+    setFinalScore(null);
+    setPlayAgainWaiting(false);
+    setCountdown(null);
+    setScreen("game");
   };
+
+  socket.on("connect", () => {
+    console.log("SOCKET CONNECTED", socket.id);
+  });
+
+  socket.on("disconnect", () => {
+    console.log("SOCKET DISCONNECTED");
+  });
+
+  socket.on("room-created", ({ roomCode }) => {
+    console.log("SOCKET ROOM CREATED", roomCode);
+
+    roomIdRef.current = roomCode;
+    setRoomId(roomCode);
+    setIsHost(true);
+    isHostRef.current = true;
+    setRoomCode(roomCode);
+    setShowJoinRoom(false);
+    setOnlineStatus("WAITING FOR PLAYER...");
+  });
+
+  socket.on("room-matched", ({ roomCode, state }) => {
+    console.log("SOCKET ROOM MATCHED", roomCode);
+
+    roomIdRef.current = roomCode;
+    setRoomId(roomCode);
+    setShowOnlineSoon(false);
+    setShowJoinRoom(false);
+    setOnlineStatus(null);
+    setRoomCode(null);
+    setActiveRoomId(null);
+
+    setGameMode("online");
+    gameModeRef.current = "online";
+
+    prepareOnlineGame();
+    applySocketState(state);
+  });
+
+  socket.on("game-state", (state) => {
+    applySocketState(state);
+  });
+
+  socket.on("remote-line", (line) => {
+    const myOwner = isHostRef.current ? "host" : "guest";
+    if (line.owner === myOwner) return;
+
+    const remoteX1 = Number(line.x1);
+    const remoteY1 = Number(line.y1);
+    const remoteX2 = Number(line.x2);
+    const remoteY2 = Number(line.y2);
+
+    linesRef.current.push({
+      x1: remoteX1,
+      y1: isHostRef.current ? remoteY1 : GAME_H - remoteY1,
+      x2: remoteX2,
+      y2: isHostRef.current ? remoteY2 : GAME_H - remoteY2,
+      life: 42,
+      owner: "ai",
+    });
+  });
+
+  socket.on("play-again-status", ({ hostReadyAgain, guestReadyAgain }) => {
+    if (hostReadyAgain && guestReadyAgain) {
+      setPlayAgainWaiting(false);
+      prepareOnlineGame();
+    }
+  });
+
+  socket.on("join-error", (message) => {
+    alert(message);
+  });
+
+  return () => {
+    socket.disconnect();
+  };
+}, []);
+
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -154,14 +498,16 @@ const [aiDifficulty, setAiDifficulty] =
     const resetBall = (direction: "up" | "down") => {
       ballRef.current.x = W / 2;
 
+      goalLockRef.current = true;
+
       if (direction === "up") {
-        ballRef.current.y = H - 140;
-        ballRef.current.vx = 0.3;
-        ballRef.current.vy = -0.9;
+        ballRef.current.y = H - 175;
+        ballRef.current.vx = BALL_RESET_VX;
+        ballRef.current.vy = -BALL_RESET_VY;
       } else {
-        ballRef.current.y = 140;
-        ballRef.current.vx = -0.3;
-        ballRef.current.vy = 0.9;
+        ballRef.current.y = 175;
+        ballRef.current.vx = -BALL_RESET_VX;
+        ballRef.current.vy = BALL_RESET_VY;
       }
 
       linesRef.current = [];
@@ -193,7 +539,7 @@ const [aiDifficulty, setAiDifficulty] =
       if (p.y < H / 2) return;
 
       const distance = Math.hypot(p.x - start.x, p.y - start.y);
-      if (distance < 100) return;
+      if (distance < 60) return;
       if (energyRef.current.value < 25) return;
 
       const end = limitLine(start, p);
@@ -217,9 +563,25 @@ const [aiDifficulty, setAiDifficulty] =
         y1: start.y,
         x2: end.x,
         y2: end.y,
-        life: 35,
+        life: 45,
         owner: "player",
       });
+
+if (
+  gameModeRef.current === "online" &&
+  roomIdRef.current
+) {
+  socketRef.current?.emit("draw-line", {
+    roomCode: roomIdRef.current,
+    line: {
+      owner: isHostRef.current ? "host" : "guest",
+      x1: start.x,
+      y1: isHostRef.current ? start.y : H - start.y,
+      x2: end.x,
+      y2: isHostRef.current ? end.y : H - end.y,
+    },
+  });
+}
 
       energyRef.current.value -= 25;
       currentLineRef.current = null;
@@ -241,11 +603,17 @@ const [aiDifficulty, setAiDifficulty] =
     const loop = () => {
       frame++;
 
-      if (!gameStartedRef.current) {
-        ctx.clearRect(0, 0, W, H);
-        animation = requestAnimationFrame(loop);
-        return;
-      }
+      if (winnerRef.current) {
+  animation = requestAnimationFrame(loop);
+  return;
+}
+
+
+      if (winner) {
+  animation = requestAnimationFrame(loop);
+  return;
+}
+const roundActive = gameStartedRef.current && !pauseRef.current;
 
       if (energyRef.current.value < 100 && frame % 5 === 0) {
         energyRef.current.value += 1;
@@ -319,7 +687,8 @@ const [aiDifficulty, setAiDifficulty] =
       ctx.fillStyle = "rgba(255,255,255,0.95)";
       ctx.font = "bold 24px monospace";
       ctx.textAlign = "center";
-      ctx.fillText(`AI ${score.ai}   ◇   ${score.player} YOU`, W / 2, 50);
+      const opponentLabel = gameModeRef.current === "online" ? "P2" : "AI";
+      ctx.fillText(`${opponentLabel} ${score.ai}   ◇   ${score.player} YOU`, W / 2, 50);
 
       ctx.fillStyle = "rgba(0,82,255,0.8)";
       ctx.font = "bold 12px monospace";
@@ -383,6 +752,7 @@ const aiInterval =
     ? 24
     : 45;
      if (
+  gameModeRef.current === "ai" &&
   frame % aiInterval === 0 &&
   ball.y < H / 2 - 20 &&
   ball.vy < 0
@@ -402,14 +772,77 @@ const aiInterval =
     y1: Math.min(aiY1, H / 2 - 25),
     x2: ball.x + aiError + 55,
     y2: Math.min(aiY2, H / 2 - 25),
-    life: 80,
+    life: 55,
     owner: "ai",
   });
 }
 
-if (!pauseRef.current) {
-  ball.x += ball.vx;
-  ball.y += ball.vy;
+if (roundActive) {
+  if (
+    gameModeRef.current === "online" &&
+    !isHostRef.current
+  ) {
+    const elapsedFrames = Math.min(
+      5,
+      (Date.now() - targetBallUpdatedAtRef.current) / 16.67
+    );
+
+    const predictedX = Math.max(
+      22,
+      Math.min(W - 22, targetBallRef.current.x + targetBallRef.current.vx * elapsedFrames)
+    );
+
+    const predictedY = Math.max(
+      22,
+      Math.min(H - 22, targetBallRef.current.y + targetBallRef.current.vy * elapsedFrames)
+    );
+
+    const dx = predictedX - ball.x;
+    const dy = predictedY - ball.y;
+
+    if (Math.hypot(dx, dy) < 0.9) {
+      ball.x = predictedX;
+      ball.y = predictedY;
+    } else {
+      ball.x += dx * 0.32;
+      ball.y += dy * 0.32;
+    }
+
+    ball.vx = targetBallRef.current.vx;
+    ball.vy = targetBallRef.current.vy;
+  } else {
+    ball.x += ball.vx;
+    ball.y += ball.vy;
+  }
+}
+
+if (
+  gameModeRef.current === "online" &&
+  isHostRef.current &&
+  roomIdRef.current &&
+  roundActive &&
+  frame % 1 === 0
+) {
+  socketRef.current?.emit("host-state", {
+    roomCode: roomIdRef.current,
+    state: {
+      ball_x: ball.x,
+      ball_y: ball.y,
+      ball_vx: ball.vx,
+      ball_vy: ball.vy,
+      host_score: scoreRef.current.player,
+      guest_score: scoreRef.current.ai,
+      winner:
+        scoreRef.current.player >= 7
+          ? "host"
+          : scoreRef.current.ai >= 7
+          ? "guest"
+          : null,
+      phase: "playing",
+      round_start_at: null,
+      updated_at: Date.now(),
+    },
+  });
 }
 
       trailRef.current.push({ x: ball.x, y: ball.y });
@@ -418,73 +851,205 @@ if (!pauseRef.current) {
         trailRef.current.shift();
       }
 
-if (ball.x < 22 || ball.x > W - 22) {
+if (roundActive && (ball.x < 22 || ball.x > W - 22)) {
   ball.vx *= -1;
   playSound("wall");
 }
 
-      if (ball.y < 22) {
-        score.player++;
+if (
+  roundActive &&
+  !(
+    gameModeRef.current === "online" &&
+    !isHostRef.current
+  ) &&
+  !goalLockRef.current &&
+  ball.y < 22
+) {
+  console.log("TOP GOAL CHECK", {
+    mode: gameModeRef.current,
+    isHost: isHostRef.current,
+    score: scoreRef.current,
+  });
 
-        if (score.player >= 7) {
-          score.message = "YOU WIN";
-          setWinner("YOU WIN");
-          setGameStarted(false);
-          gameStartedRef.current = false;
-        } else {
-          score.message = "YOU GOAL";
-          pauseRef.current = true;
-          setGoalFlash(true);
-          setScreenShake(true);
-          playSound("goal");
+  goalLockRef.current = true;
+  score.player++;
 
-          setTimeout(() => setGoalFlash(false), 250);
-          setTimeout(() => setScreenShake(false), 320);
 
-resetBall("down");
+if (score.player >= 7) {
+  pauseRef.current = true;
+  gameStartedRef.current = false;
+  setGameStarted(false);
 
-setTimeout(() => {
-  pauseRef.current = false;
-  startCountdown();
-}, 1800);
-        }
+  if (
+    gameModeRef.current === "online" &&
+    isHostRef.current &&
+    roomIdRef.current
+  ) {
+    socketRef.current?.emit("host-state", {
+      roomCode: roomIdRef.current,
+      state: {
+        winner: "host",
+        host_score: score.player,
+        guest_score: score.ai,
+        phase: "finished",
+        updated_at: Date.now(),
+      },
+    });
+  }
+
+  score.message = "YOU WIN";
+  winnerRef.current = "YOU WIN";
+  setWinner("YOU WIN");
+  console.log("HOST WIN TRIGGERED");
+} else {
+  score.message = "YOU GOAL";
+  pauseRef.current = true;
+  gameStartedRef.current = false;
+  setGameStarted(false);
+  setGoalFlash(true);
+  setScreenShake(true);
+  playSound("goal");
+
+  setTimeout(() => setGoalFlash(false), 250);
+  setTimeout(() => setScreenShake(false), 320);
+
+  resetBall("down");
+
+  if (
+    gameModeRef.current === "online" &&
+    isHostRef.current &&
+    roomIdRef.current
+  ) {
+    const roundStartAt = new Date(Date.now() + 1200).toISOString();
+
+    socketRef.current?.emit("host-state", {
+      roomCode: roomIdRef.current,
+      state: {
+        ball_x: ballRef.current.x,
+        ball_y: ballRef.current.y,
+        ball_vx: ballRef.current.vx,
+        ball_vy: ballRef.current.vy,
+        host_score: score.player,
+        guest_score: score.ai,
+        winner: null,
+        phase: "countdown",
+        round_start_at: roundStartAt,
+        updated_at: Date.now(),
+      },
+    });
+  } else {
+    setTimeout(() => {
+      pauseRef.current = false;
+      startCountdown();
+    }, 1800);
+  }
+}
+
+        score.messageLife = 70;
+      }
+if (
+  roundActive &&
+  !(
+    gameModeRef.current === "online" &&
+    !isHostRef.current
+  ) &&
+  !goalLockRef.current &&
+  ball.y > H - 22
+) {
+  console.log("BOTTOM GOAL CHECK", {
+    mode: gameModeRef.current,
+    isHost: isHostRef.current,
+    score: scoreRef.current,
+  });
+
+  goalLockRef.current = true;
+  score.ai++;
+
+if (score.ai >= 7) {
+  pauseRef.current = true;
+  gameStartedRef.current = false;
+  setGameStarted(false);
+
+  if (
+    gameModeRef.current === "online" &&
+    isHostRef.current &&
+    roomIdRef.current
+  ) {
+    socketRef.current?.emit("host-state", {
+      roomCode: roomIdRef.current,
+      state: {
+        winner: "guest",
+        host_score: score.player,
+        guest_score: score.ai,
+        phase: "finished",
+        updated_at: Date.now(),
+      },
+    });
+  }
+
+  const loseText =
+    gameModeRef.current === "online" ? "P2 WINS" : "AI WINS";
+  score.message = loseText;
+  winnerRef.current = loseText;
+  setWinner(loseText);
+} else {
+  const goalText =
+    gameModeRef.current === "online" ? "P2 GOAL" : "AI GOAL";
+
+  score.message = goalText;
+  pauseRef.current = true;
+  gameStartedRef.current = false;
+  setGameStarted(false);
+  setGoalFlash(true);
+  setScreenShake(true);
+  playSound("goal");
+
+  setTimeout(() => setGoalFlash(false), 250);
+  setTimeout(() => setScreenShake(false), 320);
+
+  resetBall("up");
+
+  if (
+    gameModeRef.current === "online" &&
+    isHostRef.current &&
+    roomIdRef.current
+  ) {
+    const roundStartAt = new Date(Date.now() + 1200).toISOString();
+
+    socketRef.current?.emit("host-state", {
+      roomCode: roomIdRef.current,
+      state: {
+        ball_x: ballRef.current.x,
+        ball_y: ballRef.current.y,
+        ball_vx: ballRef.current.vx,
+        ball_vy: ballRef.current.vy,
+        host_score: score.player,
+        guest_score: score.ai,
+        winner: null,
+        phase: "countdown",
+        round_start_at: roundStartAt,
+        updated_at: Date.now(),
+      },
+    });
+  } else {
+    setTimeout(() => {
+      pauseRef.current = false;
+      startCountdown();
+    }, 1800);
+  }
+}
 
         score.messageLife = 70;
       }
 
-      if (ball.y > H - 22) {
-        score.ai++;
+      const shouldRunPhysics =
+        gameModeRef.current !== "online" || isHostRef.current;
 
-        if (score.ai >= 7) {
-          score.message = "AI WINS";
-          setWinner("AI WINS");
-          setGameStarted(false);
-          gameStartedRef.current = false;
-        } else {
-          score.message = "AI GOAL";
-          pauseRef.current = true;
-          setGoalFlash(true);
-          setScreenShake(true);
-          playSound("goal");
+      if (shouldRunPhysics) {
+        for (const line of linesRef.current) {
+          if (line.life < 8) continue;
 
-          setTimeout(() => setGoalFlash(false), 250);
-          setTimeout(() => setScreenShake(false), 320);
-
-resetBall("down");
-
-setTimeout(() => {
-  pauseRef.current = false;
-  startCountdown();
-}, 1800);
-        }
-
-        score.messageLife = 70;
-      }
-
-      for (const line of linesRef.current) {
-        if (line.life < 8) continue;
-
-        const dx = line.x2 - line.x1;
+          const dx = line.x2 - line.x1;
         const dy = line.y2 - line.y1;
         const lenSq = dx * dx + dy * dy;
 
@@ -506,11 +1071,17 @@ setTimeout(() => {
           const angle = Math.atan2(dy, dx);
           const normal = angle + Math.PI / 2;
           const currentSpeed = Math.hypot(ball.vx, ball.vy);
-          const speed = Math.min(currentSpeed + 0.02, 3);
+          const speed = Math.min(currentSpeed + 0.006, MAX_BALL_SPEED);
 
           ball.vx = Math.cos(normal) * speed;
           ball.vy = Math.sin(normal) * speed;
-          ball.vx += dx * 0.03;
+          ball.vx += dx * 0.009;
+
+          const nextSpeed = Math.hypot(ball.vx, ball.vy);
+          if (nextSpeed > MAX_BALL_SPEED) {
+            ball.vx = (ball.vx / nextSpeed) * MAX_BALL_SPEED;
+            ball.vy = (ball.vy / nextSpeed) * MAX_BALL_SPEED;
+          }
 
           if (line.owner === "player" && ball.vy > 0) ball.vy *= -1;
           if (line.owner === "ai" && ball.vy < 0) ball.vy *= -1;
@@ -529,6 +1100,7 @@ setTimeout(() => {
           navigator.vibrate?.(12);
           playSound("hit");
           line.life = 0;
+          }
         }
       }
 
@@ -699,15 +1271,81 @@ const playSound = (
     scoreRef.current.messageLife = 0;
     energyRef.current.value = 100;
 
+    ballRef.current.x = 200;
+    ballRef.current.y = 350;
+    ballRef.current.vx = BALL_START_VX;
+    ballRef.current.vy = BALL_START_VY;
+    targetBallRef.current.x = 200;
+    targetBallRef.current.y = 350;
+    targetBallRef.current.vx = BALL_START_VX;
+    targetBallRef.current.vy = BALL_START_VY;
+
     linesRef.current = [];
     trailRef.current = [];
     sparksRef.current = [];
 
+    lastRemoteScoreTotalRef.current = null;
+    guestRoundRestartingRef.current = false;
+    countdownActiveRef.current = false;
+    lastCountdownKeyRef.current = null;
+    goalLockRef.current = false;
+    clearCountdownTimers();
+
+    winnerRef.current = null;
+    pauseRef.current = true;
+    gameStartedRef.current = false;
+    setGameStarted(false);
     setWinner(null);
+    setFinalScore(null);
+    setPlayAgainWaiting(false);
     setCountdown(null);
     setScreen("game");
 
-    startCountdown();
+    if (gameModeRef.current === "ai") {
+      pauseRef.current = false;
+      startCountdown();
+      return;
+    }
+
+    if (
+      gameModeRef.current === "online" &&
+      isHostRef.current &&
+      roomIdRef.current
+    ) {
+      const roundStartAt = new Date(Date.now() + 1200).toISOString();
+
+      socketRef.current?.emit("host-state", {
+        roomCode: roomIdRef.current,
+        state: {
+          ball_x: ballRef.current.x,
+          ball_y: ballRef.current.y,
+          ball_vx: ballRef.current.vx,
+          ball_vy: ballRef.current.vy,
+          host_score: 0,
+          guest_score: 0,
+          winner: null,
+          phase: "countdown",
+          round_start_at: roundStartAt,
+          updated_at: Date.now(),
+        },
+      });
+    }
+  };
+
+  const handlePlayAgain = async () => {
+    if (gameModeRef.current !== "online") {
+      startGame();
+      return;
+    }
+
+    if (!roomIdRef.current) return;
+
+    setPlayAgainWaiting(true);
+
+    socketRef.current?.emit("play-again-ready", {
+      roomCode: roomIdRef.current,
+      role: isHostRef.current ? "host" : "guest",
+    });
   };
 
   const goMainMenu = () => {
@@ -725,15 +1363,27 @@ const playSound = (
 
     setGameStarted(false);
     setWinner(null);
+    setFinalScore(null);
+    setPlayAgainWaiting(false);
     setCountdown(null);
+    setShowOnlineSoon(false);
+    setShowJoinRoom(false);
+    setOnlineStatus(null);
+    setRoomCode(null);
+    setJoinCode("");
+    setActiveRoomId(null);
+    setRoomId(null);
+    roomIdRef.current = null;
+    setPlayAgainWaiting(false);
     setScreen("menu");
   };
 
   return (
     <main
-      className={`w-screen h-screen bg-black flex items-center justify-center overflow-hidden ${
+      className={`fixed inset-0 w-screen h-[100dvh] bg-black flex items-center justify-center overflow-hidden overscroll-none ${
         screenShake ? "goal-shake" : ""
       }`}
+      style={{ touchAction: "none" }}
     >
       {showSplash && (
         <div className="absolute inset-0 z-[999] bg-black flex items-center justify-center">
@@ -830,6 +1480,8 @@ const playSound = (
           onClick={() => {
             setAiDifficulty(level);
             aiDifficultyRef.current = level;
+            setGameMode("ai");
+            gameModeRef.current = "ai";
             setShowDifficulty(false);
             startGame();
           }}
@@ -901,33 +1553,71 @@ const playSound = (
         BASE MULTIPLAYER
       </p>
 
-      <button className="w-full h-[54px] rounded-full bg-[#0052FF] text-white font-black tracking-[0.18em]">
-        CONNECT WALLET
-      </button>
+<button
+  onClick={() => {
+    if (!isConnected) {
+      openConnectModal?.();
+    }
+  }}
+  className="w-full h-[54px] rounded-full bg-[#0052FF] text-white font-black tracking-[0.18em]"
+>
+  {isConnected && address
+    ? `${address.slice(0, 6)}...${address.slice(-4)}`
+    : "CONNECT WALLET"}
+</button>
+{isConnected && (
+  <p className="mt-2 text-white/30 text-[10px] tracking-[0.25em]">
+    WALLET CONNECTED
+  </p>
+)}
+
+
+
 
 <button
-onClick={() => {
-  const code = Math.random()
-    .toString(36)
-    .substring(2, 6)
-    .toUpperCase();
+  onClick={async () => {
+    if (!isConnected) {
+      openConnectModal?.();
+      return;
+    }
 
-  setRoomCode(code);
-  setShowJoinRoom(false);
-  setOnlineStatus("WAITING FOR PLAYER...");
-}}
-  className="mt-4 w-full h-[54px] rounded-full border border-[#0052FF]/50 text-[#0052FF] font-black tracking-[0.18em]"
+const code = Math.random()
+  .toString(36)
+  .substring(2, 6)
+  .toUpperCase();
+
+setGameMode("online");
+gameModeRef.current = "online";
+setRoomCode(code);
+setShowJoinRoom(false);
+setOnlineStatus("WAITING FOR PLAYER...");
+
+socketRef.current?.emit("create-room", {
+  roomCode: code,
+  address,
+});
+  }}
+  className={`mt-4 w-full h-[54px] rounded-full border border-[#0052FF]/50 text-[#0052FF] font-black tracking-[0.18em] ${
+    !isConnected ? "opacity-45" : ""
+  }`}
 >
   CREATE ROOM
 </button>
 
 <button
   onClick={() => {
+    if (!isConnected) {
+      openConnectModal?.();
+      return;
+    }
+
     setShowJoinRoom(true);
     setRoomCode(null);
     setOnlineStatus(null);
   }}
-  className="mt-4 w-full h-[54px] rounded-full border border-white/15 text-white/70 font-black tracking-[0.18em]"
+  className={`mt-4 w-full h-[54px] rounded-full border border-white/15 text-white/70 font-black tracking-[0.18em] ${
+    !isConnected ? "opacity-45" : ""
+  }`}
 >
   JOIN ROOM
 </button>
@@ -991,32 +1681,46 @@ onClick={() => {
     </p>
 
     <input
-      maxLength={4}
-      placeholder="ABCD"
-      className="
-        mt-3
-        w-full
-        h-[48px]
-        rounded-xl
-        bg-black/40
-        border
-        border-white/10
-        text-center
-        text-white
-        font-black
-        tracking-[0.25em]
-        outline-none
-      "
-    />
+  value={joinCode}
+  onChange={(e) =>
+    setJoinCode(e.target.value.toUpperCase())
+  }
+  maxLength={4}
+  placeholder="ABCD"
+  className="
+    mt-3
+    w-full
+    h-[48px]
+    rounded-xl
+    bg-black/40
+    border
+    border-white/10
+    text-center
+    text-white
+    font-black
+    tracking-[0.25em]
+    outline-none
+  "
+/>
 
 <button
-onClick={() => {
-  setOnlineStatus("SEARCHING OPPONENT...");
+  onClick={async () => {
+    if (!joinCode || !address) return;
 
-  setTimeout(() => {
+    const cleanCode = joinCode.toUpperCase();
+
+    setGameMode("online");
+    gameModeRef.current = "online";
+    setIsHost(false);
+    isHostRef.current = false;
+    roomIdRef.current = cleanCode;
     setOnlineStatus("OPPONENT FOUND");
-  }, 2000);
-}}
+
+    socketRef.current?.emit("join-room", {
+      roomCode: cleanCode,
+      address,
+    });
+  }}
   className="
     mt-3
     w-full
@@ -1060,6 +1764,8 @@ onClick={() => {
     setRoomCode(null);
     setShowJoinRoom(false);
     setOnlineStatus(null);
+    setJoinCode("");
+    setActiveRoomId(null);
   }}
   className="mt-8 text-white/35 text-xs font-black tracking-[0.25em]"
 >
@@ -1069,14 +1775,27 @@ onClick={() => {
   </div>
 )}
 
-      <canvas
-        ref={canvasRef}
-        width={400}
-        height={700}
-        className={`w-[100vw] h-[100dvh] max-w-[430px] max-h-[932px] rounded-none sm:rounded-3xl border border-white/15 touch-none transition ${
-          screen === "game" && gameStarted ? "opacity-100" : "opacity-0"
+      <div
+        className={`absolute inset-0 z-10 flex items-center justify-center overflow-hidden transition ${
+          screen === "game" ? "opacity-100" : "opacity-0 pointer-events-none"
         }`}
-      />
+      >
+        <div
+          className="relative"
+          style={{
+            width: "min(100vw, calc(100dvh * 400 / 700), 430px)",
+            aspectRatio: "400 / 700",
+            maxHeight: "100dvh",
+          }}
+        >
+          <canvas
+            ref={canvasRef}
+            width={400}
+            height={700}
+            className="block w-full h-full rounded-none sm:rounded-3xl border border-white/15 touch-none"
+          />
+        </div>
+      </div>
 
       {goalFlash && (
         <div className="absolute inset-0 bg-[#0052FF]/25 pointer-events-none z-40" />
@@ -1110,7 +1829,7 @@ onClick={() => {
           <h1 className="text-4xl font-black text-white mb-2">{winner}</h1>
 
           <div className="mb-3 text-white/80 text-lg font-black tracking-[0.18em]">
-            AI {scoreRef.current.ai} ◇ {scoreRef.current.player} YOU
+            {gameMode === "online" ? "P2" : "AI"} {finalScore?.ai ?? scoreRef.current.ai} ◇ {finalScore?.player ?? scoreRef.current.player} YOU
           </div>
 
           <p className="mb-8 text-[#0052FF] text-xs font-black tracking-[0.35em]">
@@ -1119,10 +1838,11 @@ onClick={() => {
 
           <div className="flex flex-col items-center">
             <button
-              onClick={startGame}
-              className="px-7 py-3 rounded-full bg-[#0052FF] hover:bg-blue-500 font-black text-white tracking-[0.2em] shadow-[0_0_30px_rgba(0,82,255,0.45)]"
+              onClick={handlePlayAgain}
+              disabled={playAgainWaiting}
+              className="px-7 py-3 rounded-full bg-[#0052FF] hover:bg-blue-500 disabled:opacity-50 font-black text-white tracking-[0.2em] shadow-[0_0_30px_rgba(0,82,255,0.45)]"
             >
-              PLAY AGAIN
+              {playAgainWaiting ? "WAITING P2" : "PLAY AGAIN"}
             </button>
 
             <button

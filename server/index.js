@@ -1,0 +1,259 @@
+const express = require("express");
+const http = require("http");
+const cors = require("cors");
+const { Server } = require("socket.io");
+
+const app = express();
+app.use(cors());
+
+const server = http.createServer(app);
+
+const io = new Server(server, {
+  cors: {
+    origin: "*",
+    methods: ["GET", "POST"],
+  },
+});
+
+const GAME_W = 400;
+const GAME_H = 700;
+
+const rooms = new Map();
+
+const createInitialState = () => ({
+  ball: { x: 200, y: 350, vx: 0.42, vy: 0.62 },
+  hostScore: 0,
+  guestScore: 0,
+  phase: "waiting",
+  winner: null,
+  roundStartAt: null,
+});
+
+const normalizeState = (currentState, incoming = {}) => {
+  return {
+    ...currentState,
+    phase: incoming.phase ?? currentState.phase,
+    winner:
+      incoming.winner !== undefined
+        ? incoming.winner
+        : currentState.winner,
+    roundStartAt:
+      incoming.round_start_at ??
+      incoming.roundStartAt ??
+      currentState.roundStartAt,
+
+    hostScore: Number(
+      incoming.host_score ??
+        incoming.hostScore ??
+        currentState.hostScore
+    ),
+    guestScore: Number(
+      incoming.guest_score ??
+        incoming.guestScore ??
+        currentState.guestScore
+    ),
+
+    ball: {
+      x: Number(
+        incoming.ball_x ?? incoming.ball?.x ?? currentState.ball.x
+      ),
+      y: Number(
+        incoming.ball_y ?? incoming.ball?.y ?? currentState.ball.y
+      ),
+      vx: Number(
+        incoming.ball_vx ?? incoming.ball?.vx ?? currentState.ball.vx
+      ),
+      vy: Number(
+        incoming.ball_vy ?? incoming.ball?.vy ?? currentState.ball.vy
+      ),
+    },
+  };
+};
+
+const resetRound = (room, direction = "down") => {
+  const roundStartAt = Date.now() + 1200;
+
+  room.state.phase = "countdown";
+  room.state.roundStartAt = roundStartAt;
+  room.state.winner = null;
+
+  room.state.ball.x = GAME_W / 2;
+
+  if (direction === "up") {
+    room.state.ball.y = GAME_H - 175;
+    room.state.ball.vx = 0.25;
+    room.state.ball.vy = -0.65;
+  } else {
+    room.state.ball.y = 175;
+    room.state.ball.vx = -0.25;
+    room.state.ball.vy = 0.65;
+  }
+
+  io.to(room.code).emit("game-state", room.state);
+};
+
+const finishGame = (room, winner) => {
+  room.state.phase = "finished";
+  room.state.winner = winner;
+  room.state.roundStartAt = null;
+
+  io.to(room.code).emit("game-state", room.state);
+};
+
+io.on("connection", (socket) => {
+  console.log("CONNECTED:", socket.id);
+
+  socket.on("create-room", ({ roomCode, address }) => {
+    console.log("CREATE ROOM:", roomCode);
+
+    const room = {
+      code: roomCode,
+      hostSocketId: socket.id,
+      guestSocketId: null,
+      hostAddress: address,
+      guestAddress: null,
+      state: createInitialState(),
+      hostReadyAgain: false,
+      guestReadyAgain: false,
+    };
+
+    rooms.set(roomCode, room);
+    socket.join(roomCode);
+
+    socket.emit("room-created", {
+      roomCode,
+      role: "host",
+      state: room.state,
+    });
+  });
+
+  socket.on("join-room", ({ roomCode, address }) => {
+    console.log("JOIN ROOM:", roomCode);
+
+    const room = rooms.get(roomCode);
+
+    if (!room) {
+      socket.emit("join-error", "ROOM NOT FOUND");
+      return;
+    }
+
+    if (room.guestSocketId) {
+      socket.emit("join-error", "ROOM FULL");
+      return;
+    }
+
+    room.guestSocketId = socket.id;
+    room.guestAddress = address;
+
+    socket.join(roomCode);
+
+    room.state = createInitialState();
+    room.state.phase = "countdown";
+    room.state.roundStartAt = Date.now() + 1800;
+    room.state.winner = null;
+
+    io.to(roomCode).emit("room-matched", {
+      roomCode,
+      state: room.state,
+    });
+
+    io.to(roomCode).emit("game-state", room.state);
+  });
+
+  socket.on("host-state", ({ roomCode, state }) => {
+    const room = rooms.get(roomCode);
+    if (!room) return;
+    if (room.hostSocketId !== socket.id) return;
+    if (room.state.phase === "finished") return;
+
+    room.state = normalizeState(room.state, state);
+
+    if (room.state.hostScore >= 7) {
+      finishGame(room, "host");
+      return;
+    }
+
+    if (room.state.guestScore >= 7) {
+      finishGame(room, "guest");
+      return;
+    }
+
+    io.to(roomCode).emit("game-state", room.state);
+  });
+
+  socket.on("round-reset", ({ roomCode, direction, state }) => {
+    const room = rooms.get(roomCode);
+    if (!room) return;
+    if (room.hostSocketId !== socket.id) return;
+
+    if (state) {
+      room.state = normalizeState(room.state, state);
+    }
+
+    if (room.state.hostScore >= 7) {
+      finishGame(room, "host");
+      return;
+    }
+
+    if (room.state.guestScore >= 7) {
+      finishGame(room, "guest");
+      return;
+    }
+
+    resetRound(room, direction);
+  });
+
+  socket.on("draw-line", ({ roomCode, line }) => {
+    const room = rooms.get(roomCode);
+    if (!room) return;
+
+    socket.to(roomCode).emit("remote-line", line);
+  });
+
+  socket.on("play-again-ready", ({ roomCode, role }) => {
+    const room = rooms.get(roomCode);
+    if (!room) return;
+
+    if (role === "host") room.hostReadyAgain = true;
+    if (role === "guest") room.guestReadyAgain = true;
+
+    io.to(roomCode).emit("play-again-status", {
+      hostReadyAgain: room.hostReadyAgain,
+      guestReadyAgain: room.guestReadyAgain,
+    });
+
+    if (room.hostReadyAgain && room.guestReadyAgain) {
+      room.hostReadyAgain = false;
+      room.guestReadyAgain = false;
+
+      room.state = createInitialState();
+      room.state.phase = "countdown";
+      room.state.roundStartAt = Date.now() + 1800;
+      room.state.winner = null;
+
+      io.to(roomCode).emit("game-state", room.state);
+      io.to(roomCode).emit("play-again-status", {
+        hostReadyAgain: false,
+        guestReadyAgain: false,
+      });
+    }
+  });
+
+  socket.on("disconnect", () => {
+    console.log("DISCONNECTED:", socket.id);
+
+    for (const [roomCode, room] of rooms.entries()) {
+      if (
+        room.hostSocketId === socket.id ||
+        room.guestSocketId === socket.id
+      ) {
+        io.to(roomCode).emit("opponent-disconnected");
+        rooms.delete(roomCode);
+      }
+    }
+  });
+});
+
+server.listen(4000, () => {
+  console.log("SOCKET SERVER RUNNING ON 4000");
+});
