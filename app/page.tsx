@@ -92,6 +92,74 @@ const [playAgainWaiting, setPlayAgainWaiting] = useState(false);
 const [finalScore, setFinalScore] =
   useState<{ player: number; ai: number } | null>(null);
 const [opponentLeft, setOpponentLeft] = useState(false);
+const [matchmaking, setMatchmaking] = useState(false);
+const [matchFound, setMatchFound] = useState(false);
+const [opponentAddress, setOpponentAddress] =
+  useState<string | null>(null);
+const [opponentUsername, setOpponentUsername] =
+  useState<string | null>(null);
+const [username, setUsername] = useState("");
+const [usernameInput, setUsernameInput] = useState("");
+const [usernameWarning, setUsernameWarning] = useState<string | null>(null);
+
+const cleanUsername = (value: string) =>
+  value
+    .replace(/[^a-zA-Z0-9_]/g, "")
+    .slice(0, 10)
+    .toUpperCase();
+
+const hudName = (value: string) => {
+  const clean = value || "PLAYER";
+  return clean.length > 10 ? clean.slice(0, 10) : clean;
+};
+
+const scoreAnnouncementName = (value: string) => {
+  const clean = value || "PLAYER";
+  return clean.length > 12 ? clean.slice(0, 12) : clean;
+};
+
+const playerDisplayName =
+  username ||
+  (address ? `${address.slice(0, 6)}...${address.slice(-4)}` : "YOU");
+
+const rivalDisplayName =
+  opponentUsername ||
+  (opponentAddress
+    ? `${opponentAddress.slice(0, 6)}...${opponentAddress.slice(-4)}`
+    : "RIVAL");
+
+const playerNameRef = useRef("YOU");
+const rivalNameRef = useRef("AI");
+
+useEffect(() => {
+  playerNameRef.current = playerDisplayName || "YOU";
+  rivalNameRef.current =
+    gameModeRef.current === "online" ? rivalDisplayName || "RIVAL" : "AI";
+}, [playerDisplayName, rivalDisplayName]);
+
+const getReadyUsername = () => {
+  const finalName = cleanUsername(usernameInput);
+
+  if (!finalName) {
+    setUsernameWarning("ENTER USERNAME FIRST");
+    setOnlineStatus("ENTER USERNAME FIRST");
+    navigator.vibrate?.(35);
+    return null;
+  }
+
+  setUsernameWarning(null);
+  setUsername(finalName);
+  setUsernameInput(finalName);
+
+  if (address) {
+    localStorage.setItem(
+      `base_boing_username_${address.toLowerCase()}`,
+      finalName
+    );
+  }
+
+  return finalName;
+};
 
 
   const [showDifficulty, setShowDifficulty] = useState(false);
@@ -106,7 +174,7 @@ const [aiDifficulty, setAiDifficulty] =
   const BALL_START_VY = 0.62;
   const BALL_RESET_VX = 0.25;
   const BALL_RESET_VY = 0.65;
-  const MAX_BALL_SPEED = 1.45;
+  const MAX_BALL_SPEED = 2.5;
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const linesRef = useRef<Line[]>([]);
@@ -242,6 +310,9 @@ const [aiDifficulty, setAiDifficulty] =
     const hostScore = Number(state.host_score ?? state.hostScore ?? 0);
     const guestScore = Number(state.guest_score ?? state.guestScore ?? 0);
 
+    const prevPlayerScore = scoreRef.current.player;
+    const prevRivalScore = scoreRef.current.ai;
+
     if (isHostRef.current) {
       scoreRef.current.player = hostScore;
       scoreRef.current.ai = guestScore;
@@ -249,6 +320,24 @@ const [aiDifficulty, setAiDifficulty] =
       scoreRef.current.player = guestScore;
       scoreRef.current.ai = hostScore;
     }
+
+    const newScoreTotal = scoreRef.current.player + scoreRef.current.ai;
+
+    if (
+      gameModeRef.current === "online" &&
+      lastRemoteScoreTotalRef.current !== null &&
+      newScoreTotal > lastRemoteScoreTotalRef.current
+    ) {
+      if (scoreRef.current.player > prevPlayerScore) {
+        scoreRef.current.message = `${scoreAnnouncementName(playerNameRef.current)} SCORES`;
+        scoreRef.current.messageLife = 70;
+      } else if (scoreRef.current.ai > prevRivalScore) {
+        scoreRef.current.message = `${scoreAnnouncementName(rivalNameRef.current)} SCORES`;
+        scoreRef.current.messageLife = 70;
+      }
+    }
+
+    lastRemoteScoreTotalRef.current = newScoreTotal;
 
     const remoteBallX = Number(state.ball_x ?? state.ball?.x ?? ballRef.current.x);
     const remoteBallY = Number(state.ball_y ?? state.ball?.y ?? ballRef.current.y);
@@ -319,13 +408,25 @@ const [aiDifficulty, setAiDifficulty] =
       });
 
       if (resolvedWinner === "host") {
-        const text = isHostRef.current ? "YOU WIN" : "P2 WINS";
+        const text = isHostRef.current
+          ? gameModeRef.current === "online"
+            ? `${playerNameRef.current} WINS`
+            : "YOU WIN"
+          : gameModeRef.current === "online"
+          ? `${rivalNameRef.current} WINS`
+          : "P2 WINS";
         winnerRef.current = text;
         setWinner(text);
       }
 
       if (resolvedWinner === "guest") {
-        const text = isHostRef.current ? "P2 WINS" : "YOU WIN";
+        const text = isHostRef.current
+          ? gameModeRef.current === "online"
+            ? `${rivalNameRef.current} WINS`
+            : "P2 WINS"
+          : gameModeRef.current === "online"
+          ? `${playerNameRef.current} WINS`
+          : "YOU WIN";
         winnerRef.current = text;
         setWinner(text);
       }
@@ -336,6 +437,29 @@ const [aiDifficulty, setAiDifficulty] =
     }
   };
 
+
+useEffect(() => {
+  if (!address) {
+    setUsername("");
+    setUsernameInput("");
+    setUsernameWarning(null);
+    return;
+  }
+
+  const savedUsername = localStorage.getItem(
+    `base_boing_username_${address.toLowerCase()}`
+  );
+
+  if (savedUsername) {
+    setUsername(savedUsername);
+    setUsernameInput(savedUsername);
+    setUsernameWarning(null);
+  } else {
+    setUsername("");
+    setUsernameInput("");
+    setUsernameWarning(null);
+  }
+}, [address]);
 
 useEffect(() => {
   const socketHost =
@@ -382,6 +506,9 @@ useEffect(() => {
     setFinalScore(null);
     setPlayAgainWaiting(false);
     setOpponentLeft(false);
+    setMatchmaking(false);
+    setMatchFound(false);
+    // Keep opponent identity when entering an online match.
     setCountdown(null);
     setScreen("game");
   };
@@ -416,12 +543,53 @@ useEffect(() => {
     setOnlineStatus(null);
     setRoomCode(null);
     setActiveRoomId(null);
+    setMatchmaking(false);
 
     setGameMode("online");
     gameModeRef.current = "online";
 
-    prepareOnlineGame();
-    applySocketState(state);
+    setMatchFound(true);
+
+    setTimeout(() => {
+      setMatchFound(false);
+      prepareOnlineGame();
+      applySocketState(state);
+    }, 1800);
+  });
+
+  socket.on("match-found", ({ roomCode, role, opponentAddress, opponentUsername }) => {
+    console.log("MATCH FOUND", roomCode, role, opponentAddress, opponentUsername);
+
+    const hostRole = role === "host";
+
+    roomIdRef.current = roomCode;
+    setRoomId(roomCode);
+    setIsHost(hostRole);
+    isHostRef.current = hostRole;
+    setRoomCode(null);
+    setShowJoinRoom(false);
+    setOnlineStatus("MATCH FOUND");
+    setMatchmaking(false);
+    setOpponentAddress(opponentAddress ?? null);
+    setOpponentUsername(opponentUsername ?? null);
+
+    setGameMode("online");
+    gameModeRef.current = "online";
+  });
+
+  socket.on("matchmaking-status", ({ status }) => {
+    if (status === "searching") {
+      setMatchmaking(true);
+      setOnlineStatus("SEARCHING OPPONENT...");
+    }
+
+    if (status === "cancelled") {
+      setMatchmaking(false);
+      setOnlineStatus(null);
+      setMatchFound(false);
+      setOpponentAddress(null);
+      setOpponentUsername(null);
+    }
   });
 
   socket.on("game-state", (state) => {
@@ -468,6 +636,10 @@ useEffect(() => {
     setWinner(null);
     setFinalScore(null);
     setPlayAgainWaiting(false);
+    setMatchmaking(false);
+    setMatchFound(false);
+    setOpponentAddress(null);
+    setOpponentUsername(null);
     setCountdown(null);
     setGoalFlash(false);
     setScreenShake(false);
@@ -482,6 +654,8 @@ useEffect(() => {
   });
 
   return () => {
+    socket.off("match-found");
+    socket.off("matchmaking-status");
     socket.off("opponent-left");
     socket.off("opponent-disconnected");
     socket.disconnect();
@@ -698,11 +872,14 @@ const roundActive = gameStartedRef.current && !pauseRef.current;
       ctx.stroke();
       ctx.shadowBlur = 0;
 
-      const basePulse = 0.2 + Math.sin(frame * 0.01) * 0.02;
+      const basePulse = 0.42 + Math.sin(frame * 0.018) * 0.08;
       ctx.fillStyle = `rgba(0,82,255,${basePulse})`;
-      ctx.font = "bold 32px monospace";
+      ctx.font = "900 46px monospace";
       ctx.textAlign = "center";
-      ctx.fillText("BASE", W / 2, H / 2 + 10);
+      ctx.shadowColor = "#0052FF";
+      ctx.shadowBlur = 22;
+      ctx.fillText("BASE", W / 2, H / 2 + 14);
+      ctx.shadowBlur = 0;
 
       ctx.strokeStyle = "rgba(255,255,255,0.15)";
       ctx.lineWidth = 2;
@@ -716,11 +893,19 @@ const roundActive = gameStartedRef.current && !pauseRef.current;
 
       const score = scoreRef.current;
 
+      const leftName = gameModeRef.current === "online"
+        ? hudName(rivalNameRef.current)
+        : "AI";
+      const rightName = gameModeRef.current === "online"
+        ? hudName(playerNameRef.current)
+        : "YOU";
+      const scoreText = `${leftName} ${score.ai}   ◇   ${score.player} ${rightName}`;
+      const hudFontSize = scoreText.length > 34 ? 13 : scoreText.length > 28 ? 15 : 20;
+
       ctx.fillStyle = "rgba(255,255,255,0.95)";
-      ctx.font = "bold 24px monospace";
+      ctx.font = `bold ${hudFontSize}px monospace`;
       ctx.textAlign = "center";
-      const opponentLabel = gameModeRef.current === "online" ? "P2" : "AI";
-      ctx.fillText(`${opponentLabel} ${score.ai}   ◇   ${score.player} YOU`, W / 2, 50);
+      ctx.fillText(scoreText, W / 2, 50);
 
       ctx.fillStyle = "rgba(0,82,255,0.8)";
       ctx.font = "bold 12px monospace";
@@ -765,12 +950,20 @@ const roundActive = gameStartedRef.current && !pauseRef.current;
       }
 
       if (score.messageLife > 0) {
-        ctx.fillStyle = "#0052FF";
-        ctx.font = "bold 38px monospace";
+        const messageAlpha = Math.min(1, score.messageLife / 18);
+        const messageScale = 1 + Math.sin(score.messageLife * 0.18) * 0.035;
+
+        ctx.save();
+        ctx.translate(W / 2, H / 2 - 48);
+        ctx.scale(messageScale, messageScale);
+        ctx.fillStyle = `rgba(0,82,255,${messageAlpha})`;
+        ctx.font = score.message.length > 15 ? "bold 26px monospace" : "bold 34px monospace";
+        ctx.textAlign = "center";
         ctx.shadowColor = "#0052FF";
-        ctx.shadowBlur = 25;
-        ctx.fillText(score.message, W / 2, H / 2 - 45);
-        ctx.shadowBlur = 0;
+        ctx.shadowBlur = 28;
+        ctx.fillText(score.message, 0, 0);
+        ctx.restore();
+
         score.messageLife--;
       }
 
@@ -929,12 +1122,19 @@ if (score.player >= 7) {
     });
   }
 
-  score.message = "YOU WIN";
-  winnerRef.current = "YOU WIN";
-  setWinner("YOU WIN");
+  const winText =
+    gameModeRef.current === "online"
+      ? `${playerNameRef.current} WINS`
+      : "YOU WIN";
+  score.message = winText;
+  winnerRef.current = winText;
+  setWinner(winText);
   console.log("HOST WIN TRIGGERED");
 } else {
-  score.message = "YOU GOAL";
+  score.message =
+    gameModeRef.current === "online"
+      ? `${scoreAnnouncementName(playerNameRef.current)} SCORES`
+      : "YOU SCORES";
   pauseRef.current = true;
   gameStartedRef.current = false;
   setGameStarted(false);
@@ -1020,13 +1220,17 @@ if (score.ai >= 7) {
   }
 
   const loseText =
-    gameModeRef.current === "online" ? "P2 WINS" : "AI WINS";
+    gameModeRef.current === "online"
+      ? `${rivalNameRef.current} WINS`
+      : "AI WINS";
   score.message = loseText;
   winnerRef.current = loseText;
   setWinner(loseText);
 } else {
   const goalText =
-    gameModeRef.current === "online" ? "P2 GOAL" : "AI GOAL";
+    gameModeRef.current === "online"
+      ? `${scoreAnnouncementName(rivalNameRef.current)} SCORES`
+      : "AI SCORES";
 
   score.message = goalText;
   pauseRef.current = true;
@@ -1101,7 +1305,7 @@ if (score.ai >= 7) {
 
         if (dist < ball.r + 5) {
 const currentSpeed = Math.hypot(ball.vx, ball.vy);
-const speed = Math.min(currentSpeed + 0.006, MAX_BALL_SPEED);
+const speed = Math.min(currentSpeed * 1.08 + 0.04, MAX_BALL_SPEED);
 
 let nx = -dy;
 let ny = dx;
@@ -1241,11 +1445,6 @@ ball.vy = ny * speed + dy * 0.006;
 
       ctx.shadowBlur = 0;
 
-      ctx.fillStyle = "rgba(255,255,255,0.35)";
-      ctx.font = "12px monospace";
-      ctx.textAlign = "center";
-      ctx.fillText("DRAW A LINE TO DEFLECT", W / 2, H - 20);
-
       animation = requestAnimationFrame(loop);
     };
 
@@ -1341,6 +1540,10 @@ const playSound = (
     setFinalScore(null);
     setPlayAgainWaiting(false);
     setOpponentLeft(false);
+    setMatchmaking(false);
+    setMatchFound(false);
+    setOpponentAddress(null);
+    setOpponentUsername(null);
     setCountdown(null);
     setScreen("game");
 
@@ -1409,6 +1612,10 @@ const playSound = (
     setFinalScore(null);
     setPlayAgainWaiting(false);
     setOpponentLeft(false);
+    setMatchmaking(false);
+    setMatchFound(false);
+    setOpponentAddress(null);
+    setOpponentUsername(null);
     setCountdown(null);
     setShowOnlineSoon(false);
     setShowJoinRoom(false);
@@ -1619,7 +1826,113 @@ const playSound = (
   </p>
 )}
 
+{isConnected && (
+  <div className="mt-5 rounded-2xl border border-white/10 bg-black/30 p-4">
+    <p className="text-white/35 text-[10px] font-black tracking-[0.3em]">
+      USERNAME
+    </p>
 
+    <div className="mt-3 flex gap-2">
+      <input
+        value={usernameInput}
+        onChange={(e) => {
+          setUsernameInput(cleanUsername(e.target.value));
+          setUsernameWarning(null);
+        }}
+        maxLength={10}
+        placeholder="MAX 10"
+        className="h-[44px] min-w-0 flex-1 rounded-xl bg-black/45 border border-white/10 px-3 text-center text-white font-black tracking-[0.14em] outline-none placeholder:text-white/20"
+      />
+
+      <button
+        onClick={() => {
+          if (!address) return;
+
+          const finalName = getReadyUsername();
+          if (!finalName) return;
+        }}
+        className="h-[44px] px-4 rounded-xl bg-[#0052FF] text-white text-[10px] font-black tracking-[0.2em]"
+      >
+        SAVE
+      </button>
+    </div>
+
+    <p className="mt-2 text-[#0052FF]/70 text-[10px] font-black tracking-[0.2em]">
+      {cleanUsername(usernameInput)
+        ? `READY AS ${cleanUsername(usernameInput)}`
+        : "CHOOSE YOUR ARENA NAME"}
+    </p>
+
+    {usernameWarning && (
+      <p className="mt-2 text-red-400 text-[10px] font-black tracking-[0.22em] animate-pulse">
+        {usernameWarning}
+      </p>
+    )}
+  </div>
+)}
+
+<button
+  onClick={() => {
+    if (!isConnected) {
+      openConnectModal?.();
+      return;
+    }
+
+    const readyUsername = getReadyUsername();
+    if (!readyUsername) return;
+
+    if (matchmaking) return;
+
+    setMatchmaking(true);
+    setShowJoinRoom(false);
+    setRoomCode(null);
+    setOnlineStatus("SEARCHING OPPONENT...");
+
+    socketRef.current?.emit("find-match", {
+      address,
+      username: readyUsername,
+    });
+  }}
+  disabled={matchmaking}
+  className={`mt-4 w-full h-[54px] rounded-full bg-[#0052FF] text-white font-black tracking-[0.18em] ${
+    matchmaking ? "opacity-60" : ""
+  }`}
+>
+  {matchmaking ? "SEARCHING..." : "FIND MATCH"}
+</button>
+
+{matchmaking && (
+  <button
+    onClick={() => {
+      setMatchmaking(false);
+      setOnlineStatus(null);
+      socketRef.current?.emit("cancel-matchmaking");
+    }}
+    className="mt-3 w-full h-[48px] rounded-full border border-white/15 text-white/60 font-black tracking-[0.18em]"
+  >
+    CANCEL SEARCH
+  </button>
+)}
+
+{matchmaking && onlineStatus && (
+  <div className="mt-5">
+    <p className="text-[#0052FF] text-xs font-black tracking-[0.25em] animate-pulse">
+      {onlineStatus}
+    </p>
+
+    <div className="mt-3 flex justify-center gap-2">
+      <div className="w-2 h-2 rounded-full bg-[#0052FF] animate-bounce" />
+      <div
+        className="w-2 h-2 rounded-full bg-[#0052FF] animate-bounce"
+        style={{ animationDelay: "0.15s" }}
+      />
+      <div
+        className="w-2 h-2 rounded-full bg-[#0052FF] animate-bounce"
+        style={{ animationDelay: "0.3s" }}
+      />
+    </div>
+  </div>
+)}
 
 
 <button
@@ -1627,6 +1940,14 @@ const playSound = (
     if (!isConnected) {
       openConnectModal?.();
       return;
+    }
+
+    const readyUsername = getReadyUsername();
+    if (!readyUsername) return;
+
+    if (matchmaking) {
+      setMatchmaking(false);
+      socketRef.current?.emit("cancel-matchmaking");
     }
 
 const code = Math.random()
@@ -1643,6 +1964,7 @@ setOnlineStatus("WAITING FOR PLAYER...");
 socketRef.current?.emit("create-room", {
   roomCode: code,
   address,
+  username: readyUsername,
 });
   }}
   className={`mt-4 w-full h-[54px] rounded-full border border-[#0052FF]/50 text-[#0052FF] font-black tracking-[0.18em] ${
@@ -1657,6 +1979,14 @@ socketRef.current?.emit("create-room", {
     if (!isConnected) {
       openConnectModal?.();
       return;
+    }
+
+    const readyUsername = getReadyUsername();
+    if (!readyUsername) return;
+
+    if (matchmaking) {
+      setMatchmaking(false);
+      socketRef.current?.emit("cancel-matchmaking");
     }
 
     setShowJoinRoom(true);
@@ -1755,6 +2085,9 @@ socketRef.current?.emit("create-room", {
   onClick={async () => {
     if (!joinCode || !address) return;
 
+    const readyUsername = getReadyUsername();
+    if (!readyUsername) return;
+
     const cleanCode = joinCode.toUpperCase();
 
     setGameMode("online");
@@ -1767,6 +2100,7 @@ socketRef.current?.emit("create-room", {
     socketRef.current?.emit("join-room", {
       roomCode: cleanCode,
       address,
+      username: readyUsername,
     });
   }}
   className="
@@ -1808,6 +2142,14 @@ socketRef.current?.emit("create-room", {
 
 <button
   onClick={() => {
+    if (matchmaking) {
+      setMatchmaking(false);
+      setMatchFound(false);
+      setOpponentAddress(null);
+      setOpponentUsername(null);
+      socketRef.current?.emit("cancel-matchmaking");
+    }
+
     setShowOnlineSoon(false);
     setRoomCode(null);
     setShowJoinRoom(false);
@@ -1872,6 +2214,90 @@ socketRef.current?.emit("create-room", {
         </div>
       )}
 
+
+      {matchFound && (
+        <div className="absolute inset-0 z-[1000] bg-black flex items-center justify-center overflow-hidden px-8 text-center">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,82,255,0.18),rgba(0,0,0,0)_52%)]" />
+
+          <div className="absolute text-[170px] sm:text-[240px] font-black tracking-[0.18em] text-[#0052FF]/[0.08] select-none pointer-events-none blur-[1px]">
+            BASE
+          </div>
+
+          <div className="absolute w-[540px] h-[540px] rounded-full border border-[#0052FF]/30 animate-[spin_30s_linear_infinite]" />
+          <div className="absolute w-[380px] h-[380px] rounded-full border border-[#0052FF]/25" />
+          <div className="absolute w-[220px] h-[220px] rounded-full border border-[#0052FF]/20 animate-pulse" />
+          <div className="absolute w-[190px] h-[190px] rounded-full bg-[#0052FF]/20 blur-[120px] animate-pulse" />
+
+          <div className="relative z-10 flex -translate-y-6 flex-col items-center animate-[matchPop_0.55s_ease-out]">
+            <div className="text-[#0052FF] text-[10px] font-black tracking-[0.55em] mb-5 opacity-90">
+              BASE MULTIPLAYER
+            </div>
+
+            <img
+              src="/base.png"
+              alt="Base"
+              className="w-20 h-20 object-contain mb-7 drop-shadow-[0_0_42px_rgba(0,82,255,1)] animate-pulse"
+            />
+
+            <div className="-translate-y-4">
+              <h1 className="text-white text-5xl sm:text-6xl font-black tracking-[0.2em] drop-shadow-[0_0_26px_rgba(0,82,255,0.65)]">
+                MATCH
+              </h1>
+
+              <h1 className="mt-1 text-[#0052FF] text-6xl sm:text-7xl font-black tracking-[0.18em] drop-shadow-[0_0_38px_rgba(0,82,255,0.95)]">
+                FOUND
+              </h1>
+            </div>
+
+            <div className="mt-7 flex w-full max-w-[92vw] flex-col items-center justify-center">
+              <div
+                className="max-w-[92vw] break-words text-center text-white text-[clamp(28px,7vw,48px)] font-black leading-tight tracking-[0.08em] drop-shadow-[0_0_24px_rgba(255,255,255,.36)] animate-[slideLeft_.45s_ease-out]"
+                title={playerDisplayName}
+              >
+                {playerDisplayName}
+              </div>
+
+              <div className="relative my-1 sm:my-2">
+                <div className="absolute inset-0 rounded-full bg-[#0052FF]/40 blur-2xl" />
+
+                <div className="relative text-[#0052FF] text-[42px] sm:text-[56px] font-black animate-pulse drop-shadow-[0_0_32px_rgba(0,82,255,.95)]">
+                  ⚔
+                </div>
+              </div>
+
+              <div
+                className="max-w-[92vw] break-words text-center text-white text-[clamp(28px,7vw,48px)] font-black leading-tight tracking-[0.08em] drop-shadow-[0_0_24px_rgba(255,255,255,.36)] animate-[slideRight_.45s_ease-out]"
+                title={rivalDisplayName}
+              >
+                {rivalDisplayName}
+              </div>
+            </div>
+
+            <div className="mt-7 text-center">
+              <div className="text-[#0052FF] text-[11px] font-black tracking-[0.45em] drop-shadow-[0_0_16px_rgba(0,82,255,.85)]">
+                RANKED MATCH
+              </div>
+
+              <div className="mt-2 text-white/35 text-[10px] tracking-[0.35em]">
+                FIRST TO 7
+              </div>
+            </div>
+
+            <div className="mt-8 flex gap-2">
+              <div className="w-2 h-2 rounded-full bg-[#0052FF] animate-bounce shadow-[0_0_12px_rgba(0,82,255,0.9)]" />
+              <div
+                className="w-2 h-2 rounded-full bg-[#0052FF] animate-bounce shadow-[0_0_12px_rgba(0,82,255,0.9)]"
+                style={{ animationDelay: "0.15s" }}
+              />
+              <div
+                className="w-2 h-2 rounded-full bg-[#0052FF] animate-bounce shadow-[0_0_12px_rgba(0,82,255,0.9)]"
+                style={{ animationDelay: "0.3s" }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
       {opponentLeft && (
         <div className="absolute inset-0 z-[999] bg-black/90 backdrop-blur-sm flex flex-col items-center justify-center px-8 text-center">
           <h1 className="text-4xl font-black text-white mb-3">
@@ -1898,8 +2324,8 @@ socketRef.current?.emit("create-room", {
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/85 backdrop-blur-sm z-50">
           <h1 className="text-4xl font-black text-white mb-2">{winner}</h1>
 
-          <div className="mb-3 text-white/80 text-lg font-black tracking-[0.18em]">
-            {gameMode === "online" ? "P2" : "AI"} {finalScore?.ai ?? scoreRef.current.ai} ◇ {finalScore?.player ?? scoreRef.current.player} YOU
+          <div className="mb-3 max-w-[90vw] text-center text-white/80 text-lg font-black tracking-[0.08em]">
+            {gameMode === "online" ? rivalDisplayName : "AI"} {finalScore?.ai ?? scoreRef.current.ai} ◇ {finalScore?.player ?? scoreRef.current.player} {gameMode === "online" ? playerDisplayName : "YOU"}
           </div>
 
           <p className="mb-8 text-[#0052FF] text-xs font-black tracking-[0.35em]">

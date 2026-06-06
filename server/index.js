@@ -21,6 +21,18 @@ const GAME_H = 700;
 const rooms = new Map();
 const socketRooms = new Map();
 
+let waitingPlayer = null;
+
+const cleanUsername = (username, fallback = "PLAYER") => {
+  if (!username || typeof username !== "string") return fallback;
+
+  return username
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9_-]/g, "")
+    .slice(0, 10) || fallback;
+};
+
 const createInitialState = () => ({
   ball: { x: 200, y: 350, vx: 0.42, vy: 0.62 },
   hostScore: 0,
@@ -120,13 +132,87 @@ const cleanupRoomForSocket = (socket) => {
     roomCode,
   });
 
+  if (room.hostSocketId) {
+    socketRooms.delete(room.hostSocketId);
+  }
+
+  if (room.guestSocketId) {
+    socketRooms.delete(room.guestSocketId);
+  }
+
   rooms.delete(roomCode);
+};
+
+const makeRoomCode = () => {
+  let code = "";
+
+  do {
+    code = Math.random()
+      .toString(36)
+      .substring(2, 6)
+      .toUpperCase();
+  } while (rooms.has(code));
+
+  return code;
+};
+
+const createMatchedRoom = ({ host, guest }) => {
+  const roomCode = makeRoomCode();
+
+  const room = {
+    code: roomCode,
+    hostSocketId: host.socketId,
+    guestSocketId: guest.socketId,
+    hostAddress: host.address,
+    guestAddress: guest.address,
+    hostUsername: cleanUsername(host.username, "PLAYER 1"),
+    guestUsername: cleanUsername(guest.username, "PLAYER 2"),
+    state: createInitialState(),
+    hostReadyAgain: false,
+    guestReadyAgain: false,
+  };
+
+  room.state.phase = "countdown";
+  room.state.roundStartAt = Date.now() + 1800;
+  room.state.winner = null;
+
+  rooms.set(roomCode, room);
+
+  socketRooms.set(host.socketId, roomCode);
+  socketRooms.set(guest.socketId, roomCode);
+
+  const hostSocket = io.sockets.sockets.get(host.socketId);
+  const guestSocket = io.sockets.sockets.get(guest.socketId);
+
+  hostSocket?.join(roomCode);
+  guestSocket?.join(roomCode);
+
+  hostSocket?.emit("match-found", {
+    roomCode,
+    role: "host",
+    opponentAddress: guest.address,
+    opponentUsername: room.guestUsername,
+  });
+
+  guestSocket?.emit("match-found", {
+    roomCode,
+    role: "guest",
+    opponentAddress: host.address,
+    opponentUsername: room.hostUsername,
+  });
+
+  io.to(roomCode).emit("room-matched", {
+    roomCode,
+    state: room.state,
+  });
+
+  io.to(roomCode).emit("game-state", room.state);
 };
 
 io.on("connection", (socket) => {
   console.log("CONNECTED:", socket.id);
 
-  socket.on("create-room", ({ roomCode, address }) => {
+  socket.on("create-room", ({ roomCode, address, username }) => {
     console.log("CREATE ROOM:", roomCode);
 
     const room = {
@@ -135,6 +221,8 @@ io.on("connection", (socket) => {
       guestSocketId: null,
       hostAddress: address,
       guestAddress: null,
+      hostUsername: cleanUsername(username, "PLAYER 1"),
+      guestUsername: null,
       state: createInitialState(),
       hostReadyAgain: false,
       guestReadyAgain: false,
@@ -152,7 +240,7 @@ io.on("connection", (socket) => {
     });
   });
 
-  socket.on("join-room", ({ roomCode, address }) => {
+  socket.on("join-room", ({ roomCode, address, username }) => {
     console.log("JOIN ROOM:", roomCode);
 
     const room = rooms.get(roomCode);
@@ -169,6 +257,7 @@ io.on("connection", (socket) => {
 
     room.guestSocketId = socket.id;
     room.guestAddress = address;
+    room.guestUsername = cleanUsername(username, "PLAYER 2");
 
     socketRooms.set(socket.id, roomCode);
 
@@ -179,12 +268,105 @@ io.on("connection", (socket) => {
     room.state.roundStartAt = Date.now() + 1800;
     room.state.winner = null;
 
+    const hostSocket = io.sockets.sockets.get(room.hostSocketId);
+
+    hostSocket?.emit("match-found", {
+      roomCode,
+      role: "host",
+      opponentAddress: room.guestAddress,
+      opponentUsername: room.guestUsername,
+    });
+
+    socket.emit("match-found", {
+      roomCode,
+      role: "guest",
+      opponentAddress: room.hostAddress,
+      opponentUsername: room.hostUsername,
+    });
+
     io.to(roomCode).emit("room-matched", {
       roomCode,
       state: room.state,
     });
 
     io.to(roomCode).emit("game-state", room.state);
+  });
+
+  socket.on("find-match", ({ address, username }) => {
+    console.log("FIND MATCH:", socket.id);
+
+    if (socketRooms.has(socket.id)) {
+      return;
+    }
+
+    if (
+      waitingPlayer &&
+      waitingPlayer.socketId === socket.id
+    ) {
+      socket.emit("matchmaking-status", {
+        status: "searching",
+      });
+      return;
+    }
+
+    if (!waitingPlayer) {
+      waitingPlayer = {
+        socketId: socket.id,
+        address,
+        username: cleanUsername(username, "PLAYER 1"),
+      };
+
+      socket.emit("matchmaking-status", {
+        status: "searching",
+      });
+
+      return;
+    }
+
+    const hostSocket = io.sockets.sockets.get(
+      waitingPlayer.socketId
+    );
+
+    if (!hostSocket) {
+      waitingPlayer = {
+        socketId: socket.id,
+        address,
+        username: cleanUsername(username, "PLAYER 1"),
+      };
+
+      socket.emit("matchmaking-status", {
+        status: "searching",
+      });
+
+      return;
+    }
+
+    const host = waitingPlayer;
+    const guest = {
+      socketId: socket.id,
+      address,
+      username: cleanUsername(username, "PLAYER 2"),
+    };
+
+    waitingPlayer = null;
+
+    createMatchedRoom({
+      host,
+      guest,
+    });
+  });
+
+  socket.on("cancel-matchmaking", () => {
+    if (
+      waitingPlayer &&
+      waitingPlayer.socketId === socket.id
+    ) {
+      waitingPlayer = null;
+
+      socket.emit("matchmaking-status", {
+        status: "cancelled",
+      });
+    }
   });
 
   socket.on("host-state", ({ roomCode, state }) => {
@@ -269,6 +451,14 @@ io.on("connection", (socket) => {
 
   socket.on("disconnect", () => {
     console.log("DISCONNECTED:", socket.id);
+
+    if (
+      waitingPlayer &&
+      waitingPlayer.socketId === socket.id
+    ) {
+      waitingPlayer = null;
+    }
+
     cleanupRoomForSocket(socket);
   });
 });
