@@ -330,10 +330,10 @@ const [aiDifficulty, setAiDifficulty] =
     ) {
       if (scoreRef.current.player > prevPlayerScore) {
         scoreRef.current.message = `${scoreAnnouncementName(playerNameRef.current)} SCORES`;
-        scoreRef.current.messageLife = 70;
+        scoreRef.current.messageLife = 120;
       } else if (scoreRef.current.ai > prevRivalScore) {
         scoreRef.current.message = `${scoreAnnouncementName(rivalNameRef.current)} SCORES`;
-        scoreRef.current.messageLife = 70;
+        scoreRef.current.messageLife = 120;
       }
     }
 
@@ -467,10 +467,12 @@ useEffect(() => {
       ? window.location.hostname
       : "localhost";
 
-  const socket = io(`http://${socketHost}:4000`, {
-    transports: ["websocket"],
-  });
+const SOCKET_URL =
+  process.env.NEXT_PUBLIC_SOCKET_URL || `http://${socketHost}:4000`;
 
+const socket = io(SOCKET_URL, {
+  transports: ["websocket"],
+});
   socketRef.current = socket;
 
   const prepareOnlineGame = () => {
@@ -554,7 +556,7 @@ useEffect(() => {
       setMatchFound(false);
       prepareOnlineGame();
       applySocketState(state);
-    }, 1800);
+    }, 3500);
   });
 
   socket.on("match-found", ({ roomCode, role, opponentAddress, opponentUsername }) => {
