@@ -19,6 +19,7 @@ const GAME_W = 400;
 const GAME_H = 700;
 
 const rooms = new Map();
+const socketRooms = new Map();
 
 const createInitialState = () => ({
   ball: { x: 200, y: 350, vx: 0.42, vy: 0.62 },
@@ -100,6 +101,28 @@ const finishGame = (room, winner) => {
   io.to(room.code).emit("game-state", room.state);
 };
 
+const cleanupRoomForSocket = (socket) => {
+  const roomCode = socketRooms.get(socket.id);
+
+  if (!roomCode) return;
+
+  socketRooms.delete(socket.id);
+
+  const room = rooms.get(roomCode);
+  if (!room) return;
+
+  const wasHost = room.hostSocketId === socket.id;
+  const wasGuest = room.guestSocketId === socket.id;
+
+  if (!wasHost && !wasGuest) return;
+
+  socket.to(roomCode).emit("opponent-left", {
+    roomCode,
+  });
+
+  rooms.delete(roomCode);
+};
+
 io.on("connection", (socket) => {
   console.log("CONNECTED:", socket.id);
 
@@ -118,6 +141,8 @@ io.on("connection", (socket) => {
     };
 
     rooms.set(roomCode, room);
+    socketRooms.set(socket.id, roomCode);
+
     socket.join(roomCode);
 
     socket.emit("room-created", {
@@ -144,6 +169,8 @@ io.on("connection", (socket) => {
 
     room.guestSocketId = socket.id;
     room.guestAddress = address;
+
+    socketRooms.set(socket.id, roomCode);
 
     socket.join(roomCode);
 
@@ -232,6 +259,7 @@ io.on("connection", (socket) => {
       room.state.winner = null;
 
       io.to(roomCode).emit("game-state", room.state);
+
       io.to(roomCode).emit("play-again-status", {
         hostReadyAgain: false,
         guestReadyAgain: false,
@@ -241,16 +269,7 @@ io.on("connection", (socket) => {
 
   socket.on("disconnect", () => {
     console.log("DISCONNECTED:", socket.id);
-
-    for (const [roomCode, room] of rooms.entries()) {
-      if (
-        room.hostSocketId === socket.id ||
-        room.guestSocketId === socket.id
-      ) {
-        io.to(roomCode).emit("opponent-disconnected");
-        rooms.delete(roomCode);
-      }
-    }
+    cleanupRoomForSocket(socket);
   });
 });
 

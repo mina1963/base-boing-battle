@@ -91,6 +91,7 @@ const [onlineStatus, setOnlineStatus] =
 const [playAgainWaiting, setPlayAgainWaiting] = useState(false);
 const [finalScore, setFinalScore] =
   useState<{ player: number; ai: number } | null>(null);
+const [opponentLeft, setOpponentLeft] = useState(false);
 
 
   const [showDifficulty, setShowDifficulty] = useState(false);
@@ -337,7 +338,12 @@ const [aiDifficulty, setAiDifficulty] =
 
 
 useEffect(() => {
-  const socket = io("http://localhost:4000", {
+  const socketHost =
+    typeof window !== "undefined"
+      ? window.location.hostname
+      : "localhost";
+
+  const socket = io(`http://${socketHost}:4000`, {
     transports: ["websocket"],
   });
 
@@ -375,6 +381,7 @@ useEffect(() => {
     setWinner(null);
     setFinalScore(null);
     setPlayAgainWaiting(false);
+    setOpponentLeft(false);
     setCountdown(null);
     setScreen("game");
   };
@@ -447,11 +454,36 @@ useEffect(() => {
     }
   });
 
+  const handleOpponentLeft = () => {
+    pauseRef.current = true;
+    gameStartedRef.current = false;
+    winnerRef.current = null;
+
+    clearCountdownTimers();
+    linesRef.current = [];
+    trailRef.current = [];
+    sparksRef.current = [];
+
+    setGameStarted(false);
+    setWinner(null);
+    setFinalScore(null);
+    setPlayAgainWaiting(false);
+    setCountdown(null);
+    setGoalFlash(false);
+    setScreenShake(false);
+    setOpponentLeft(true);
+  };
+
+  socket.on("opponent-left", handleOpponentLeft);
+  socket.on("opponent-disconnected", handleOpponentLeft);
+
   socket.on("join-error", (message) => {
     alert(message);
   });
 
   return () => {
+    socket.off("opponent-left");
+    socket.off("opponent-disconnected");
     socket.disconnect();
   };
 }, []);
@@ -1068,14 +1100,26 @@ if (score.ai >= 7) {
         const dist = Math.hypot(ball.x - px, ball.y - py);
 
         if (dist < ball.r + 5) {
-          const angle = Math.atan2(dy, dx);
-          const normal = angle + Math.PI / 2;
-          const currentSpeed = Math.hypot(ball.vx, ball.vy);
-          const speed = Math.min(currentSpeed + 0.006, MAX_BALL_SPEED);
+const currentSpeed = Math.hypot(ball.vx, ball.vy);
+const speed = Math.min(currentSpeed + 0.006, MAX_BALL_SPEED);
 
-          ball.vx = Math.cos(normal) * speed;
-          ball.vy = Math.sin(normal) * speed;
-          ball.vx += dx * 0.009;
+let nx = -dy;
+let ny = dx;
+
+const nLen = Math.hypot(nx, ny) || 1;
+nx /= nLen;
+ny /= nLen;
+
+// Topun geliş yönüne göre normal yönünü düzelt
+const dot = ball.vx * nx + ball.vy * ny;
+
+if (dot > 0) {
+  nx *= -1;
+  ny *= -1;
+}
+
+ball.vx = nx * speed + dx * 0.006;
+ball.vy = ny * speed + dy * 0.006;
 
           const nextSpeed = Math.hypot(ball.vx, ball.vy);
           if (nextSpeed > MAX_BALL_SPEED) {
@@ -1083,8 +1127,6 @@ if (score.ai >= 7) {
             ball.vy = (ball.vy / nextSpeed) * MAX_BALL_SPEED;
           }
 
-          if (line.owner === "player" && ball.vy > 0) ball.vy *= -1;
-          if (line.owner === "ai" && ball.vy < 0) ball.vy *= -1;
 
           for (let i = 0; i < 12; i++) {
             sparksRef.current.push({
@@ -1298,6 +1340,7 @@ const playSound = (
     setWinner(null);
     setFinalScore(null);
     setPlayAgainWaiting(false);
+    setOpponentLeft(false);
     setCountdown(null);
     setScreen("game");
 
@@ -1365,6 +1408,7 @@ const playSound = (
     setWinner(null);
     setFinalScore(null);
     setPlayAgainWaiting(false);
+    setOpponentLeft(false);
     setCountdown(null);
     setShowOnlineSoon(false);
     setShowJoinRoom(false);
@@ -1374,6 +1418,10 @@ const playSound = (
     setActiveRoomId(null);
     setRoomId(null);
     roomIdRef.current = null;
+    setIsHost(false);
+    isHostRef.current = false;
+    setGameMode("ai");
+    gameModeRef.current = "ai";
     setPlayAgainWaiting(false);
     setScreen("menu");
   };
@@ -1821,6 +1869,28 @@ socketRef.current?.emit("create-room", {
           <div className="mt-4 text-white/35 text-[10px] tracking-[0.35em]">
             ONCHAIN ARCADE MODE
           </div>
+        </div>
+      )}
+
+      {opponentLeft && (
+        <div className="absolute inset-0 z-[999] bg-black/90 backdrop-blur-sm flex flex-col items-center justify-center px-8 text-center">
+          <h1 className="text-4xl font-black text-white mb-3">
+            OPPONENT LEFT
+          </h1>
+
+          <p className="text-[#0052FF] text-xs font-black tracking-[0.3em] mb-8">
+            YOUR OPPONENT DISCONNECTED
+          </p>
+
+          <button
+            onClick={() => {
+              setOpponentLeft(false);
+              goMainMenu();
+            }}
+            className="px-8 py-4 rounded-full bg-[#0052FF] text-white font-black tracking-[0.2em] shadow-[0_0_30px_rgba(0,82,255,0.45)]"
+          >
+            MAIN MENU
+          </button>
         </div>
       )}
 
