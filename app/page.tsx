@@ -462,13 +462,8 @@ useEffect(() => {
 }, [address]);
 
 useEffect(() => {
-  const socketHost =
-    typeof window !== "undefined"
-      ? window.location.hostname
-      : "localhost";
-
 const SOCKET_URL =
-  process.env.NEXT_PUBLIC_SOCKET_URL || `http://${socketHost}:4000`;
+  process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:4000";
 
 const socket = io(SOCKET_URL, {
   transports: ["websocket"],
