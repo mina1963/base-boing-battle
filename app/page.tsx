@@ -236,9 +236,6 @@ const [aiDifficulty, setAiDifficulty] =
     }
   };
 
-// FIX 1: startCountdown her zaman bir startAtMs alır.
-// Her cihaz kendi Date.now()'ını timestamp ile karşılaştırır — 50ms polling.
-// setCountdown sadece değer değişince çağrılır, gereksiz re-render engellenir.
 const startCountdown = (startAtMs: number) => {
   clearCountdownTimers();
 
@@ -247,25 +244,17 @@ const startCountdown = (startAtMs: number) => {
   gameStartedRef.current = false;
   setGameStarted(false);
 
-  let lastShown: number | string | null = null;
-
   const tick = () => {
     const remaining = startAtMs - Date.now();
 
     if (remaining > 2000) {
-      if (lastShown !== 3) { lastShown = 3; setCountdown(3); }
-      countdownDelayTimerRef.current = setTimeout(tick, 50);
+      setCountdown(3);
     } else if (remaining > 1000) {
-      if (lastShown !== 2) { lastShown = 2; setCountdown(2); }
-      countdownDelayTimerRef.current = setTimeout(tick, 50);
+      setCountdown(2);
     } else if (remaining > 0) {
-      if (lastShown !== 1) { lastShown = 1; setCountdown(1); }
-      countdownDelayTimerRef.current = setTimeout(tick, 50);
+      setCountdown(1);
     } else {
-      if (lastShown !== "BATTLE!") {
-        lastShown = "BATTLE!";
-        setCountdown("BATTLE!");
-      }
+      setCountdown("BATTLE!");
 
       countdownBattleTimerRef.current = setTimeout(() => {
         setCountdown(null);
@@ -290,7 +279,11 @@ const startCountdown = (startAtMs: number) => {
           });
         }
       }, 700);
+
+      return;
     }
+
+    countdownDelayTimerRef.current = setTimeout(tick, 80);
   };
 
   tick();
@@ -383,7 +376,6 @@ const startCountdown = (startAtMs: number) => {
           ? roundStartRaw
           : new Date(roundStartRaw).getTime();
 
-        // FIX 1: Her iki taraf da aynı timestamp ile countdown başlatır
         startCountdown(startAtMs);
       }
     }
@@ -598,8 +590,7 @@ const socket = io(SOCKET_URL, {
       y1: isHostRef.current ? remoteY1 : GAME_H - remoteY1,
       x2: remoteX2,
       y2: isHostRef.current ? remoteY2 : GAME_H - remoteY2,
-      // FIX 2: Remote çizgiler daha uzun yaşar — ağ gecikmesini telafi eder
-      life: 65,
+      life: 42,
       owner: "ai",
     });
   });
@@ -758,8 +749,7 @@ const socket = io(SOCKET_URL, {
         y1: start.y,
         x2: end.x,
         y2: end.y,
-        // FIX 2: Player çizgileri de daha uzun yaşar
-        life: 65,
+        life: 45,
         owner: "player",
       });
 
@@ -987,7 +977,7 @@ const aiInterval =
     y1: Math.min(aiY1, H / 2 - 25),
     x2: ball.x + aiError + 55,
     y2: Math.min(aiY2, H / 2 - 25),
-    life: 65,
+    life: 55,
     owner: "ai",
   });
 }
@@ -1147,7 +1137,8 @@ if (score.player >= 7) {
     isHostRef.current &&
     roomIdRef.current
   ) {
-    // FIX: round_start_at=1 server'a sinyal — gerçek timestamp server üretir
+    const roundStartAt = Date.now() + 3200;
+
     socketRef.current?.emit("host-state", {
       roomCode: roomIdRef.current,
       state: {
@@ -1159,14 +1150,19 @@ if (score.player >= 7) {
         guest_score: score.ai,
         winner: null,
         phase: "countdown",
-        round_start_at: 1,
+        round_start_at: roundStartAt,
         updated_at: Date.now(),
       },
     });
-    // startCountdown çağrılmaz — server'dan dönen game-state tetikler
+
+    startCountdown(roundStartAt);
   } else {
-    // AI modu — yerel countdown
-    startCountdown(Date.now() + 3000);
+    const roundStartAt = Date.now() + 1800;
+
+    setTimeout(() => {
+      pauseRef.current = false;
+      startCountdown(roundStartAt);
+    }, 0);
   }
 }
 
@@ -1243,7 +1239,8 @@ if (score.ai >= 7) {
     isHostRef.current &&
     roomIdRef.current
   ) {
-    // FIX: round_start_at=1 server'a sinyal — gerçek timestamp server üretir
+    const roundStartAt = Date.now() + 3200;
+
     socketRef.current?.emit("host-state", {
       roomCode: roomIdRef.current,
       state: {
@@ -1255,14 +1252,19 @@ if (score.ai >= 7) {
         guest_score: score.ai,
         winner: null,
         phase: "countdown",
-        round_start_at: 1,
+        round_start_at: roundStartAt,
         updated_at: Date.now(),
       },
     });
-    // startCountdown çağrılmaz — server'dan dönen game-state tetikler
+
+    startCountdown(roundStartAt);
   } else {
-    // AI modu — yerel countdown
-    startCountdown(Date.now() + 3000);
+    const roundStartAt = Date.now() + 1800;
+
+    setTimeout(() => {
+      pauseRef.current = false;
+      startCountdown(roundStartAt);
+    }, 0);
   }
 }
 
@@ -1274,7 +1276,6 @@ if (score.ai >= 7) {
 
       if (shouldRunPhysics) {
         for (const line of linesRef.current) {
-          // FIX 2: Daha erken life check — düşük life'ta collision kaçırılıyordu
           if (line.life < 4) continue;
 
           const dx = line.x2 - line.x1;
@@ -1295,8 +1296,7 @@ if (score.ai >= 7) {
         const py = line.y1 + t * dy;
         const dist = Math.hypot(ball.x - px, ball.y - py);
 
-        // FIX 2: Daha geniş collision threshold — ağ gecikmesini telafi eder
-        if (dist < ball.r + 7) {
+        if (dist < ball.r + 6) {
 const currentSpeed = Math.hypot(ball.vx, ball.vy);
 const speed = Math.min(currentSpeed * 1.08 + 0.04, MAX_BALL_SPEED);
 
@@ -1324,12 +1324,6 @@ ball.vy = ny * speed + dy * 0.006;
             ball.vy = (ball.vy / nextSpeed) * MAX_BALL_SPEED;
           }
 
-          // FIX 2: Top çizginin içine gömülmemesi için pozisyon düzelt
-          const overlap = ball.r + 7 - dist;
-          if (overlap > 0) {
-            ball.x += nx * overlap;
-            ball.y += ny * overlap;
-          }
 
           for (let i = 0; i < 12; i++) {
             sparksRef.current.push({
@@ -1548,7 +1542,6 @@ const playSound = (
 
     if (gameModeRef.current === "ai") {
       pauseRef.current = false;
-      // FIX 1: AI modunda da timestamp bazlı countdown
       startCountdown(Date.now() + 3000);
       return;
     }
@@ -1558,7 +1551,8 @@ const playSound = (
       isHostRef.current &&
       roomIdRef.current
     ) {
-      // FIX: round_start_at=1 server'a sinyal — gerçek timestamp server üretir
+      const roundStartAt = Date.now() + 3200;
+
       socketRef.current?.emit("host-state", {
         roomCode: roomIdRef.current,
         state: {
@@ -1570,11 +1564,12 @@ const playSound = (
           guest_score: 0,
           winner: null,
           phase: "countdown",
-          round_start_at: 1,
+          round_start_at: roundStartAt,
           updated_at: Date.now(),
         },
       });
-      // startCountdown çağrılmaz — server'dan dönen game-state tetikler
+
+      startCountdown(roundStartAt);
     }
   };
 
