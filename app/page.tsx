@@ -170,11 +170,13 @@ const [aiDifficulty, setAiDifficulty] =
 
   const GAME_W = 400;
   const GAME_H = 700;
-  const BALL_START_VX = 0.55;
-  const BALL_START_VY = 0.85;
-  const BALL_RESET_VX = 0.35;
-  const BALL_RESET_VY = 0.75;
-  const MAX_BALL_SPEED = 3.2;
+const BALL_START_VX = 1.2;
+const BALL_START_VY = 1.8;
+
+const BALL_RESET_VX = 1.2;
+const BALL_RESET_VY = 1.8;
+
+const MAX_BALL_SPEED = 10;
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const linesRef = useRef<Line[]>([]);
@@ -1363,7 +1365,10 @@ if (score.ai >= 7) {
 
         if (dist < ball.r + 6 || sweptDist < ball.r + 6) {
 const currentSpeed = Math.hypot(ball.vx, ball.vy);
-const speed = Math.min(currentSpeed * 1.08 + 0.04, MAX_BALL_SPEED);
+const speed = Math.min(
+  currentSpeed + 0.25,
+  MAX_BALL_SPEED
+);
 
 let nx = -dy;
 let ny = dx;
