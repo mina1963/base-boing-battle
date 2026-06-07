@@ -244,8 +244,7 @@ const startCountdown = (startAtMs?: number) => {
   gameStartedRef.current = false;
   setGameStarted(false);
 
-  const countdownStartAt = startAtMs ?? Date.now();
-  const battleAt = countdownStartAt + 3000;
+ const battleAt = startAtMs ?? Date.now() + 3000;
 
   const tick = () => {
     const remaining = battleAt - Date.now();
@@ -1140,7 +1139,7 @@ if (score.player >= 7) {
     isHostRef.current &&
     roomIdRef.current
   ) {
-    const roundStartAt = new Date(Date.now() + 1800).toISOString();
+    const roundStartAt = Date.now() + 3200;
 
     socketRef.current?.emit("host-state", {
       roomCode: roomIdRef.current,
@@ -1238,7 +1237,7 @@ if (score.ai >= 7) {
     isHostRef.current &&
     roomIdRef.current
   ) {
-    const roundStartAt = new Date(Date.now() + 1800).toISOString();
+    const roundStartAt = Date.now() + 3200;
 
     socketRef.current?.emit("host-state", {
       roomCode: roomIdRef.current,
@@ -1546,7 +1545,7 @@ const playSound = (
       isHostRef.current &&
       roomIdRef.current
     ) {
-      const roundStartAt = new Date(Date.now() + 1800).toISOString();
+      const roundStartAt = Date.now() + 3200;
 
       socketRef.current?.emit("host-state", {
         roomCode: roomIdRef.current,
