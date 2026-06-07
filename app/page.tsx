@@ -1005,7 +1005,7 @@ if (roundActive) {
     !isHostRef.current
   ) {
     const elapsedFrames = Math.min(
-      5,
+      8,
       (Date.now() - targetBallUpdatedAtRef.current) / 16.67
     );
 
@@ -1026,8 +1026,8 @@ if (roundActive) {
       ball.x = predictedX;
       ball.y = predictedY;
     } else {
-      ball.x += dx * 0.32;
-      ball.y += dy * 0.32;
+ball.x += dx * 0.48;
+ball.y += dy * 0.48;
     }
 
     ball.vx = targetBallRef.current.vx;
@@ -1043,7 +1043,7 @@ if (
   isHostRef.current &&
   roomIdRef.current &&
   roundActive &&
-  frame % 1 === 0
+  frame % 2 === 0
 ) {
   socketRef.current?.emit("host-state", {
     roomCode: roomIdRef.current,
