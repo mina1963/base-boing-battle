@@ -25,7 +25,6 @@ let waitingPlayer = null;
 
 const cleanUsername = (username, fallback = "PLAYER") => {
   if (!username || typeof username !== "string") return fallback;
-
   return username
     .trim()
     .toUpperCase()
@@ -47,44 +46,32 @@ const normalizeState = (currentState, incoming = {}) => {
     ...currentState,
     phase: incoming.phase ?? currentState.phase,
     winner:
-      incoming.winner !== undefined
-        ? incoming.winner
-        : currentState.winner,
-    roundStartAt:
-      incoming.round_start_at ??
-      incoming.roundStartAt ??
-      currentState.roundStartAt,
+      incoming.winner !== undefined ? incoming.winner : currentState.winner,
+
+    // FIX: roundStartAt sadece server üretir — client'tan gelen ignore edilir
+    roundStartAt: currentState.roundStartAt,
 
     hostScore: Number(
-      incoming.host_score ??
-        incoming.hostScore ??
-        currentState.hostScore
+      incoming.host_score ?? incoming.hostScore ?? currentState.hostScore
     ),
     guestScore: Number(
-      incoming.guest_score ??
-        incoming.guestScore ??
-        currentState.guestScore
+      incoming.guest_score ?? incoming.guestScore ?? currentState.guestScore
     ),
 
     ball: {
-      x: Number(
-        incoming.ball_x ?? incoming.ball?.x ?? currentState.ball.x
-      ),
-      y: Number(
-        incoming.ball_y ?? incoming.ball?.y ?? currentState.ball.y
-      ),
-      vx: Number(
-        incoming.ball_vx ?? incoming.ball?.vx ?? currentState.ball.vx
-      ),
-      vy: Number(
-        incoming.ball_vy ?? incoming.ball?.vy ?? currentState.ball.vy
-      ),
+      x: Number(incoming.ball_x ?? incoming.ball?.x ?? currentState.ball.x),
+      y: Number(incoming.ball_y ?? incoming.ball?.y ?? currentState.ball.y),
+      vx: Number(incoming.ball_vx ?? incoming.ball?.vx ?? currentState.ball.vx),
+      vy: Number(incoming.ball_vy ?? incoming.ball?.vy ?? currentState.ball.vy),
     },
   };
 };
 
+// FIX: roundStartAt server'da üretilir, delay 3500ms — client animasyonuna yeter
+const COUNTDOWN_DELAY_MS = 3500;
+
 const resetRound = (room, direction = "down") => {
-  const roundStartAt = Date.now() + 1200;
+  const roundStartAt = Date.now() + COUNTDOWN_DELAY_MS;
 
   room.state.phase = "countdown";
   room.state.roundStartAt = roundStartAt;
@@ -115,7 +102,6 @@ const finishGame = (room, winner) => {
 
 const cleanupRoomForSocket = (socket) => {
   const roomCode = socketRooms.get(socket.id);
-
   if (!roomCode) return;
 
   socketRooms.delete(socket.id);
@@ -128,31 +114,19 @@ const cleanupRoomForSocket = (socket) => {
 
   if (!wasHost && !wasGuest) return;
 
-  socket.to(roomCode).emit("opponent-left", {
-    roomCode,
-  });
+  socket.to(roomCode).emit("opponent-left", { roomCode });
 
-  if (room.hostSocketId) {
-    socketRooms.delete(room.hostSocketId);
-  }
-
-  if (room.guestSocketId) {
-    socketRooms.delete(room.guestSocketId);
-  }
+  if (room.hostSocketId) socketRooms.delete(room.hostSocketId);
+  if (room.guestSocketId) socketRooms.delete(room.guestSocketId);
 
   rooms.delete(roomCode);
 };
 
 const makeRoomCode = () => {
   let code = "";
-
   do {
-    code = Math.random()
-      .toString(36)
-      .substring(2, 6)
-      .toUpperCase();
+    code = Math.random().toString(36).substring(2, 6).toUpperCase();
   } while (rooms.has(code));
-
   return code;
 };
 
@@ -172,12 +146,12 @@ const createMatchedRoom = ({ host, guest }) => {
     guestReadyAgain: false,
   };
 
+  // FIX: roundStartAt server'da üretilir
   room.state.phase = "countdown";
-  room.state.roundStartAt = Date.now() + 1800;
+  room.state.roundStartAt = Date.now() + COUNTDOWN_DELAY_MS;
   room.state.winner = null;
 
   rooms.set(roomCode, room);
-
   socketRooms.set(host.socketId, roomCode);
   socketRooms.set(guest.socketId, roomCode);
 
@@ -230,7 +204,6 @@ io.on("connection", (socket) => {
 
     rooms.set(roomCode, room);
     socketRooms.set(socket.id, roomCode);
-
     socket.join(roomCode);
 
     socket.emit("room-created", {
@@ -260,12 +233,12 @@ io.on("connection", (socket) => {
     room.guestUsername = cleanUsername(username, "PLAYER 2");
 
     socketRooms.set(socket.id, roomCode);
-
     socket.join(roomCode);
 
     room.state = createInitialState();
+    // FIX: roundStartAt server'da üretilir
     room.state.phase = "countdown";
-    room.state.roundStartAt = Date.now() + 1800;
+    room.state.roundStartAt = Date.now() + COUNTDOWN_DELAY_MS;
     room.state.winner = null;
 
     const hostSocket = io.sockets.sockets.get(room.hostSocketId);
@@ -295,17 +268,10 @@ io.on("connection", (socket) => {
   socket.on("find-match", ({ address, username }) => {
     console.log("FIND MATCH:", socket.id);
 
-    if (socketRooms.has(socket.id)) {
-      return;
-    }
+    if (socketRooms.has(socket.id)) return;
 
-    if (
-      waitingPlayer &&
-      waitingPlayer.socketId === socket.id
-    ) {
-      socket.emit("matchmaking-status", {
-        status: "searching",
-      });
+    if (waitingPlayer && waitingPlayer.socketId === socket.id) {
+      socket.emit("matchmaking-status", { status: "searching" });
       return;
     }
 
@@ -316,16 +282,11 @@ io.on("connection", (socket) => {
         username: cleanUsername(username, "PLAYER 1"),
       };
 
-      socket.emit("matchmaking-status", {
-        status: "searching",
-      });
-
+      socket.emit("matchmaking-status", { status: "searching" });
       return;
     }
 
-    const hostSocket = io.sockets.sockets.get(
-      waitingPlayer.socketId
-    );
+    const hostSocket = io.sockets.sockets.get(waitingPlayer.socketId);
 
     if (!hostSocket) {
       waitingPlayer = {
@@ -334,10 +295,7 @@ io.on("connection", (socket) => {
         username: cleanUsername(username, "PLAYER 1"),
       };
 
-      socket.emit("matchmaking-status", {
-        status: "searching",
-      });
-
+      socket.emit("matchmaking-status", { status: "searching" });
       return;
     }
 
@@ -350,22 +308,13 @@ io.on("connection", (socket) => {
 
     waitingPlayer = null;
 
-    createMatchedRoom({
-      host,
-      guest,
-    });
+    createMatchedRoom({ host, guest });
   });
 
   socket.on("cancel-matchmaking", () => {
-    if (
-      waitingPlayer &&
-      waitingPlayer.socketId === socket.id
-    ) {
+    if (waitingPlayer && waitingPlayer.socketId === socket.id) {
       waitingPlayer = null;
-
-      socket.emit("matchmaking-status", {
-        status: "cancelled",
-      });
+      socket.emit("matchmaking-status", { status: "cancelled" });
     }
   });
 
@@ -375,19 +324,32 @@ io.on("connection", (socket) => {
     if (room.hostSocketId !== socket.id) return;
     if (room.state.phase === "finished") return;
 
+    // FIX: Eğer host countdown tetiklemek istiyorsa server resetRound çağırır
+    if (state.phase === "countdown" && state.round_start_at) {
+      const direction =
+        state.ball_vy !== undefined
+          ? state.ball_vy < 0 ? "up" : "down"
+          : "down";
+
+      // Skoru güncelle önce
+      room.state.hostScore = Number(state.host_score ?? room.state.hostScore);
+      room.state.guestScore = Number(state.guest_score ?? room.state.guestScore);
+
+      if (room.state.hostScore >= 7) { finishGame(room, "host"); return; }
+      if (room.state.guestScore >= 7) { finishGame(room, "guest"); return; }
+
+      // Server kendi roundStartAt'ını üretir — client'ınkini ignore eder
+      resetRound(room, direction);
+      return;
+    }
+
     room.state = normalizeState(room.state, state);
 
-    if (room.state.hostScore >= 7) {
-      finishGame(room, "host");
-      return;
-    }
+    if (room.state.hostScore >= 7) { finishGame(room, "host"); return; }
+    if (room.state.guestScore >= 7) { finishGame(room, "guest"); return; }
 
-    if (room.state.guestScore >= 7) {
-      finishGame(room, "guest");
-      return;
-    }
-
-    io.to(roomCode).emit("game-state", room.state);
+    // Sadece guest'e gönder — host zaten biliyor
+    socket.to(roomCode).emit("game-state", room.state);
   });
 
   socket.on("round-reset", ({ roomCode, direction, state }) => {
@@ -399,15 +361,8 @@ io.on("connection", (socket) => {
       room.state = normalizeState(room.state, state);
     }
 
-    if (room.state.hostScore >= 7) {
-      finishGame(room, "host");
-      return;
-    }
-
-    if (room.state.guestScore >= 7) {
-      finishGame(room, "guest");
-      return;
-    }
+    if (room.state.hostScore >= 7) { finishGame(room, "host"); return; }
+    if (room.state.guestScore >= 7) { finishGame(room, "guest"); return; }
 
     resetRound(room, direction);
   });
@@ -436,8 +391,9 @@ io.on("connection", (socket) => {
       room.guestReadyAgain = false;
 
       room.state = createInitialState();
+      // FIX: play-again'de de server timestamp
       room.state.phase = "countdown";
-      room.state.roundStartAt = Date.now() + 1800;
+      room.state.roundStartAt = Date.now() + COUNTDOWN_DELAY_MS;
       room.state.winner = null;
 
       io.to(roomCode).emit("game-state", room.state);
@@ -452,10 +408,7 @@ io.on("connection", (socket) => {
   socket.on("disconnect", () => {
     console.log("DISCONNECTED:", socket.id);
 
-    if (
-      waitingPlayer &&
-      waitingPlayer.socketId === socket.id
-    ) {
+    if (waitingPlayer && waitingPlayer.socketId === socket.id) {
       waitingPlayer = null;
     }
 

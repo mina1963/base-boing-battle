@@ -1147,9 +1147,7 @@ if (score.player >= 7) {
     isHostRef.current &&
     roomIdRef.current
   ) {
-    // FIX 1: Host da roundStartAt ile startCountdown çağırır — setTimeout yok
-    const roundStartAt = Date.now() + 3200;
-
+    // FIX: round_start_at=1 server'a sinyal — gerçek timestamp server üretir
     socketRef.current?.emit("host-state", {
       roomCode: roomIdRef.current,
       state: {
@@ -1161,19 +1159,14 @@ if (score.player >= 7) {
         guest_score: score.ai,
         winner: null,
         phase: "countdown",
-        round_start_at: roundStartAt,
+        round_start_at: 1,
         updated_at: Date.now(),
       },
     });
-
-    startCountdown(roundStartAt);
+    // startCountdown çağrılmaz — server'dan dönen game-state tetikler
   } else {
     // AI modu — yerel countdown
-    const roundStartAt = Date.now() + 1800;
-    setTimeout(() => {
-      pauseRef.current = false;
-      startCountdown(roundStartAt);
-    }, 0);
+    startCountdown(Date.now() + 3000);
   }
 }
 
@@ -1250,9 +1243,7 @@ if (score.ai >= 7) {
     isHostRef.current &&
     roomIdRef.current
   ) {
-    // FIX 1: Host da roundStartAt ile startCountdown çağırır — setTimeout yok
-    const roundStartAt = Date.now() + 3200;
-
+    // FIX: round_start_at=1 server'a sinyal — gerçek timestamp server üretir
     socketRef.current?.emit("host-state", {
       roomCode: roomIdRef.current,
       state: {
@@ -1264,19 +1255,14 @@ if (score.ai >= 7) {
         guest_score: score.ai,
         winner: null,
         phase: "countdown",
-        round_start_at: roundStartAt,
+        round_start_at: 1,
         updated_at: Date.now(),
       },
     });
-
-    startCountdown(roundStartAt);
+    // startCountdown çağrılmaz — server'dan dönen game-state tetikler
   } else {
     // AI modu — yerel countdown
-    const roundStartAt = Date.now() + 1800;
-    setTimeout(() => {
-      pauseRef.current = false;
-      startCountdown(roundStartAt);
-    }, 0);
+    startCountdown(Date.now() + 3000);
   }
 }
 
@@ -1572,8 +1558,7 @@ const playSound = (
       isHostRef.current &&
       roomIdRef.current
     ) {
-      const roundStartAt = Date.now() + 3200;
-
+      // FIX: round_start_at=1 server'a sinyal — gerçek timestamp server üretir
       socketRef.current?.emit("host-state", {
         roomCode: roomIdRef.current,
         state: {
@@ -1585,13 +1570,11 @@ const playSound = (
           guest_score: 0,
           winner: null,
           phase: "countdown",
-          round_start_at: roundStartAt,
+          round_start_at: 1,
           updated_at: Date.now(),
         },
       });
-
-      // FIX 1: Host da aynı timestamp ile başlar
-      startCountdown(roundStartAt);
+      // startCountdown çağrılmaz — server'dan dönen game-state tetikler
     }
   };
 
