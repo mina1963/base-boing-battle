@@ -237,7 +237,8 @@ const [aiDifficulty, setAiDifficulty] =
   };
 
 // FIX 1: startCountdown her zaman bir startAtMs alır.
-// Host da kendi emit ettiği roundStartAt ile çağırır — setTimeout yoktur.
+// Her cihaz kendi Date.now()'ını timestamp ile karşılaştırır — 50ms polling.
+// setCountdown sadece değer değişince çağrılır, gereksiz re-render engellenir.
 const startCountdown = (startAtMs: number) => {
   clearCountdownTimers();
 
@@ -246,17 +247,25 @@ const startCountdown = (startAtMs: number) => {
   gameStartedRef.current = false;
   setGameStarted(false);
 
+  let lastShown: number | string | null = null;
+
   const tick = () => {
     const remaining = startAtMs - Date.now();
 
     if (remaining > 2000) {
-      setCountdown(3);
+      if (lastShown !== 3) { lastShown = 3; setCountdown(3); }
+      countdownDelayTimerRef.current = setTimeout(tick, 50);
     } else if (remaining > 1000) {
-      setCountdown(2);
+      if (lastShown !== 2) { lastShown = 2; setCountdown(2); }
+      countdownDelayTimerRef.current = setTimeout(tick, 50);
     } else if (remaining > 0) {
-      setCountdown(1);
+      if (lastShown !== 1) { lastShown = 1; setCountdown(1); }
+      countdownDelayTimerRef.current = setTimeout(tick, 50);
     } else {
-      setCountdown("BATTLE!");
+      if (lastShown !== "BATTLE!") {
+        lastShown = "BATTLE!";
+        setCountdown("BATTLE!");
+      }
 
       countdownBattleTimerRef.current = setTimeout(() => {
         setCountdown(null);
@@ -281,11 +290,7 @@ const startCountdown = (startAtMs: number) => {
           });
         }
       }, 700);
-
-      return;
     }
-
-    countdownDelayTimerRef.current = setTimeout(tick, 80);
   };
 
   tick();
