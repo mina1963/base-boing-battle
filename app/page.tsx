@@ -678,6 +678,49 @@ const socket = io(SOCKET_URL, {
     const H = 700;
     const MAX_LINE_LENGTH = 160;
 
+    const pointToSegmentDistance = (
+      px: number,
+      py: number,
+      ax: number,
+      ay: number,
+      bx: number,
+      by: number
+    ) => {
+      const dx = bx - ax;
+      const dy = by - ay;
+      const lenSq = dx * dx + dy * dy;
+
+      if (lenSq === 0) return Math.hypot(px - ax, py - ay);
+
+      const t = Math.max(
+        0,
+        Math.min(1, ((px - ax) * dx + (py - ay) * dy) / lenSq)
+      );
+
+      const cx = ax + t * dx;
+      const cy = ay + t * dy;
+
+      return Math.hypot(px - cx, py - cy);
+    };
+
+    const segmentToSegmentDistance = (
+      ax: number,
+      ay: number,
+      bx: number,
+      by: number,
+      cx: number,
+      cy: number,
+      dx: number,
+      dy: number
+    ) => {
+      return Math.min(
+        pointToSegmentDistance(ax, ay, cx, cy, dx, dy),
+        pointToSegmentDistance(bx, by, cx, cy, dx, dy),
+        pointToSegmentDistance(cx, cy, ax, ay, bx, by),
+        pointToSegmentDistance(dx, dy, ax, ay, bx, by)
+      );
+    };
+
     const limitLine = (
       start: { x: number; y: number },
       end: { x: number; y: number }
@@ -961,6 +1004,8 @@ const roundActive = gameStartedRef.current && !pauseRef.current;
       }
 
       const ball = ballRef.current;
+      const prevBallX = ball.x;
+      const prevBallY = ball.y;
 
 
 const aiInterval =
@@ -1305,7 +1350,18 @@ if (score.ai >= 7) {
         const py = line.y1 + t * dy;
         const dist = Math.hypot(ball.x - px, ball.y - py);
 
-        if (dist < ball.r + 6) {
+        const sweptDist = segmentToSegmentDistance(
+          prevBallX,
+          prevBallY,
+          ball.x,
+          ball.y,
+          line.x1,
+          line.y1,
+          line.x2,
+          line.y2
+        );
+
+        if (dist < ball.r + 6 || sweptDist < ball.r + 6) {
 const currentSpeed = Math.hypot(ball.vx, ball.vy);
 const speed = Math.min(currentSpeed * 1.08 + 0.04, MAX_BALL_SPEED);
 
@@ -1326,6 +1382,13 @@ if (dot > 0) {
 
 ball.vx = nx * speed + dx * 0.006;
 ball.vy = ny * speed + dy * 0.006;
+
+const overlap = ball.r + 6 - dist;
+
+if (overlap > 0) {
+  ball.x += nx * overlap;
+  ball.y += ny * overlap;
+}
 
           const nextSpeed = Math.hypot(ball.vx, ball.vy);
           if (nextSpeed > MAX_BALL_SPEED) {
