@@ -170,11 +170,11 @@ const [aiDifficulty, setAiDifficulty] =
 
   const GAME_W = 400;
   const GAME_H = 700;
-  const BALL_START_VX = 0.42;
-  const BALL_START_VY = 0.62;
-  const BALL_RESET_VX = 0.25;
-  const BALL_RESET_VY = 0.65;
-  const MAX_BALL_SPEED = 2.5;
+  const BALL_START_VX = 0.55;
+  const BALL_START_VY = 0.85;
+  const BALL_RESET_VX = 0.35;
+  const BALL_RESET_VY = 0.75;
+  const MAX_BALL_SPEED = 3.2;
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const linesRef = useRef<Line[]>([]);
@@ -990,7 +990,7 @@ const roundActive = gameStartedRef.current && !pauseRef.current;
         const messageScale = 1 + Math.sin(score.messageLife * 0.18) * 0.035;
 
         ctx.save();
-        ctx.translate(W / 2, H / 2 - 48);
+        ctx.translate(W / 2, H / 2 - 120);
         ctx.scale(messageScale, messageScale);
         ctx.fillStyle = `rgba(0,82,255,${messageAlpha})`;
         ctx.font = score.message.length > 15 ? "bold 26px monospace" : "bold 34px monospace";
