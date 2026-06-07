@@ -236,75 +236,61 @@ const [aiDifficulty, setAiDifficulty] =
     }
   };
 
-  const startCountdown = (startAtMs?: number) => {
-    if (countdownActiveRef.current) return;
+const startCountdown = (startAtMs?: number) => {
+  clearCountdownTimers();
 
-    countdownActiveRef.current = true;
-    clearCountdownTimers();
+  countdownActiveRef.current = true;
+  pauseRef.current = true;
+  gameStartedRef.current = false;
+  setGameStarted(false);
 
-    const beginCountdown = () => {
-      pauseRef.current = true;
-      gameStartedRef.current = false;
-      setGameStarted(false);
+  const countdownStartAt = startAtMs ?? Date.now();
+  const battleAt = countdownStartAt + 3000;
+
+  const tick = () => {
+    const remaining = battleAt - Date.now();
+
+    if (remaining > 2000) {
       setCountdown(3);
-
-      let count = 3;
-
-      countdownIntervalRef.current = setInterval(() => {
-        count--;
-
-        if (count > 0) {
-          setCountdown(count);
-        } else {
-          if (countdownIntervalRef.current) {
-            clearInterval(countdownIntervalRef.current);
-            countdownIntervalRef.current = null;
-          }
-
-          setCountdown("BATTLE!");
-          navigator.vibrate?.(30);
-
-          countdownBattleTimerRef.current = setTimeout(() => {
-            setCountdown(null);
-            countdownActiveRef.current = false;
-            pauseRef.current = false;
-            goalLockRef.current = false;
-            gameStartedRef.current = true;
-            setGameStarted(true);
-
-            if (
-              gameModeRef.current === "online" &&
-              isHostRef.current &&
-              roomIdRef.current
-            ) {
-              socketRef.current?.emit("host-state", {
-                roomCode: roomIdRef.current,
-                state: {
-                  phase: "playing",
-                  round_start_at: null,
-                  updated_at: Date.now(),
-                },
-              });
-            }
-          }, 700);
-        }
-      }, 1000);
-    };
-
-    const delay = startAtMs
-      ? Math.max(0, startAtMs - Date.now())
-      : 0;
-
-    if (delay > 0) {
-      countdownDelayTimerRef.current = setTimeout(
-        beginCountdown,
-        delay
-      );
+    } else if (remaining > 1000) {
+      setCountdown(2);
+    } else if (remaining > 0) {
+      setCountdown(1);
     } else {
-      beginCountdown();
+      setCountdown("BATTLE!");
+
+      countdownBattleTimerRef.current = setTimeout(() => {
+        setCountdown(null);
+        countdownActiveRef.current = false;
+        pauseRef.current = false;
+        goalLockRef.current = false;
+        gameStartedRef.current = true;
+        setGameStarted(true);
+
+        if (
+          gameModeRef.current === "online" &&
+          isHostRef.current &&
+          roomIdRef.current
+        ) {
+          socketRef.current?.emit("host-state", {
+            roomCode: roomIdRef.current,
+            state: {
+              phase: "playing",
+              round_start_at: null,
+              updated_at: Date.now(),
+            },
+          });
+        }
+      }, 700);
+
+      return;
     }
+
+    countdownDelayTimerRef.current = setTimeout(tick, 80);
   };
 
+  tick();
+};
 
   const applySocketState = (state: any) => {
     const hostScore = Number(state.host_score ?? state.hostScore ?? 0);
@@ -1031,8 +1017,8 @@ if (distance < 0.9) {
   ball.x = predictedX;
   ball.y = predictedY;
 } else {
-  ball.x += dx * 0.18;
-  ball.y += dy * 0.18;
+ ball.x += dx * 0.24;
+ ball.y += dy * 0.24;
 }
 
     ball.vx = targetBallRef.current.vx;
