@@ -236,7 +236,9 @@ const [aiDifficulty, setAiDifficulty] =
     }
   };
 
-const startCountdown = (startAtMs?: number) => {
+// FIX 1: startCountdown her zaman bir startAtMs alır.
+// Host da kendi emit ettiği roundStartAt ile çağırır — setTimeout yoktur.
+const startCountdown = (startAtMs: number) => {
   clearCountdownTimers();
 
   countdownActiveRef.current = true;
@@ -244,10 +246,8 @@ const startCountdown = (startAtMs?: number) => {
   gameStartedRef.current = false;
   setGameStarted(false);
 
- const battleAt = startAtMs ?? Date.now() + 3000;
-
   const tick = () => {
-    const remaining = battleAt - Date.now();
+    const remaining = startAtMs - Date.now();
 
     if (remaining > 2000) {
       setCountdown(3);
@@ -378,6 +378,7 @@ const startCountdown = (startAtMs?: number) => {
           ? roundStartRaw
           : new Date(roundStartRaw).getTime();
 
+        // FIX 1: Her iki taraf da aynı timestamp ile countdown başlatır
         startCountdown(startAtMs);
       }
     }
@@ -592,7 +593,8 @@ const socket = io(SOCKET_URL, {
       y1: isHostRef.current ? remoteY1 : GAME_H - remoteY1,
       x2: remoteX2,
       y2: isHostRef.current ? remoteY2 : GAME_H - remoteY2,
-      life: 42,
+      // FIX 2: Remote çizgiler daha uzun yaşar — ağ gecikmesini telafi eder
+      life: 65,
       owner: "ai",
     });
   });
@@ -751,7 +753,8 @@ const socket = io(SOCKET_URL, {
         y1: start.y,
         x2: end.x,
         y2: end.y,
-        life: 45,
+        // FIX 2: Player çizgileri de daha uzun yaşar
+        life: 65,
         owner: "player",
       });
 
@@ -979,7 +982,7 @@ const aiInterval =
     y1: Math.min(aiY1, H / 2 - 25),
     x2: ball.x + aiError + 55,
     y2: Math.min(aiY2, H / 2 - 25),
-    life: 55,
+    life: 65,
     owner: "ai",
   });
 }
@@ -1139,6 +1142,7 @@ if (score.player >= 7) {
     isHostRef.current &&
     roomIdRef.current
   ) {
+    // FIX 1: Host da roundStartAt ile startCountdown çağırır — setTimeout yok
     const roundStartAt = Date.now() + 3200;
 
     socketRef.current?.emit("host-state", {
@@ -1156,11 +1160,15 @@ if (score.player >= 7) {
         updated_at: Date.now(),
       },
     });
+
+    startCountdown(roundStartAt);
   } else {
+    // AI modu — yerel countdown
+    const roundStartAt = Date.now() + 1800;
     setTimeout(() => {
       pauseRef.current = false;
-      startCountdown();
-    }, 1800);
+      startCountdown(roundStartAt);
+    }, 0);
   }
 }
 
@@ -1237,6 +1245,7 @@ if (score.ai >= 7) {
     isHostRef.current &&
     roomIdRef.current
   ) {
+    // FIX 1: Host da roundStartAt ile startCountdown çağırır — setTimeout yok
     const roundStartAt = Date.now() + 3200;
 
     socketRef.current?.emit("host-state", {
@@ -1254,11 +1263,15 @@ if (score.ai >= 7) {
         updated_at: Date.now(),
       },
     });
+
+    startCountdown(roundStartAt);
   } else {
+    // AI modu — yerel countdown
+    const roundStartAt = Date.now() + 1800;
     setTimeout(() => {
       pauseRef.current = false;
-      startCountdown();
-    }, 1800);
+      startCountdown(roundStartAt);
+    }, 0);
   }
 }
 
@@ -1270,7 +1283,8 @@ if (score.ai >= 7) {
 
       if (shouldRunPhysics) {
         for (const line of linesRef.current) {
-          if (line.life < 8) continue;
+          // FIX 2: Daha erken life check — düşük life'ta collision kaçırılıyordu
+          if (line.life < 4) continue;
 
           const dx = line.x2 - line.x1;
         const dy = line.y2 - line.y1;
@@ -1290,7 +1304,8 @@ if (score.ai >= 7) {
         const py = line.y1 + t * dy;
         const dist = Math.hypot(ball.x - px, ball.y - py);
 
-        if (dist < ball.r + 5) {
+        // FIX 2: Daha geniş collision threshold — ağ gecikmesini telafi eder
+        if (dist < ball.r + 7) {
 const currentSpeed = Math.hypot(ball.vx, ball.vy);
 const speed = Math.min(currentSpeed * 1.08 + 0.04, MAX_BALL_SPEED);
 
@@ -1318,6 +1333,12 @@ ball.vy = ny * speed + dy * 0.006;
             ball.vy = (ball.vy / nextSpeed) * MAX_BALL_SPEED;
           }
 
+          // FIX 2: Top çizginin içine gömülmemesi için pozisyon düzelt
+          const overlap = ball.r + 7 - dist;
+          if (overlap > 0) {
+            ball.x += nx * overlap;
+            ball.y += ny * overlap;
+          }
 
           for (let i = 0; i < 12; i++) {
             sparksRef.current.push({
@@ -1536,7 +1557,8 @@ const playSound = (
 
     if (gameModeRef.current === "ai") {
       pauseRef.current = false;
-      startCountdown();
+      // FIX 1: AI modunda da timestamp bazlı countdown
+      startCountdown(Date.now() + 3000);
       return;
     }
 
@@ -1562,6 +1584,9 @@ const playSound = (
           updated_at: Date.now(),
         },
       });
+
+      // FIX 1: Host da aynı timestamp ile başlar
+      startCountdown(roundStartAt);
     }
   };
 
