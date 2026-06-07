@@ -1004,10 +1004,10 @@ if (roundActive) {
     gameModeRef.current === "online" &&
     !isHostRef.current
   ) {
-    const elapsedFrames = Math.min(
-      8,
-      (Date.now() - targetBallUpdatedAtRef.current) / 16.67
-    );
+const elapsedFrames = Math.min(
+  4,
+  (Date.now() - targetBallUpdatedAtRef.current) / 16.67
+);
 
     const predictedX = Math.max(
       22,
@@ -1019,16 +1019,21 @@ if (roundActive) {
       Math.min(H - 22, targetBallRef.current.y + targetBallRef.current.vy * elapsedFrames)
     );
 
-    const dx = predictedX - ball.x;
-    const dy = predictedY - ball.y;
+ const dx = predictedX - ball.x;
+const dy = predictedY - ball.y;
 
-    if (Math.hypot(dx, dy) < 0.9) {
-      ball.x = predictedX;
-      ball.y = predictedY;
-    } else {
-ball.x += dx * 0.48;
-ball.y += dy * 0.48;
-    }
+const distance = Math.hypot(dx, dy);
+
+if (distance < 0.9) {
+  ball.x = predictedX;
+  ball.y = predictedY;
+} else if (distance > 90) {
+  ball.x = predictedX;
+  ball.y = predictedY;
+} else {
+  ball.x += dx * 0.18;
+  ball.y += dy * 0.18;
+}
 
     ball.vx = targetBallRef.current.vx;
     ball.vy = targetBallRef.current.vy;
