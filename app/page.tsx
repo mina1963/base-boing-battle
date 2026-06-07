@@ -1154,7 +1154,7 @@ if (score.player >= 7) {
     isHostRef.current &&
     roomIdRef.current
   ) {
-    const roundStartAt = new Date(Date.now() + 1200).toISOString();
+    const roundStartAt = new Date(Date.now() + 1800).toISOString();
 
     socketRef.current?.emit("host-state", {
       roomCode: roomIdRef.current,
@@ -1252,7 +1252,7 @@ if (score.ai >= 7) {
     isHostRef.current &&
     roomIdRef.current
   ) {
-    const roundStartAt = new Date(Date.now() + 1200).toISOString();
+    const roundStartAt = new Date(Date.now() + 1800).toISOString();
 
     socketRef.current?.emit("host-state", {
       roomCode: roomIdRef.current,
@@ -1560,7 +1560,7 @@ const playSound = (
       isHostRef.current &&
       roomIdRef.current
     ) {
-      const roundStartAt = new Date(Date.now() + 1200).toISOString();
+      const roundStartAt = new Date(Date.now() + 1800).toISOString();
 
       socketRef.current?.emit("host-state", {
         roomCode: roomIdRef.current,
