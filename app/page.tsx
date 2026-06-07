@@ -372,9 +372,22 @@ const startCountdown = (startAtMs: number) => {
         trailRef.current = [];
         sparksRef.current = [];
 
-        const startAtMs = typeof roundStartRaw === "number"
-          ? roundStartRaw
-          : new Date(roundStartRaw).getTime();
+        const serverNowRaw = state.serverNow ?? state.server_now;
+
+        const serverStartAt =
+          typeof roundStartRaw === "number"
+            ? roundStartRaw
+            : new Date(roundStartRaw).getTime();
+
+        const serverNow =
+          typeof serverNowRaw === "number"
+            ? serverNowRaw
+            : Number(serverNowRaw);
+
+        const startAtMs =
+          Number.isFinite(serverStartAt) && Number.isFinite(serverNow)
+            ? Date.now() + Math.max(0, serverStartAt - serverNow)
+            : serverStartAt;
 
         startCountdown(startAtMs);
       }
@@ -1154,8 +1167,6 @@ if (score.player >= 7) {
         updated_at: Date.now(),
       },
     });
-
-    startCountdown(roundStartAt);
   } else {
     const roundStartAt = Date.now() + 1800;
 
@@ -1256,8 +1267,6 @@ if (score.ai >= 7) {
         updated_at: Date.now(),
       },
     });
-
-    startCountdown(roundStartAt);
   } else {
     const roundStartAt = Date.now() + 1800;
 
@@ -1568,8 +1577,6 @@ const playSound = (
           updated_at: Date.now(),
         },
       });
-
-      startCountdown(roundStartAt);
     }
   };
 
