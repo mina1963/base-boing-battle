@@ -221,7 +221,7 @@ const MAX_BALL_SPEED = 10;
   });
 
   const targetBallUpdatedAtRef = useRef(Date.now());
- const lastFrameTimeRef = useRef<number>(Date.now());
+
   const clearCountdownTimers = () => {
     if (countdownDelayTimerRef.current) {
       clearTimeout(countdownDelayTimerRef.current);
@@ -1039,29 +1039,24 @@ if (roundActive) {
       )
     );
 
-const dx = predictedX - ball.x;
-const dy = predictedY - ball.y;
-const distance = Math.hypot(dx, dy);
+    const dx = predictedX - ball.x;
+    const dy = predictedY - ball.y;
+    const distance = Math.hypot(dx, dy);
 
-if (distance < 0.9 || distance > 90) {
-  ball.x = predictedX;
-  ball.y = predictedY;
-} else {
-  const now = Date.now();
-  const dt = now - lastFrameTimeRef.current;
-  lastFrameTimeRef.current = now;
-  const alpha = 1 - Math.pow(0.68, dt / 16.67);
+    if (distance < 0.9 || distance > 90) {
+      ball.x = predictedX;
+      ball.y = predictedY;
+    } else {
+      ball.x += dx * 0.32;
+      ball.y += dy * 0.32;
+    }
 
-  ball.x += dx * alpha;
-  ball.y += dy * alpha;
-}
-
-ball.vx = targetBallRef.current.vx;
-ball.vy = targetBallRef.current.vy;
-} else {
+    ball.vx = targetBallRef.current.vx;
+    ball.vy = targetBallRef.current.vy;
+  } else {
     // AI/local mode physics.
     const speedBeforeMove = Math.hypot(ball.vx, ball.vy);
-    const steps = Math.max(1, Math.ceil(speedBeforeMove / (ball.r * 0.5)));
+    const steps = Math.max(1, Math.ceil(speedBeforeMove / 2));
     const stepVx = ball.vx / steps;
     const stepVy = ball.vy / steps;
 
