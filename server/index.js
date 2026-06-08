@@ -231,7 +231,7 @@ emitStateToRoom(room);
   const scaledVx = ball.vx * dtScale;
   const scaledVy = ball.vy * dtScale;
   const speedBeforeMove = Math.hypot(scaledVx, scaledVy);
-  const steps = Math.max(1, Math.ceil(speedBeforeMove));
+  const steps = Math.max(1, Math.ceil(speedBeforeMove / (BALL_R * 0.5)));
   const stepVx = scaledVx / steps;
   const stepVy = scaledVy / steps;
 
