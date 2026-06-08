@@ -268,7 +268,7 @@ const tickRoomPhysics = (room, dtScale = 1) => {
     return;
   }
 
-  if (ball.y > GAME_H - 22) {
+  if (ball.y > GAME_H - 8) {
     room.state.guestScore += 1;
 
     if (room.state.guestScore >= 7) {
