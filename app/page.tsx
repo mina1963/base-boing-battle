@@ -1034,6 +1034,66 @@ if (distance < 0.9) {
 
     ball.vx = targetBallRef.current.vx;
     ball.vy = targetBallRef.current.vy;
+// GUEST_LOCAL_PREDICTION_COLLISION
+for (const line of linesRef.current) {
+  if (line.owner !== "player") continue;
+  if (line.life < 4) continue;
+
+  const lineDx = line.x2 - line.x1;
+  const lineDy = line.y2 - line.y1;
+  const lenSq = lineDx * lineDx + lineDy * lineDy;
+
+  if (lenSq === 0) continue;
+
+  const t = Math.max(
+    0,
+    Math.min(
+      1,
+      ((ball.x - line.x1) * lineDx +
+        (ball.y - line.y1) * lineDy) /
+        lenSq
+    )
+  );
+
+  const px = line.x1 + t * lineDx;
+  const py = line.y1 + t * lineDy;
+  const dist = Math.hypot(ball.x - px, ball.y - py);
+
+  if (dist < ball.r + 10) {
+    const currentSpeed = Math.hypot(ball.vx, ball.vy);
+    const speed = Math.min(currentSpeed + 0.25, MAX_BALL_SPEED);
+
+    let nx = -lineDy;
+    let ny = lineDx;
+
+    const nLen = Math.hypot(nx, ny) || 1;
+    nx /= nLen;
+    ny /= nLen;
+
+    const dot = ball.vx * nx + ball.vy * ny;
+
+    if (dot > 0) {
+      nx *= -1;
+      ny *= -1;
+    }
+
+    ball.vx = nx * speed + lineDx * 0.006;
+    ball.vy = ny * speed + lineDy * 0.006;
+
+    ball.x += nx * 4;
+    ball.y += ny * 4;
+
+    line.life = 0;
+
+    navigator.vibrate?.(12);
+    playSound("hit");
+
+    break;
+  }
+}
+
+
+
   } else {
     // SUBSTEP_COLLISION_ACTIVE
     // Host/AI tarafında top tek seferde zıplamaz; hıza göre 2px'lik küçük adımlarla ilerler.
