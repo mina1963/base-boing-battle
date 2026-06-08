@@ -245,7 +245,7 @@ const tickRoomPhysics = (room, dtScale = 1) => {
 
       const { dist, lineDx, lineDy } = pointLineDistance(ball, line);
 
-      if (dist < BALL_R + 6) {
+      if (dist < BALL_R + 14) {
         applyLineCollision(ball, line, lineDx, lineDy, dist);
         line.life = 0;
         hitLine = line;
