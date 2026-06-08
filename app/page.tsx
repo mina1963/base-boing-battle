@@ -266,20 +266,7 @@ const startCountdown = (startAtMs: number) => {
         gameStartedRef.current = true;
         setGameStarted(true);
 
-        if (
-          gameModeRef.current === "online" &&
-          isHostRef.current &&
-          roomIdRef.current
-        ) {
-          socketRef.current?.emit("host-state", {
-            roomCode: roomIdRef.current,
-            state: {
-              phase: "playing",
-              round_start_at: null,
-              updated_at: Date.now(),
-            },
-          });
-        }
+        // Server authoritative: server controls online phase.
       }, 700);
 
       return;
@@ -320,6 +307,13 @@ const startCountdown = (startAtMs: number) => {
         scoreRef.current.message = `${scoreAnnouncementName(rivalNameRef.current)} SCORES`;
         scoreRef.current.messageLife = 120;
       }
+
+      setGoalFlash(true);
+      setScreenShake(true);
+      playSound("goal");
+
+      setTimeout(() => setGoalFlash(false), 250);
+      setTimeout(() => setScreenShake(false), 320);
     }
 
     lastRemoteScoreTotalRef.current = newScoreTotal;
@@ -334,7 +328,7 @@ const startCountdown = (startAtMs: number) => {
     const displayBallVx = remoteBallVx;
     const displayBallVy = isHostRef.current ? remoteBallVy : -remoteBallVy;
 
-    if (!isHostRef.current) {
+    if (gameModeRef.current === "online") {
       targetBallRef.current.x = displayBallX;
       targetBallRef.current.y = displayBallY;
       targetBallRef.current.vx = displayBallVx;
@@ -997,107 +991,46 @@ const aiInterval =
 }
 
 if (roundActive) {
-  if (
-    gameModeRef.current === "online" &&
-    !isHostRef.current
-  ) {
-const elapsedFrames = Math.min(
-  4,
-  (Date.now() - targetBallUpdatedAtRef.current) / 16.67
-);
+  if (gameModeRef.current === "online") {
+    // SERVER_AUTHORITATIVE_RENDER
+    // Online modda fizik client'ta çalışmaz. Host ve guest sadece server state'ini yumuşak render eder.
+    const elapsedFrames = Math.min(
+      4,
+      (Date.now() - targetBallUpdatedAtRef.current) / 16.67
+    );
 
     const predictedX = Math.max(
       22,
-      Math.min(W - 22, targetBallRef.current.x + targetBallRef.current.vx * elapsedFrames)
+      Math.min(
+        W - 22,
+        targetBallRef.current.x + targetBallRef.current.vx * elapsedFrames
+      )
     );
 
     const predictedY = Math.max(
       22,
-      Math.min(H - 22, targetBallRef.current.y + targetBallRef.current.vy * elapsedFrames)
+      Math.min(
+        H - 22,
+        targetBallRef.current.y + targetBallRef.current.vy * elapsedFrames
+      )
     );
 
- const dx = predictedX - ball.x;
-const dy = predictedY - ball.y;
+    const dx = predictedX - ball.x;
+    const dy = predictedY - ball.y;
+    const distance = Math.hypot(dx, dy);
 
-const distance = Math.hypot(dx, dy);
-
-if (distance < 0.9) {
-  ball.x = predictedX;
-  ball.y = predictedY;
-} else if (distance > 90) {
-  ball.x = predictedX;
-  ball.y = predictedY;
-} else {
- ball.x += dx * 0.24;
- ball.y += dy * 0.24;
-}
+    if (distance < 0.9 || distance > 90) {
+      ball.x = predictedX;
+      ball.y = predictedY;
+    } else {
+      ball.x += dx * 0.32;
+      ball.y += dy * 0.32;
+    }
 
     ball.vx = targetBallRef.current.vx;
     ball.vy = targetBallRef.current.vy;
-// GUEST_LOCAL_PREDICTION_COLLISION
-for (const line of linesRef.current) {
-  if (line.owner !== "player") continue;
-  if (line.life < 4) continue;
-
-  const lineDx = line.x2 - line.x1;
-  const lineDy = line.y2 - line.y1;
-  const lenSq = lineDx * lineDx + lineDy * lineDy;
-
-  if (lenSq === 0) continue;
-
-  const t = Math.max(
-    0,
-    Math.min(
-      1,
-      ((ball.x - line.x1) * lineDx +
-        (ball.y - line.y1) * lineDy) /
-        lenSq
-    )
-  );
-
-  const px = line.x1 + t * lineDx;
-  const py = line.y1 + t * lineDy;
-  const dist = Math.hypot(ball.x - px, ball.y - py);
-
-  if (dist < ball.r + 10) {
-    const currentSpeed = Math.hypot(ball.vx, ball.vy);
-    const speed = Math.min(currentSpeed + 0.25, MAX_BALL_SPEED);
-
-    let nx = -lineDy;
-    let ny = lineDx;
-
-    const nLen = Math.hypot(nx, ny) || 1;
-    nx /= nLen;
-    ny /= nLen;
-
-    const dot = ball.vx * nx + ball.vy * ny;
-
-    if (dot > 0) {
-      nx *= -1;
-      ny *= -1;
-    }
-
-    ball.vx = nx * speed + lineDx * 0.006;
-    ball.vy = ny * speed + lineDy * 0.006;
-
-    ball.x += nx * 4;
-    ball.y += ny * 4;
-
-    line.life = 0;
-
-    navigator.vibrate?.(12);
-    playSound("hit");
-
-    break;
-  }
-}
-
-
-
   } else {
-    // SUBSTEP_COLLISION_ACTIVE
-    // Host/AI tarafında top tek seferde zıplamaz; hıza göre 2px'lik küçük adımlarla ilerler.
-    // Her küçük adımda çizgi collision kontrol edilir, böylece hızlı top çizginin içinden geçmez.
+    // AI/local mode physics.
     const speedBeforeMove = Math.hypot(ball.vx, ball.vy);
     const steps = Math.max(1, Math.ceil(speedBeforeMove / 2));
     const stepVx = ball.vx / steps;
@@ -1134,10 +1067,7 @@ for (const line of linesRef.current) {
 
         if (dist < ball.r + 6) {
           const currentSpeed = Math.hypot(ball.vx, ball.vy);
-          const speed = Math.min(
-            currentSpeed + 0.25,
-            MAX_BALL_SPEED
-          );
+          const speed = Math.min(currentSpeed + 0.25, MAX_BALL_SPEED);
 
           let nx = -lineDy;
           let ny = lineDx;
@@ -1196,34 +1126,8 @@ for (const line of linesRef.current) {
   }
 }
 
-if (
-  gameModeRef.current === "online" &&
-  isHostRef.current &&
-  roomIdRef.current &&
-  roundActive &&
-  frame % 2 === 0
-) {
-  socketRef.current?.emit("host-state", {
-    roomCode: roomIdRef.current,
-    state: {
-      ball_x: ball.x,
-      ball_y: ball.y,
-      ball_vx: ball.vx,
-      ball_vy: ball.vy,
-      host_score: scoreRef.current.player,
-      guest_score: scoreRef.current.ai,
-      winner:
-        scoreRef.current.player >= 7
-          ? "host"
-          : scoreRef.current.ai >= 7
-          ? "guest"
-          : null,
-      phase: "playing",
-      round_start_at: null,
-      updated_at: Date.now(),
-    },
-  });
-}
+// Server authoritative: client does not emit host-state during gameplay.
+
 
       trailRef.current.push({ x: ball.x, y: ball.y });
 
@@ -1231,17 +1135,14 @@ if (
         trailRef.current.shift();
       }
 
-if (roundActive && (ball.x < 22 || ball.x > W - 22)) {
+if (roundActive && gameModeRef.current !== "online" && (ball.x < 22 || ball.x > W - 22)) {
   ball.vx *= -1;
   playSound("wall");
 }
 
 if (
   roundActive &&
-  !(
-    gameModeRef.current === "online" &&
-    !isHostRef.current
-  ) &&
+  gameModeRef.current !== "online" &&
   !goalLockRef.current &&
   ball.y < 22
 ) {
@@ -1260,36 +1161,13 @@ if (score.player >= 7) {
   gameStartedRef.current = false;
   setGameStarted(false);
 
-  if (
-    gameModeRef.current === "online" &&
-    isHostRef.current &&
-    roomIdRef.current
-  ) {
-    socketRef.current?.emit("host-state", {
-      roomCode: roomIdRef.current,
-      state: {
-        winner: "host",
-        host_score: score.player,
-        guest_score: score.ai,
-        phase: "finished",
-        updated_at: Date.now(),
-      },
-    });
-  }
-
-  const winText =
-    gameModeRef.current === "online"
-      ? `${playerNameRef.current} WINS`
-      : "YOU WIN";
+  const winText = "YOU WIN";
   score.message = winText;
   winnerRef.current = winText;
   setWinner(winText);
   console.log("HOST WIN TRIGGERED");
 } else {
-  score.message =
-    gameModeRef.current === "online"
-      ? `${scoreAnnouncementName(playerNameRef.current)} SCORES`
-      : "YOU SCORES";
+  score.message = "YOU SCORES";
   pauseRef.current = true;
   gameStartedRef.current = false;
   setGameStarted(false);
@@ -1302,46 +1180,19 @@ if (score.player >= 7) {
 
   resetBall("down");
 
-  if (
-    gameModeRef.current === "online" &&
-    isHostRef.current &&
-    roomIdRef.current
-  ) {
-    const roundStartAt = Date.now() + 3200;
+  const roundStartAt = Date.now() + 1800;
 
-    socketRef.current?.emit("host-state", {
-      roomCode: roomIdRef.current,
-      state: {
-        ball_x: ballRef.current.x,
-        ball_y: ballRef.current.y,
-        ball_vx: ballRef.current.vx,
-        ball_vy: ballRef.current.vy,
-        host_score: score.player,
-        guest_score: score.ai,
-        winner: null,
-        phase: "countdown",
-        round_start_at: roundStartAt,
-        updated_at: Date.now(),
-      },
-    });
-  } else {
-    const roundStartAt = Date.now() + 1800;
-
-    setTimeout(() => {
-      pauseRef.current = false;
-      startCountdown(roundStartAt);
-    }, 0);
-  }
+  setTimeout(() => {
+    pauseRef.current = false;
+    startCountdown(roundStartAt);
+  }, 0);
 }
 
         score.messageLife = 70;
       }
 if (
   roundActive &&
-  !(
-    gameModeRef.current === "online" &&
-    !isHostRef.current
-  ) &&
+  gameModeRef.current !== "online" &&
   !goalLockRef.current &&
   ball.y > H - 22
 ) {
@@ -1359,35 +1210,12 @@ if (score.ai >= 7) {
   gameStartedRef.current = false;
   setGameStarted(false);
 
-  if (
-    gameModeRef.current === "online" &&
-    isHostRef.current &&
-    roomIdRef.current
-  ) {
-    socketRef.current?.emit("host-state", {
-      roomCode: roomIdRef.current,
-      state: {
-        winner: "guest",
-        host_score: score.player,
-        guest_score: score.ai,
-        phase: "finished",
-        updated_at: Date.now(),
-      },
-    });
-  }
-
-  const loseText =
-    gameModeRef.current === "online"
-      ? `${rivalNameRef.current} WINS`
-      : "AI WINS";
+  const loseText = "AI WINS";
   score.message = loseText;
   winnerRef.current = loseText;
   setWinner(loseText);
 } else {
-  const goalText =
-    gameModeRef.current === "online"
-      ? `${scoreAnnouncementName(rivalNameRef.current)} SCORES`
-      : "AI SCORES";
+  const goalText = "AI SCORES";
 
   score.message = goalText;
   pauseRef.current = true;
@@ -1402,36 +1230,12 @@ if (score.ai >= 7) {
 
   resetBall("up");
 
-  if (
-    gameModeRef.current === "online" &&
-    isHostRef.current &&
-    roomIdRef.current
-  ) {
-    const roundStartAt = Date.now() + 3200;
+  const roundStartAt = Date.now() + 1800;
 
-    socketRef.current?.emit("host-state", {
-      roomCode: roomIdRef.current,
-      state: {
-        ball_x: ballRef.current.x,
-        ball_y: ballRef.current.y,
-        ball_vx: ballRef.current.vx,
-        ball_vy: ballRef.current.vy,
-        host_score: score.player,
-        guest_score: score.ai,
-        winner: null,
-        phase: "countdown",
-        round_start_at: roundStartAt,
-        updated_at: Date.now(),
-      },
-    });
-  } else {
-    const roundStartAt = Date.now() + 1800;
-
-    setTimeout(() => {
-      pauseRef.current = false;
-      startCountdown(roundStartAt);
-    }, 0);
-  }
+  setTimeout(() => {
+    pauseRef.current = false;
+    startCountdown(roundStartAt);
+  }, 0);
 }
 
         score.messageLife = 70;
@@ -1640,29 +1444,7 @@ const playSound = (
       return;
     }
 
-    if (
-      gameModeRef.current === "online" &&
-      isHostRef.current &&
-      roomIdRef.current
-    ) {
-      const roundStartAt = Date.now() + 3200;
-
-      socketRef.current?.emit("host-state", {
-        roomCode: roomIdRef.current,
-        state: {
-          ball_x: ballRef.current.x,
-          ball_y: ballRef.current.y,
-          ball_vx: ballRef.current.vx,
-          ball_vy: ballRef.current.vy,
-          host_score: 0,
-          guest_score: 0,
-          winner: null,
-          phase: "countdown",
-          round_start_at: roundStartAt,
-          updated_at: Date.now(),
-        },
-      });
-    }
+    // Server authoritative: online countdown is started by the server.
   };
 
   const handlePlayAgain = async () => {

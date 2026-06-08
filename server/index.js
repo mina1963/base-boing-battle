@@ -6,6 +6,10 @@ const { Server } = require("socket.io");
 const app = express();
 app.use(cors());
 
+app.get("/", (_, res) => {
+  res.send("Base Boing Battle socket server running");
+});
+
 const server = http.createServer(app);
 
 const io = new Server(server, {
@@ -17,6 +21,18 @@ const io = new Server(server, {
 
 const GAME_W = 400;
 const GAME_H = 700;
+const BALL_R = 8;
+
+const BALL_START_VX = 1.2;
+const BALL_START_VY = 1.8;
+const BALL_RESET_VX = 1.2;
+const BALL_RESET_VY = 1.8;
+const MAX_BALL_SPEED = 10;
+
+const COUNTDOWN_DELAY_MS = 3500;
+const BATTLE_HOLD_MS = 700;
+const TICK_MS = 1000 / 60;
+const STATE_EMIT_MS = 1000 / 60;
 
 const rooms = new Map();
 const socketRooms = new Map();
@@ -39,14 +55,38 @@ const createInitialState = () => ({
   ball: {
     x: 200,
     y: 350,
-    vx: 0.42,
-    vy: 0.62,
+    vx: BALL_START_VX,
+    vy: BALL_START_VY,
   },
   hostScore: 0,
   guestScore: 0,
   phase: "waiting",
   winner: null,
   roundStartAt: null,
+});
+
+const createRoomObject = ({
+  code,
+  hostSocketId,
+  guestSocketId = null,
+  hostAddress = null,
+  guestAddress = null,
+  hostUsername = "PLAYER 1",
+  guestUsername = null,
+}) => ({
+  code,
+  hostSocketId,
+  guestSocketId,
+  hostAddress,
+  guestAddress,
+  hostUsername: cleanUsername(hostUsername, "PLAYER 1"),
+  guestUsername: guestUsername ? cleanUsername(guestUsername, "PLAYER 2") : null,
+  state: createInitialState(),
+  lines: [],
+  hostReadyAgain: false,
+  guestReadyAgain: false,
+  lastTickAt: Date.now(),
+  lastEmitAt: 0,
 });
 
 const withServerNow = (state) => ({
@@ -56,84 +96,35 @@ const withServerNow = (state) => ({
 
 const emitStateToRoom = (room) => {
   io.to(room.code).emit("game-state", withServerNow(room.state));
+  room.lastEmitAt = Date.now();
 };
 
-const emitStateToGuest = (roomCode, socket, state) => {
-  socket.to(roomCode).emit("game-state", withServerNow(state));
+const startCountdown = (room) => {
+  room.state.phase = "countdown";
+  room.state.roundStartAt = Date.now() + COUNTDOWN_DELAY_MS;
+  room.state.winner = null;
+  room.lines = [];
+  emitStateToRoom(room);
 };
-
-const normalizeState = (currentState, incoming = {}) => {
-  return {
-    ...currentState,
-
-    phase: incoming.phase ?? currentState.phase,
-
-    winner:
-      incoming.winner !== undefined
-        ? incoming.winner
-        : currentState.winner,
-
-    // roundStartAt sadece server üretir.
-    roundStartAt: currentState.roundStartAt,
-
-    hostScore: Number(
-      incoming.host_score ??
-        incoming.hostScore ??
-        currentState.hostScore
-    ),
-
-    guestScore: Number(
-      incoming.guest_score ??
-        incoming.guestScore ??
-        currentState.guestScore
-    ),
-
-    ball: {
-      x: Number(
-        incoming.ball_x ??
-          incoming.ball?.x ??
-          currentState.ball.x
-      ),
-      y: Number(
-        incoming.ball_y ??
-          incoming.ball?.y ??
-          currentState.ball.y
-      ),
-      vx: Number(
-        incoming.ball_vx ??
-          incoming.ball?.vx ??
-          currentState.ball.vx
-      ),
-      vy: Number(
-        incoming.ball_vy ??
-          incoming.ball?.vy ??
-          currentState.ball.vy
-      ),
-    },
-  };
-};
-
-const COUNTDOWN_DELAY_MS = 3500;
 
 const resetRound = (room, direction = "down") => {
-  const roundStartAt = Date.now() + COUNTDOWN_DELAY_MS;
-
   room.state.phase = "countdown";
-  room.state.roundStartAt = roundStartAt;
+  room.state.roundStartAt = Date.now() + COUNTDOWN_DELAY_MS;
   room.state.winner = null;
 
   room.state.ball.x = GAME_W / 2;
 
   if (direction === "up") {
     room.state.ball.y = GAME_H - 175;
-    room.state.ball.vx = 0.25;
-    room.state.ball.vy = -0.65;
+    room.state.ball.vx = BALL_RESET_VX;
+    room.state.ball.vy = -BALL_RESET_VY;
   } else {
     room.state.ball.y = 175;
-    room.state.ball.vx = -0.25;
-    room.state.ball.vy = 0.65;
+    room.state.ball.vx = -BALL_RESET_VX;
+    room.state.ball.vy = BALL_RESET_VY;
   }
 
+  room.lines = [];
   emitStateToRoom(room);
 };
 
@@ -141,9 +132,176 @@ const finishGame = (room, winner) => {
   room.state.phase = "finished";
   room.state.winner = winner;
   room.state.roundStartAt = null;
-
+  room.lines = [];
   emitStateToRoom(room);
 };
+
+const pointLineDistance = (ball, line) => {
+  const dx = line.x2 - line.x1;
+  const dy = line.y2 - line.y1;
+  const lenSq = dx * dx + dy * dy;
+
+  if (lenSq === 0) {
+    return {
+      dist: Math.hypot(ball.x - line.x1, ball.y - line.y1),
+      lineDx: dx,
+      lineDy: dy,
+    };
+  }
+
+  const t = Math.max(
+    0,
+    Math.min(1, ((ball.x - line.x1) * dx + (ball.y - line.y1) * dy) / lenSq)
+  );
+
+  const px = line.x1 + t * dx;
+  const py = line.y1 + t * dy;
+
+  return {
+    dist: Math.hypot(ball.x - px, ball.y - py),
+    lineDx: dx,
+    lineDy: dy,
+  };
+};
+
+const applyLineCollision = (ball, line, lineDx, lineDy, dist) => {
+  const currentSpeed = Math.hypot(ball.vx, ball.vy);
+  const speed = Math.min(currentSpeed + 0.25, MAX_BALL_SPEED);
+
+  let nx = -lineDy;
+  let ny = lineDx;
+
+  const nLen = Math.hypot(nx, ny) || 1;
+  nx /= nLen;
+  ny /= nLen;
+
+  const dot = ball.vx * nx + ball.vy * ny;
+
+  if (dot > 0) {
+    nx *= -1;
+    ny *= -1;
+  }
+
+  ball.vx = nx * speed + lineDx * 0.006;
+  ball.vy = ny * speed + lineDy * 0.006;
+
+  const nextSpeed = Math.hypot(ball.vx, ball.vy);
+  if (nextSpeed > MAX_BALL_SPEED) {
+    ball.vx = (ball.vx / nextSpeed) * MAX_BALL_SPEED;
+    ball.vy = (ball.vy / nextSpeed) * MAX_BALL_SPEED;
+  }
+
+  const overlap = BALL_R + 6 - dist;
+
+  if (overlap > 0) {
+    ball.x += nx * (overlap + 0.75);
+    ball.y += ny * (overlap + 0.75);
+  }
+};
+
+const tickRoomPhysics = (room, dtScale = 1) => {
+  if (room.state.phase === "countdown") {
+    if (
+      room.state.roundStartAt &&
+      Date.now() >= room.state.roundStartAt + BATTLE_HOLD_MS
+    ) {
+      room.state.phase = "playing";
+      room.state.roundStartAt = null;
+      emitStateToRoom(room);
+    }
+
+    return;
+  }
+
+  if (room.state.phase !== "playing" || room.state.winner) return;
+
+  const ball = room.state.ball;
+
+  const scaledVx = ball.vx * dtScale;
+  const scaledVy = ball.vy * dtScale;
+  const speedBeforeMove = Math.hypot(scaledVx, scaledVy);
+  const steps = Math.max(1, Math.ceil(speedBeforeMove / 2));
+  const stepVx = scaledVx / steps;
+  const stepVy = scaledVy / steps;
+
+  for (let step = 0; step < steps; step++) {
+    ball.x += stepVx;
+    ball.y += stepVy;
+
+    if (ball.x < 22) {
+      ball.x = 22;
+      ball.vx = Math.abs(ball.vx);
+    }
+
+    if (ball.x > GAME_W - 22) {
+      ball.x = GAME_W - 22;
+      ball.vx = -Math.abs(ball.vx);
+    }
+
+    let hitLine = null;
+
+    for (const line of room.lines) {
+      if (line.life < 4) continue;
+
+      const { dist, lineDx, lineDy } = pointLineDistance(ball, line);
+
+      if (dist < BALL_R + 6) {
+        applyLineCollision(ball, line, lineDx, lineDy, dist);
+        line.life = 0;
+        hitLine = line;
+        break;
+      }
+    }
+
+    if (hitLine) break;
+  }
+
+  if (ball.y < 22) {
+    room.state.hostScore += 1;
+
+    if (room.state.hostScore >= 7) {
+      finishGame(room, "host");
+      return;
+    }
+
+    resetRound(room, "down");
+    return;
+  }
+
+  if (ball.y > GAME_H - 22) {
+    room.state.guestScore += 1;
+
+    if (room.state.guestScore >= 7) {
+      finishGame(room, "guest");
+      return;
+    }
+
+    resetRound(room, "up");
+    return;
+  }
+
+  room.lines = room.lines
+    .map((line) => ({
+      ...line,
+      life: line.life - 1,
+    }))
+    .filter((line) => line.life > 0);
+
+  if (Date.now() - room.lastEmitAt >= STATE_EMIT_MS) {
+    emitStateToRoom(room);
+  }
+};
+
+setInterval(() => {
+  const now = Date.now();
+
+  for (const room of rooms.values()) {
+    const dt = Math.min(50, now - (room.lastTickAt || now));
+    room.lastTickAt = now;
+
+    tickRoomPhysics(room, dt / 16.67);
+  }
+}, TICK_MS);
 
 const cleanupRoomForSocket = (socket) => {
   const roomCode = socketRooms.get(socket.id);
@@ -190,22 +348,15 @@ const makeRoomCode = () => {
 const createMatchedRoom = ({ host, guest }) => {
   const roomCode = makeRoomCode();
 
-  const room = {
+  const room = createRoomObject({
     code: roomCode,
     hostSocketId: host.socketId,
     guestSocketId: guest.socketId,
     hostAddress: host.address,
     guestAddress: guest.address,
-    hostUsername: cleanUsername(host.username, "PLAYER 1"),
-    guestUsername: cleanUsername(guest.username, "PLAYER 2"),
-    state: createInitialState(),
-    hostReadyAgain: false,
-    guestReadyAgain: false,
-  };
-
-  room.state.phase = "countdown";
-  room.state.roundStartAt = Date.now() + COUNTDOWN_DELAY_MS;
-  room.state.winner = null;
+    hostUsername: host.username,
+    guestUsername: guest.username,
+  });
 
   rooms.set(roomCode, room);
   socketRooms.set(host.socketId, roomCode);
@@ -231,12 +382,12 @@ const createMatchedRoom = ({ host, guest }) => {
     opponentUsername: room.hostUsername,
   });
 
+  startCountdown(room);
+
   io.to(roomCode).emit("room-matched", {
     roomCode,
     state: withServerNow(room.state),
   });
-
-  emitStateToRoom(room);
 };
 
 io.on("connection", (socket) => {
@@ -245,18 +396,12 @@ io.on("connection", (socket) => {
   socket.on("create-room", ({ roomCode, address, username }) => {
     console.log("CREATE ROOM:", roomCode);
 
-    const room = {
+    const room = createRoomObject({
       code: roomCode,
       hostSocketId: socket.id,
-      guestSocketId: null,
       hostAddress: address,
-      guestAddress: null,
-      hostUsername: cleanUsername(username, "PLAYER 1"),
-      guestUsername: null,
-      state: createInitialState(),
-      hostReadyAgain: false,
-      guestReadyAgain: false,
-    };
+      hostUsername: username,
+    });
 
     rooms.set(roomCode, room);
     socketRooms.set(socket.id, roomCode);
@@ -287,14 +432,13 @@ io.on("connection", (socket) => {
     room.guestSocketId = socket.id;
     room.guestAddress = address;
     room.guestUsername = cleanUsername(username, "PLAYER 2");
+    room.state = createInitialState();
+    room.hostReadyAgain = false;
+    room.guestReadyAgain = false;
+    room.lines = [];
 
     socketRooms.set(socket.id, roomCode);
     socket.join(roomCode);
-
-    room.state = createInitialState();
-    room.state.phase = "countdown";
-    room.state.roundStartAt = Date.now() + COUNTDOWN_DELAY_MS;
-    room.state.winner = null;
 
     const hostSocket = io.sockets.sockets.get(room.hostSocketId);
 
@@ -312,12 +456,12 @@ io.on("connection", (socket) => {
       opponentUsername: room.hostUsername,
     });
 
+    startCountdown(room);
+
     io.to(roomCode).emit("room-matched", {
       roomCode,
       state: withServerNow(room.state),
     });
-
-    emitStateToRoom(room);
   });
 
   socket.on("find-match", ({ address, username }) => {
@@ -346,9 +490,7 @@ io.on("connection", (socket) => {
       return;
     }
 
-    const hostSocket = io.sockets.sockets.get(
-      waitingPlayer.socketId
-    );
+    const hostSocket = io.sockets.sockets.get(waitingPlayer.socketId);
 
     if (!hostSocket) {
       waitingPlayer = {
@@ -390,97 +532,63 @@ io.on("connection", (socket) => {
     }
   });
 
-  socket.on("host-state", ({ roomCode, state }) => {
+  socket.on("host-state", ({ roomCode }) => {
     const room = rooms.get(roomCode);
     if (!room) return;
-
-    if (room.hostSocketId !== socket.id) return;
-    if (room.state.phase === "finished") return;
-
-    if (state.phase === "countdown" && state.round_start_at) {
-      const direction =
-        state.ball_vy !== undefined
-          ? state.ball_vy < 0
-            ? "up"
-            : "down"
-          : "down";
-
-      room.state.hostScore = Number(
-        state.host_score ?? room.state.hostScore
-      );
-
-      room.state.guestScore = Number(
-        state.guest_score ?? room.state.guestScore
-      );
-
-      if (room.state.hostScore >= 7) {
-        finishGame(room, "host");
-        return;
-      }
-
-      if (room.state.guestScore >= 7) {
-        finishGame(room, "guest");
-        return;
-      }
-
-      resetRound(room, direction);
-      return;
-    }
-
-    room.state = normalizeState(room.state, state);
-
-    if (room.state.hostScore >= 7) {
-      finishGame(room, "host");
-      return;
-    }
-
-    if (room.state.guestScore >= 7) {
-      finishGame(room, "guest");
-      return;
-    }
-
-    emitStateToGuest(roomCode, socket, room.state);
+    emitStateToRoom(room);
   });
 
-  socket.on("round-reset", ({ roomCode, direction, state }) => {
+  socket.on("round-reset", ({ roomCode, direction }) => {
     const room = rooms.get(roomCode);
     if (!room) return;
-
     if (room.hostSocketId !== socket.id) return;
 
-    if (state) {
-      room.state = normalizeState(room.state, state);
-    }
-
-    if (room.state.hostScore >= 7) {
-      finishGame(room, "host");
-      return;
-    }
-
-    if (room.state.guestScore >= 7) {
-      finishGame(room, "guest");
-      return;
-    }
-
-    resetRound(room, direction);
+    resetRound(room, direction || "down");
   });
 
   socket.on("draw-line", ({ roomCode, line }) => {
     const room = rooms.get(roomCode);
     if (!room) return;
 
-    socket.to(roomCode).emit("remote-line", line);
+    const owner =
+      socket.id === room.hostSocketId
+        ? "host"
+        : socket.id === room.guestSocketId
+        ? "guest"
+        : null;
+
+    if (!owner) return;
+    if (room.state.phase !== "playing") return;
+
+    const safeLine = {
+      owner,
+      x1: Math.max(0, Math.min(GAME_W, Number(line.x1))),
+      y1: Math.max(0, Math.min(GAME_H, Number(line.y1))),
+      x2: Math.max(0, Math.min(GAME_W, Number(line.x2))),
+      y2: Math.max(0, Math.min(GAME_H, Number(line.y2))),
+      life: 45,
+    };
+
+    const ownerLines = room.lines.filter((l) => l.owner === owner);
+    if (ownerLines.length >= 2) {
+      const firstIndex = room.lines.findIndex((l) => l.owner === owner);
+      if (firstIndex !== -1) room.lines.splice(firstIndex, 1);
+    }
+
+    room.lines.push(safeLine);
+
+    socket.to(roomCode).emit("remote-line", safeLine);
   });
 
   socket.on("play-again-ready", ({ roomCode, role }) => {
     const room = rooms.get(roomCode);
     if (!room) return;
 
-    if (role === "host") {
+    if (role === "host" && socket.id === room.hostSocketId) {
       room.hostReadyAgain = true;
     }
 
-    if (role === "guest") {
+    if (role === "guest" && socket.id === room.guestSocketId) {
       room.guestReadyAgain = true;
     }
 
@@ -494,11 +602,8 @@ io.on("connection", (socket) => {
       room.guestReadyAgain = false;
 
       room.state = createInitialState();
-      room.state.phase = "countdown";
-      room.state.roundStartAt = Date.now() + COUNTDOWN_DELAY_MS;
-      room.state.winner = null;
-
-      emitStateToRoom(room);
+      room.lines = [];
+      startCountdown(room);
 
       io.to(roomCode).emit("play-again-status", {
         hostReadyAgain: false,
