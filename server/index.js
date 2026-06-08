@@ -54,8 +54,8 @@ const cleanUsername = (username, fallback = "PLAYER") => {
 
 const createInitialState = () => ({
   ball: {
-    x: 200,
-    y: 350,
+    x: GAME_W / 2,
+    y: GAME_H / 2,
     vx: BALL_START_VX,
     vy: BALL_START_VY,
   },
@@ -113,17 +113,12 @@ const resetRound = (room, direction = "down") => {
   room.state.roundStartAt = Date.now() + ROUND_COUNTDOWN_DELAY_MS;
   room.state.winner = null;
 
-  room.state.ball.x = GAME_W / 2;
+  const ball = room.state.ball;
 
-if (direction === "up") {
+  ball.x = GAME_W / 2;
   ball.y = GAME_H / 2;
   ball.vx = BALL_RESET_VX * (Math.random() > 0.5 ? 1 : -1);
-  ball.vy = -BALL_RESET_VY;
-} else {
-  ball.y = GAME_H / 2;
-  ball.vx = BALL_RESET_VX * (Math.random() > 0.5 ? 1 : -1);
-  ball.vy = BALL_RESET_VY;
-}
+  ball.vy = direction === "up" ? -BALL_RESET_VY : BALL_RESET_VY;
 
   room.lines = [];
   emitStateToRoom(room);
@@ -165,7 +160,7 @@ const pointLineDistance = (ball, line) => {
   };
 };
 
-const applyLineCollision = (ball, line, lineDx, lineDy, dist) => {
+const applyLineCollision = (ball, lineDx, lineDy, dist) => {
   const currentSpeed = Math.hypot(ball.vx, ball.vy);
   const speed = Math.min(currentSpeed + 0.25, MAX_BALL_SPEED);
 
@@ -187,6 +182,7 @@ const applyLineCollision = (ball, line, lineDx, lineDy, dist) => {
   ball.vy = ny * speed + lineDy * 0.006;
 
   const nextSpeed = Math.hypot(ball.vx, ball.vy);
+
   if (nextSpeed > MAX_BALL_SPEED) {
     ball.vx = (ball.vx / nextSpeed) * MAX_BALL_SPEED;
     ball.vy = (ball.vy / nextSpeed) * MAX_BALL_SPEED;
@@ -198,6 +194,29 @@ const applyLineCollision = (ball, line, lineDx, lineDy, dist) => {
     ball.x += nx * (overlap + 0.75);
     ball.y += ny * (overlap + 0.75);
   }
+};
+
+const handleGoal = (room, winnerSide) => {
+  if (winnerSide === "host") {
+    room.state.hostScore += 1;
+
+    if (room.state.hostScore >= 7) {
+      finishGame(room, "host");
+      return;
+    }
+
+    resetRound(room, "down");
+    return;
+  }
+
+  room.state.guestScore += 1;
+
+  if (room.state.guestScore >= 7) {
+    finishGame(room, "guest");
+    return;
+  }
+
+  resetRound(room, "up");
 };
 
 const tickRoomPhysics = (room, dtScale = 1) => {
@@ -239,6 +258,16 @@ const tickRoomPhysics = (room, dtScale = 1) => {
       ball.vx = -Math.abs(ball.vx);
     }
 
+    if (ball.y < 22) {
+      handleGoal(room, "host");
+      return;
+    }
+
+    if (ball.y > GAME_H - 22) {
+      handleGoal(room, "guest");
+      return;
+    }
+
     let hitLine = null;
 
     for (const line of room.lines) {
@@ -247,7 +276,7 @@ const tickRoomPhysics = (room, dtScale = 1) => {
       const { dist, lineDx, lineDy } = pointLineDistance(ball, line);
 
       if (dist < BALL_R + 6) {
-        applyLineCollision(ball, line, lineDx, lineDy, dist);
+        applyLineCollision(ball, lineDx, lineDy, dist);
         line.life = 0;
         hitLine = line;
         break;
@@ -255,30 +284,6 @@ const tickRoomPhysics = (room, dtScale = 1) => {
     }
 
     if (hitLine) break;
-  }
-
-  if (ball.y < 22) {
-    room.state.hostScore += 1;
-
-    if (room.state.hostScore >= 7) {
-      finishGame(room, "host");
-      return;
-    }
-
-    resetRound(room, "down");
-    return;
-  }
-
-  if (ball.y > GAME_H - 22) {
-    room.state.guestScore += 1;
-
-    if (room.state.guestScore >= 7) {
-      finishGame(room, "guest");
-      return;
-    }
-
-    resetRound(room, "up");
-    return;
   }
 
   room.lines = room.lines
@@ -502,12 +507,6 @@ io.on("connection", (socket) => {
       waitingPlayer = null;
       socket.emit("matchmaking-status", { status: "cancelled" });
     }
-  });
-
-  socket.on("host-state", ({ roomCode }) => {
-    const room = rooms.get(roomCode);
-    if (!room) return;
-    emitStateToRoom(room);
   });
 
   socket.on("round-reset", ({ roomCode, direction }) => {
