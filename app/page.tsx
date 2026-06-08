@@ -78,6 +78,7 @@ const countdownBattleTimerRef =
   useRef<ReturnType<typeof setTimeout> | null>(null);
 const lastCountdownKeyRef = useRef<string | null>(null);
 const goalLockRef = useRef(false);
+const serverPhaseRef = useRef<"waiting" | "countdown" | "playing" | "finished">("waiting");
 
   const gameStartedRef = useRef(false);
 
@@ -281,6 +282,8 @@ const startCountdown = (startAtMs: number) => {
   const applySocketState = (state: any) => {
     const hostScore = Number(state.host_score ?? state.hostScore ?? 0);
     const guestScore = Number(state.guest_score ?? state.guestScore ?? 0);
+    const serverPhase = state.phase ?? serverPhaseRef.current;
+    serverPhaseRef.current = serverPhase;
 
     const prevPlayerScore = scoreRef.current.player;
     const prevRivalScore = scoreRef.current.ai;
@@ -336,7 +339,7 @@ const startCountdown = (startAtMs: number) => {
       targetBallUpdatedAtRef.current = Date.now();
     }
 
-    if (state.phase === "countdown" || state.phase === "finished") {
+    if (serverPhase === "countdown" || serverPhase === "finished") {
       ballRef.current.x = displayBallX;
       ballRef.current.y = displayBallY;
       ballRef.current.vx = displayBallVx;
@@ -352,7 +355,7 @@ const startCountdown = (startAtMs: number) => {
 
     if (
       gameModeRef.current === "online" &&
-      state.phase === "countdown" &&
+      serverPhase === "countdown" &&
       roundStartRaw
     ) {
       const countdownKey = String(roundStartRaw);
@@ -387,6 +390,19 @@ const startCountdown = (startAtMs: number) => {
 
         startCountdown(startAtMs);
       }
+    }
+
+    if (
+      gameModeRef.current === "online" &&
+      serverPhase === "playing" &&
+      !state.winner
+    ) {
+      clearCountdownTimers();
+      setCountdown(null);
+      countdownActiveRef.current = false;
+      pauseRef.current = false;
+      gameStartedRef.current = true;
+      setGameStarted(true);
     }
 
     const resolvedWinner =
@@ -485,6 +501,7 @@ const socket = io(SOCKET_URL, {
     countdownActiveRef.current = false;
     lastCountdownKeyRef.current = null;
     goalLockRef.current = false;
+    serverPhaseRef.current = "waiting";
     clearCountdownTimers();
 
     winnerRef.current = null;
@@ -720,6 +737,8 @@ const socket = io(SOCKET_URL, {
     };
 
     const down = (e: PointerEvent) => {
+      if (!gameStartedRef.current || pauseRef.current) return;
+
       const p = getPos(e);
       if (p.y < H / 2) return;
 
@@ -727,6 +746,8 @@ const socket = io(SOCKET_URL, {
     };
 
     const move = (e: PointerEvent) => {
+      if (!gameStartedRef.current || pauseRef.current) return;
+
       const start = drawingRef.current;
       if (!start) return;
 
@@ -1424,6 +1445,7 @@ const playSound = (
     countdownActiveRef.current = false;
     lastCountdownKeyRef.current = null;
     goalLockRef.current = false;
+    serverPhaseRef.current = "waiting";
     clearCountdownTimers();
 
     winnerRef.current = null;
@@ -1478,6 +1500,7 @@ const playSound = (
     sparksRef.current = [];
 
     gameStartedRef.current = false;
+    serverPhaseRef.current = "waiting";
 
     setGameStarted(false);
     setWinner(null);

@@ -115,15 +115,15 @@ const resetRound = (room, direction = "down") => {
 
   room.state.ball.x = GAME_W / 2;
 
-  if (direction === "up") {
-    room.state.ball.y = GAME_H - 175;
-    room.state.ball.vx = BALL_RESET_VX;
-    room.state.ball.vy = -BALL_RESET_VY;
-  } else {
-    room.state.ball.y = 175;
-    room.state.ball.vx = -BALL_RESET_VX;
-    room.state.ball.vy = BALL_RESET_VY;
-  }
+if (direction === "up") {
+  ball.y = GAME_H / 2;
+  ball.vx = BALL_RESET_VX * (Math.random() > 0.5 ? 1 : -1);
+  ball.vy = -BALL_RESET_VY;
+} else {
+  ball.y = GAME_H / 2;
+  ball.vx = BALL_RESET_VX * (Math.random() > 0.5 ? 1 : -1);
+  ball.vy = BALL_RESET_VY;
+}
 
   room.lines = [];
   emitStateToRoom(room);
