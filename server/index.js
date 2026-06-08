@@ -205,9 +205,20 @@ const tickRoomPhysics = (room, dtScale = 1) => {
       room.state.roundStartAt &&
       Date.now() >= room.state.roundStartAt + BATTLE_HOLD_MS
     ) {
-      room.state.phase = "playing";
-      room.state.roundStartAt = null;
-      emitStateToRoom(room);
+room.state.phase = "playing";
+room.state.roundStartAt = null;
+
+if (
+  !room.state.ball.vx ||
+  !room.state.ball.vy ||
+  !Number.isFinite(room.state.ball.vx) ||
+  !Number.isFinite(room.state.ball.vy)
+) {
+  room.state.ball.vx = BALL_START_VX * (Math.random() > 0.5 ? 1 : -1);
+  room.state.ball.vy = BALL_START_VY;
+}
+
+emitStateToRoom(room);
     }
 
     return;
