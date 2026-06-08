@@ -560,14 +560,16 @@ io.on("connection", (socket) => {
     if (!owner) return;
     if (room.state.phase !== "playing") return;
 
-    const safeLine = {
-      owner,
-      x1: Math.max(0, Math.min(GAME_W, Number(line.x1))),
-      y1: Math.max(0, Math.min(GAME_H, Number(line.y1))),
-      x2: Math.max(0, Math.min(GAME_W, Number(line.x2))),
-      y2: Math.max(0, Math.min(GAME_H, Number(line.y2))),
-      life: 45,
-    };
+const BOTTOM_LINE_LIMIT = GAME_H - 45;
+
+const safeLine = {
+  owner,
+  x1: Math.max(0, Math.min(GAME_W, Number(line.x1))),
+  y1: Math.max(0, Math.min(BOTTOM_LINE_LIMIT, Number(line.y1))),
+  x2: Math.max(0, Math.min(GAME_W, Number(line.x2))),
+  y2: Math.max(0, Math.min(BOTTOM_LINE_LIMIT, Number(line.y2))),
+  life: 45,
+};
 
     const ownerLines = room.lines.filter((l) => l.owner === owner);
     if (ownerLines.length >= 2) {
