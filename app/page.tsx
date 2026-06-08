@@ -753,6 +753,9 @@ const socket = io(SOCKET_URL, {
         }
       }
 
+      // CLIENT_INSTANT_LINE_PREDICTION
+      // Çizgi oyuncunun kendi ekranında anında görünür.
+      // Online modda fizik yine server authoritative kalır; bu sadece input hissini iyileştirir.
       linesRef.current.push({
         x1: start.x,
         y1: start.y,
