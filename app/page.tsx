@@ -680,49 +680,6 @@ const socket = io(SOCKET_URL, {
     const H = 700;
     const MAX_LINE_LENGTH = 160;
 
-    const pointToSegmentDistance = (
-      px: number,
-      py: number,
-      ax: number,
-      ay: number,
-      bx: number,
-      by: number
-    ) => {
-      const dx = bx - ax;
-      const dy = by - ay;
-      const lenSq = dx * dx + dy * dy;
-
-      if (lenSq === 0) return Math.hypot(px - ax, py - ay);
-
-      const t = Math.max(
-        0,
-        Math.min(1, ((px - ax) * dx + (py - ay) * dy) / lenSq)
-      );
-
-      const cx = ax + t * dx;
-      const cy = ay + t * dy;
-
-      return Math.hypot(px - cx, py - cy);
-    };
-
-    const segmentToSegmentDistance = (
-      ax: number,
-      ay: number,
-      bx: number,
-      by: number,
-      cx: number,
-      cy: number,
-      dx: number,
-      dy: number
-    ) => {
-      return Math.min(
-        pointToSegmentDistance(ax, ay, cx, cy, dx, dy),
-        pointToSegmentDistance(bx, by, cx, cy, dx, dy),
-        pointToSegmentDistance(cx, cy, ax, ay, bx, by),
-        pointToSegmentDistance(dx, dy, ax, ay, bx, by)
-      );
-    };
-
     const limitLine = (
       start: { x: number; y: number },
       end: { x: number; y: number }
@@ -1006,9 +963,6 @@ const roundActive = gameStartedRef.current && !pauseRef.current;
       }
 
       const ball = ballRef.current;
-      const prevBallX = ball.x;
-      const prevBallY = ball.y;
-
 
 const aiInterval =
   aiDifficultyRef.current === "easy"
@@ -1081,106 +1035,103 @@ if (distance < 0.9) {
     ball.vx = targetBallRef.current.vx;
     ball.vy = targetBallRef.current.vy;
   } else {
-    const shouldRunPhysics =
-      gameModeRef.current !== "online" || isHostRef.current;
+    // SUBSTEP_COLLISION_ACTIVE
+    // Host/AI tarafında top tek seferde zıplamaz; hıza göre 2px'lik küçük adımlarla ilerler.
+    // Her küçük adımda çizgi collision kontrol edilir, böylece hızlı top çizginin içinden geçmez.
+    const speedBeforeMove = Math.hypot(ball.vx, ball.vy);
+    const steps = Math.max(1, Math.ceil(speedBeforeMove / 2));
+    const stepVx = ball.vx / steps;
+    const stepVy = ball.vy / steps;
 
-    if (shouldRunPhysics) {
-      const speedBeforeMove = Math.hypot(ball.vx, ball.vy);
-      const subSteps = Math.max(1, Math.ceil(speedBeforeMove / 2));
-      const stepVx = ball.vx / subSteps;
-      const stepVy = ball.vy / subSteps;
+    let hitLine: Line | null = null;
 
-      let hitLine: Line | null = null;
+    for (let s = 0; s < steps; s++) {
+      ball.x += stepVx;
+      ball.y += stepVy;
 
-      for (let step = 0; step < subSteps; step++) {
-        ball.x += stepVx;
-        ball.y += stepVy;
+      for (const line of linesRef.current) {
+        if (line.life < 4) continue;
 
-        for (const line of linesRef.current) {
-          if (line.life < 4) continue;
+        const lineDx = line.x2 - line.x1;
+        const lineDy = line.y2 - line.y1;
+        const lenSq = lineDx * lineDx + lineDy * lineDy;
 
-          const lineDx = line.x2 - line.x1;
-          const lineDy = line.y2 - line.y1;
-          const lenSq = lineDx * lineDx + lineDy * lineDy;
+        if (lenSq === 0) continue;
 
-          if (lenSq === 0) continue;
+        const t = Math.max(
+          0,
+          Math.min(
+            1,
+            ((ball.x - line.x1) * lineDx +
+              (ball.y - line.y1) * lineDy) /
+              lenSq
+          )
+        );
 
-          const t = Math.max(
-            0,
-            Math.min(
-              1,
-              ((ball.x - line.x1) * lineDx + (ball.y - line.y1) * lineDy) / lenSq
-            )
+        const px = line.x1 + t * lineDx;
+        const py = line.y1 + t * lineDy;
+        const dist = Math.hypot(ball.x - px, ball.y - py);
+
+        if (dist < ball.r + 6) {
+          const currentSpeed = Math.hypot(ball.vx, ball.vy);
+          const speed = Math.min(
+            currentSpeed + 0.25,
+            MAX_BALL_SPEED
           );
 
-          const px = line.x1 + t * lineDx;
-          const py = line.y1 + t * lineDy;
-          const dist = Math.hypot(ball.x - px, ball.y - py);
+          let nx = -lineDy;
+          let ny = lineDx;
 
-          if (dist < ball.r + 6) {
-            const currentSpeed = Math.hypot(ball.vx, ball.vy);
-            const nextCollisionSpeed = Math.min(
-              currentSpeed + 0.25,
-              MAX_BALL_SPEED
-            );
+          const nLen = Math.hypot(nx, ny) || 1;
+          nx /= nLen;
+          ny /= nLen;
 
-            let nx = -lineDy;
-            let ny = lineDx;
+          const dot = ball.vx * nx + ball.vy * ny;
 
-            const nLen = Math.hypot(nx, ny) || 1;
-            nx /= nLen;
-            ny /= nLen;
-
-            const dot = ball.vx * nx + ball.vy * ny;
-
-            if (dot > 0) {
-              nx *= -1;
-              ny *= -1;
-            }
-
-            ball.vx = nx * nextCollisionSpeed + lineDx * 0.006;
-            ball.vy = ny * nextCollisionSpeed + lineDy * 0.006;
-
-            const nextSpeed = Math.hypot(ball.vx, ball.vy);
-            if (nextSpeed > MAX_BALL_SPEED) {
-              ball.vx = (ball.vx / nextSpeed) * MAX_BALL_SPEED;
-              ball.vy = (ball.vy / nextSpeed) * MAX_BALL_SPEED;
-            }
-
-            const overlap = ball.r + 6 - dist;
-
-            if (overlap > 0) {
-              ball.x += nx * (overlap + 0.75);
-              ball.y += ny * (overlap + 0.75);
-            }
-
-            hitLine = line;
-            line.life = 0;
-            break;
+          if (dot > 0) {
+            nx *= -1;
+            ny *= -1;
           }
-        }
 
-        if (hitLine) break;
+          ball.vx = nx * speed + lineDx * 0.006;
+          ball.vy = ny * speed + lineDy * 0.006;
+
+          const nextSpeed = Math.hypot(ball.vx, ball.vy);
+          if (nextSpeed > MAX_BALL_SPEED) {
+            ball.vx = (ball.vx / nextSpeed) * MAX_BALL_SPEED;
+            ball.vy = (ball.vy / nextSpeed) * MAX_BALL_SPEED;
+          }
+
+          const overlap = ball.r + 6 - dist;
+
+          if (overlap > 0) {
+            ball.x += nx * (overlap + 0.75);
+            ball.y += ny * (overlap + 0.75);
+          }
+
+          hitLine = line;
+          line.life = 0;
+          break;
+        }
       }
 
-      if (hitLine) {
-        for (let i = 0; i < 12; i++) {
-          sparksRef.current.push({
-            x: ball.x,
-            y: ball.y,
-            vx: (Math.random() - 0.5) * 8,
-            vy: (Math.random() - 0.5) * 8,
-            life: 22,
-            color: hitLine.owner === "player" ? "#0052FF" : "#ef4444",
-          });
-        }
+      if (hitLine) break;
+    }
 
-        navigator.vibrate?.(12);
-        playSound("hit");
+    if (hitLine) {
+      for (let i = 0; i < 12; i++) {
+        sparksRef.current.push({
+          x: ball.x,
+          y: ball.y,
+          vx: (Math.random() - 0.5) * 8,
+          vy: (Math.random() - 0.5) * 8,
+          life: 22,
+          color: hitLine.owner === "player" ? "#0052FF" : "#ef4444",
+        });
       }
-    } else {
-      ball.x += ball.vx;
-      ball.y += ball.vy;
+
+      navigator.vibrate?.(12);
+      playSound("hit");
     }
   }
 }
