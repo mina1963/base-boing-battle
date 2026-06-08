@@ -256,7 +256,7 @@ emitStateToRoom(room);
 
       const { dist, lineDx, lineDy } = pointLineDistance(ball, line);
 
-      if (dist < BALL_R + 14) {
+      if (dist < BALL_R + 18) {
         applyLineCollision(ball, line, lineDx, lineDy, dist);
         line.life = 0;
         hitLine = line;
