@@ -29,7 +29,8 @@ const BALL_RESET_VX = 1.2;
 const BALL_RESET_VY = 1.8;
 const MAX_BALL_SPEED = 10;
 
-const COUNTDOWN_DELAY_MS = 3500;
+const ROUND_COUNTDOWN_DELAY_MS = 3500;
+const INITIAL_COUNTDOWN_DELAY_MS = 6500;
 const BATTLE_HOLD_MS = 700;
 const TICK_MS = 1000 / 60;
 const STATE_EMIT_MS = 1000 / 60;
@@ -99,9 +100,9 @@ const emitStateToRoom = (room) => {
   room.lastEmitAt = Date.now();
 };
 
-const startCountdown = (room) => {
+const startCountdown = (room, delayMs = ROUND_COUNTDOWN_DELAY_MS) => {
   room.state.phase = "countdown";
-  room.state.roundStartAt = Date.now() + COUNTDOWN_DELAY_MS;
+  room.state.roundStartAt = Date.now() + delayMs;
   room.state.winner = null;
   room.lines = [];
   emitStateToRoom(room);
@@ -109,7 +110,7 @@ const startCountdown = (room) => {
 
 const resetRound = (room, direction = "down") => {
   room.state.phase = "countdown";
-  room.state.roundStartAt = Date.now() + COUNTDOWN_DELAY_MS;
+  room.state.roundStartAt = Date.now() + ROUND_COUNTDOWN_DELAY_MS;
   room.state.winner = null;
 
   room.state.ball.x = GAME_W / 2;
@@ -312,22 +313,10 @@ const cleanupRoomForSocket = (socket) => {
   const room = rooms.get(roomCode);
   if (!room) return;
 
-  const wasHost = room.hostSocketId === socket.id;
-  const wasGuest = room.guestSocketId === socket.id;
+  socket.to(roomCode).emit("opponent-left", { roomCode });
 
-  if (!wasHost && !wasGuest) return;
-
-  socket.to(roomCode).emit("opponent-left", {
-    roomCode,
-  });
-
-  if (room.hostSocketId) {
-    socketRooms.delete(room.hostSocketId);
-  }
-
-  if (room.guestSocketId) {
-    socketRooms.delete(room.guestSocketId);
-  }
+  if (room.hostSocketId) socketRooms.delete(room.hostSocketId);
+  if (room.guestSocketId) socketRooms.delete(room.guestSocketId);
 
   rooms.delete(roomCode);
 };
@@ -336,10 +325,7 @@ const makeRoomCode = () => {
   let code = "";
 
   do {
-    code = Math.random()
-      .toString(36)
-      .substring(2, 6)
-      .toUpperCase();
+    code = Math.random().toString(36).substring(2, 6).toUpperCase();
   } while (rooms.has(code));
 
   return code;
@@ -382,7 +368,7 @@ const createMatchedRoom = ({ host, guest }) => {
     opponentUsername: room.hostUsername,
   });
 
-  startCountdown(room);
+  startCountdown(room, INITIAL_COUNTDOWN_DELAY_MS);
 
   io.to(roomCode).emit("room-matched", {
     roomCode,
@@ -456,7 +442,7 @@ io.on("connection", (socket) => {
       opponentUsername: room.hostUsername,
     });
 
-    startCountdown(room);
+    startCountdown(room, INITIAL_COUNTDOWN_DELAY_MS);
 
     io.to(roomCode).emit("room-matched", {
       roomCode,
@@ -470,9 +456,7 @@ io.on("connection", (socket) => {
     if (socketRooms.has(socket.id)) return;
 
     if (waitingPlayer && waitingPlayer.socketId === socket.id) {
-      socket.emit("matchmaking-status", {
-        status: "searching",
-      });
+      socket.emit("matchmaking-status", { status: "searching" });
       return;
     }
 
@@ -483,10 +467,7 @@ io.on("connection", (socket) => {
         username: cleanUsername(username, "PLAYER 1"),
       };
 
-      socket.emit("matchmaking-status", {
-        status: "searching",
-      });
-
+      socket.emit("matchmaking-status", { status: "searching" });
       return;
     }
 
@@ -499,10 +480,7 @@ io.on("connection", (socket) => {
         username: cleanUsername(username, "PLAYER 1"),
       };
 
-      socket.emit("matchmaking-status", {
-        status: "searching",
-      });
-
+      socket.emit("matchmaking-status", { status: "searching" });
       return;
     }
 
@@ -516,19 +494,13 @@ io.on("connection", (socket) => {
 
     waitingPlayer = null;
 
-    createMatchedRoom({
-      host,
-      guest,
-    });
+    createMatchedRoom({ host, guest });
   });
 
   socket.on("cancel-matchmaking", () => {
     if (waitingPlayer && waitingPlayer.socketId === socket.id) {
       waitingPlayer = null;
-
-      socket.emit("matchmaking-status", {
-        status: "cancelled",
-      });
+      socket.emit("matchmaking-status", { status: "cancelled" });
     }
   });
 
@@ -570,13 +542,13 @@ io.on("connection", (socket) => {
     };
 
     const ownerLines = room.lines.filter((l) => l.owner === owner);
+
     if (ownerLines.length >= 2) {
       const firstIndex = room.lines.findIndex((l) => l.owner === owner);
       if (firstIndex !== -1) room.lines.splice(firstIndex, 1);
     }
 
     room.lines.push(safeLine);
-
     socket.to(roomCode).emit("remote-line", safeLine);
   });
 
