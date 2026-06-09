@@ -141,7 +141,7 @@ export default function Home() {
   const socketRef = useRef<any>(null);
   const { address, isConnected } = useAccount();
 const { openConnectModal } = useConnectModal();
-  const [showSplash, setShowSplash] = useState(true);
+  const [showSplash, setShowSplash] = useState(false);
   const [screen, setScreen] = useState<"menu" | "game">("menu");
   const [winner, setWinner] = useState<string | null>(null);
   const [gameStarted, setGameStarted] = useState(false);
@@ -942,9 +942,6 @@ const socket = io(SOCKET_URL, {
         }
       }
 
-      // CLIENT_INSTANT_LINE_PREDICTION
-      // Çizgi oyuncunun kendi ekranında anında görünür.
-      // Online modda fizik yine server authoritative kalır; bu sadece input hissini iyileştirir.
       linesRef.current.push({
         x1: start.x,
         y1: start.y,
@@ -1447,8 +1444,6 @@ const aiInterval =
 
 if (roundActive) {
   if (gameModeRef.current === "online") {
-    // SERVER_AUTHORITATIVE_RENDER
-    // Online modda fizik client'ta çalışmaz. Host ve guest sadece server state'ini yumuşak render eder.
     const elapsedFrames = Math.min(
       4,
       (Date.now() - targetBallUpdatedAtRef.current) / 16.67
@@ -1485,7 +1480,6 @@ if (roundActive) {
     ball.vx = targetBallRef.current.vx;
     ball.vy = targetBallRef.current.vy;
   } else {
-    // AI/local mode physics.
     const speedBeforeMove = Math.hypot(ball.vx, ball.vy);
     const steps = Math.max(1, Math.ceil(speedBeforeMove / 2));
     const stepVx = ball.vx / steps;
@@ -1581,9 +1575,6 @@ if (roundActive) {
   }
 }
 
-// Server authoritative: client does not emit host-state during gameplay.
-
-
       trailRef.current.push({ x: ball.x, y: ball.y });
 
       if (trailRef.current.length > 20) {
@@ -1601,15 +1592,8 @@ if (
   !goalLockRef.current &&
   ball.y < 22
 ) {
-  console.log("TOP GOAL CHECK", {
-    mode: gameModeRef.current,
-    isHost: isHostRef.current,
-    score: scoreRef.current,
-  });
-
   goalLockRef.current = true;
   score.player++;
-
 
 if (score.player >= 7) {
   pauseRef.current = true;
@@ -1620,7 +1604,6 @@ if (score.player >= 7) {
   score.message = winText;
   winnerRef.current = winText;
   setWinner(winText);
-  console.log("HOST WIN TRIGGERED");
 } else {
   score.message = "YOU SCORES";
   pauseRef.current = true;
@@ -1651,12 +1634,6 @@ if (
   !goalLockRef.current &&
   ball.y > H - 22
 ) {
-  console.log("BOTTOM GOAL CHECK", {
-    mode: gameModeRef.current,
-    isHost: isHostRef.current,
-    score: scoreRef.current,
-  });
-
   goalLockRef.current = true;
   score.ai++;
 
@@ -1925,8 +1902,6 @@ const playSound = (
       startCountdown(Date.now() + 3000);
       return;
     }
-
-    // Server authoritative: online countdown is started by the server.
   };
 
   const handlePlayAgain = async () => {
@@ -1992,7 +1967,7 @@ const playSound = (
       className={`fixed inset-0 w-screen h-[100dvh] bg-black flex items-center justify-center overflow-hidden overscroll-none ${
         screenShake ? "goal-shake" : ""
       }`}
-      style={{ touchAction: "none" }}
+      style={{ touchAction: screen === "game" ? "none" : "manipulation" }}
     >
       {showSplash && (
         <div className="absolute inset-0 z-[999] bg-black flex items-center justify-center">
@@ -2005,16 +1980,16 @@ const playSound = (
       )}
 
       {!showSplash && screen === "menu" && (
-        <div className="absolute inset-0 z-50 flex items-center justify-center overflow-hidden">
+        <div className="absolute inset-0 z-50 flex items-center justify-center overflow-hidden pointer-events-auto">
           <img
             src="/splash.png"
             alt=""
-            className="absolute inset-0 w-full h-full object-cover opacity-20 blur-sm"
+            className="absolute inset-0 w-full h-full object-cover opacity-20 blur-sm pointer-events-none"
           />
 
-          <div className="absolute inset-0 bg-black/75" />
+          <div className="absolute inset-0 bg-black/75 pointer-events-none" />
     
-<div className="absolute inset-0 opacity-[0.08]">
+<div className="absolute inset-0 opacity-[0.08] pointer-events-none">
   <div
     className="w-full h-full"
     style={{
@@ -2028,19 +2003,17 @@ const playSound = (
 </div>
 
 
-          <div className="relative z-10 flex flex-col items-center text-center">
+          <div className="relative z-10 flex flex-col items-center text-center pointer-events-auto">
 
 <div className="mb-4 relative">
   <div className="w-28 h-28 rounded-full border-2 border-[#0052FF]/60 animate-pulse" />
 
   <div className="absolute inset-0 rounded-full bg-[#0052FF]/10 blur-xl" />
 
-  {/* dönen enerji noktası */}
   <div className="absolute inset-0 animate-[spin_5s_linear_infinite]">
     <div className="absolute left-1/2 top-0 w-3 h-3 rounded-full bg-[#0052FF] shadow-[0_0_12px_rgba(0,82,255,1)] -translate-x-1/2" />
   </div>
 
-  {/* merkez çekirdek */}
   <div className="absolute left-1/2 top-1/2 w-12 h-12 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white shadow-[0_0_30px_rgba(0,82,255,1)]" />
 
   <div className="absolute left-1/2 top-1/2 w-4 h-[3px] -translate-x-1/2 -translate-y-1/2 bg-[#0052FF]" />
@@ -2071,12 +2044,13 @@ const playSound = (
                 SELECT ARENA
               </p>
 
-              <div className="mt-3 grid w-[330px] max-w-[92vw] grid-cols-2 gap-3">
+              <div className="mt-3 grid w-[330px] max-w-[92vw] grid-cols-2 gap-3 pointer-events-auto">
                 {ARENA_OPTIONS.map((item) => {
                   const selected = arena === item.key;
 
                   return (
                     <button
+                      type="button"
                       key={item.key}
                       onClick={() => setArena(item.key)}
                       className={`group relative h-[88px] overflow-hidden rounded-2xl border bg-black/45 p-3 text-left transition ${
@@ -2085,9 +2059,9 @@ const playSound = (
                           : "border-white/10 text-white/55 hover:border-white/30"
                       }`}
                     >
-                      <div className={`absolute inset-0 bg-gradient-to-br ${item.previewClass} opacity-70`} />
-                      <div className="absolute inset-x-3 top-3 h-[3px] rounded-full bg-white/20" />
-                      <div className={`absolute bottom-3 right-3 h-3 w-3 rounded-full ${item.dot} shadow-[0_0_16px_currentColor]`} />
+                      <div className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${item.previewClass} opacity-70`} />
+                      <div className="pointer-events-none absolute inset-x-3 top-3 h-[3px] rounded-full bg-white/20" />
+                      <div className={`pointer-events-none absolute bottom-3 right-3 h-3 w-3 rounded-full ${item.dot} shadow-[0_0_16px_currentColor]`} />
 
                       <div className="relative z-10">
                         <div className="text-[13px] font-black tracking-[0.18em] text-white">
@@ -2109,6 +2083,7 @@ const playSound = (
             </div>
 
 <button
+  type="button"
   onClick={() => setShowDifficulty(true)}
   className="mt-12 w-[240px] h-[58px] rounded-full bg-[#0052FF] text-white font-black tracking-[0.2em] shadow-[0_0_30px_rgba(0,82,255,0.35)]"
 >
@@ -2127,6 +2102,7 @@ const playSound = (
 
       {(["easy", "normal", "hard"] as const).map((level) => (
         <button
+          type="button"
           key={level}
           onClick={() => {
             setAiDifficulty(level);
@@ -2143,6 +2119,7 @@ const playSound = (
       ))}
 
       <button
+        type="button"
         onClick={() => setShowDifficulty(false)}
         className="mt-8 text-white/35 text-xs font-black tracking-[0.25em]"
       >
@@ -2153,6 +2130,7 @@ const playSound = (
 )}
 
             <button
+              type="button"
               onClick={() => setShowOnlineSoon(true)}
               className="mt-4 w-[240px] h-[58px] rounded-full border border-[#0052FF]/50 text-[#0052FF] font-black tracking-[0.2em] hover:bg-[#0052FF]/10 transition"
             >
@@ -2160,6 +2138,7 @@ const playSound = (
             </button>
 
             <button
+              type="button"
               onClick={() => setShowHowToPlay(true)}
               className="mt-4 w-[240px] h-[58px] rounded-full border border-white/15 text-white/70 font-black tracking-[0.2em] hover:bg-white/10 transition"
             >
@@ -2184,6 +2163,7 @@ const playSound = (
             </div>
 
             <button
+              type="button"
               onClick={() => setShowHowToPlay(false)}
               className="mt-8 px-7 py-3 rounded-full bg-[#0052FF] text-white font-black tracking-[0.2em]"
             >
@@ -2205,6 +2185,7 @@ const playSound = (
       </p>
 
 <button
+  type="button"
   onClick={() => {
     if (!isConnected) {
       openConnectModal?.();
@@ -2241,9 +2222,9 @@ const playSound = (
       />
 
       <button
+        type="button"
         onClick={() => {
           if (!address) return;
-
           const finalName = getReadyUsername();
           if (!finalName) return;
         }}
@@ -2268,6 +2249,7 @@ const playSound = (
 )}
 
 <button
+  type="button"
   onClick={() => {
     if (!isConnected) {
       openConnectModal?.();
@@ -2299,6 +2281,7 @@ const playSound = (
 
 {matchmaking && (
   <button
+    type="button"
     onClick={() => {
       setMatchmaking(false);
       setOnlineStatus(null);
@@ -2332,6 +2315,7 @@ const playSound = (
 
 
 <button
+  type="button"
   onClick={async () => {
     if (!isConnected) {
       openConnectModal?.();
@@ -2346,22 +2330,22 @@ const playSound = (
       socketRef.current?.emit("cancel-matchmaking");
     }
 
-const code = Math.random()
-  .toString(36)
-  .substring(2, 6)
-  .toUpperCase();
+    const code = Math.random()
+      .toString(36)
+      .substring(2, 6)
+      .toUpperCase();
 
-setGameMode("online");
-gameModeRef.current = "online";
-setRoomCode(code);
-setShowJoinRoom(false);
-setOnlineStatus("WAITING FOR PLAYER...");
+    setGameMode("online");
+    gameModeRef.current = "online";
+    setRoomCode(code);
+    setShowJoinRoom(false);
+    setOnlineStatus("WAITING FOR PLAYER...");
 
-socketRef.current?.emit("create-room", {
-  roomCode: code,
-  address,
-  username: readyUsername,
-});
+    socketRef.current?.emit("create-room", {
+      roomCode: code,
+      address,
+      username: readyUsername,
+    });
   }}
   className={`mt-4 w-full h-[54px] rounded-full border border-[#0052FF]/50 text-[#0052FF] font-black tracking-[0.18em] ${
     !isConnected ? "opacity-45" : ""
@@ -2371,6 +2355,7 @@ socketRef.current?.emit("create-room", {
 </button>
 
 <button
+  type="button"
   onClick={() => {
     if (!isConnected) {
       openConnectModal?.();
@@ -2409,22 +2394,19 @@ socketRef.current?.emit("create-room", {
     <p className="mt-2 text-white/30 text-[10px] tracking-[0.25em]">
       SHARE THIS CODE WITH A FRIEND
     </p>
-<button
-  onClick={() => {
-    if (roomCode) {
-      navigator.clipboard.writeText(roomCode);
-      setCopied(true);
-
-      setTimeout(() => {
-        setCopied(false);
-      }, 1500);
-    }
-  }}
-  className="mt-3 px-5 py-2 rounded-full border border-[#0052FF]/40 text-[#0052FF] text-[10px] font-black tracking-[0.25em]"
->
-  {copied ? "COPIED ✓" : "COPY CODE"}
-</button>
-
+    <button
+      type="button"
+      onClick={() => {
+        if (roomCode) {
+          navigator.clipboard.writeText(roomCode);
+          setCopied(true);
+          setTimeout(() => setCopied(false), 1500);
+        }
+      }}
+      className="mt-3 px-5 py-2 rounded-full border border-[#0052FF]/40 text-[#0052FF] text-[10px] font-black tracking-[0.25em]"
+    >
+      {copied ? "COPIED ✓" : "COPY CODE"}
+    </button>
   </div>
 )}
 
@@ -2455,88 +2437,64 @@ socketRef.current?.emit("create-room", {
     </p>
 
     <input
-  value={joinCode}
-  onChange={(e) =>
-    setJoinCode(e.target.value.toUpperCase())
-  }
-  maxLength={4}
-  placeholder="ABCD"
-  className="
-    mt-3
-    w-full
-    h-[48px]
-    rounded-xl
-    bg-black/40
-    border
-    border-white/10
-    text-center
-    text-white
-    font-black
-    tracking-[0.25em]
-    outline-none
-  "
-/>
+      value={joinCode}
+      onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+      maxLength={4}
+      placeholder="ABCD"
+      className="mt-3 w-full h-[48px] rounded-xl bg-black/40 border border-white/10 text-center text-white font-black tracking-[0.25em] outline-none"
+    />
 
-<button
-  onClick={async () => {
-    if (!joinCode || !address) return;
+    <button
+      type="button"
+      onClick={async () => {
+        if (!joinCode || !address) return;
 
-    const readyUsername = getReadyUsername();
-    if (!readyUsername) return;
+        const readyUsername = getReadyUsername();
+        if (!readyUsername) return;
 
-    const cleanCode = joinCode.toUpperCase();
+        const cleanCode = joinCode.toUpperCase();
 
-    setGameMode("online");
-    gameModeRef.current = "online";
-    setIsHost(false);
-    isHostRef.current = false;
-    roomIdRef.current = cleanCode;
-    setOnlineStatus("OPPONENT FOUND");
+        setGameMode("online");
+        gameModeRef.current = "online";
+        setIsHost(false);
+        isHostRef.current = false;
+        roomIdRef.current = cleanCode;
+        setOnlineStatus("OPPONENT FOUND");
 
-    socketRef.current?.emit("join-room", {
-      roomCode: cleanCode,
-      address,
-      username: readyUsername,
-    });
-  }}
-  className="
-    mt-3
-    w-full
-    h-[48px]
-    rounded-full
-    bg-[#0052FF]
-    text-white
-    font-black
-    tracking-[0.2em]
-  "
->
-  JOIN
-</button>
-{onlineStatus && (
-  <div className="mt-5">
-    <p className="text-[#0052FF] text-xs font-black tracking-[0.25em] animate-pulse">
-      {onlineStatus}
-    </p>
+        socketRef.current?.emit("join-room", {
+          roomCode: cleanCode,
+          address,
+          username: readyUsername,
+        });
+      }}
+      className="mt-3 w-full h-[48px] rounded-full bg-[#0052FF] text-white font-black tracking-[0.2em]"
+    >
+      JOIN
+    </button>
+    {onlineStatus && (
+      <div className="mt-5">
+        <p className="text-[#0052FF] text-xs font-black tracking-[0.25em] animate-pulse">
+          {onlineStatus}
+        </p>
 
-    <div className="mt-3 flex justify-center gap-2">
-      <div className="w-2 h-2 rounded-full bg-[#0052FF] animate-bounce" />
-      <div
-        className="w-2 h-2 rounded-full bg-[#0052FF] animate-bounce"
-        style={{ animationDelay: "0.15s" }}
-      />
-      <div
-        className="w-2 h-2 rounded-full bg-[#0052FF] animate-bounce"
-        style={{ animationDelay: "0.3s" }}
-      />
-    </div>
-  </div>
-)}
-
-
+        <div className="mt-3 flex justify-center gap-2">
+          <div className="w-2 h-2 rounded-full bg-[#0052FF] animate-bounce" />
+          <div
+            className="w-2 h-2 rounded-full bg-[#0052FF] animate-bounce"
+            style={{ animationDelay: "0.15s" }}
+          />
+          <div
+            className="w-2 h-2 rounded-full bg-[#0052FF] animate-bounce"
+            style={{ animationDelay: "0.3s" }}
+          />
+        </div>
+      </div>
+    )}
   </div>
 )}
 
 <button
+  type="button"
   onClick={() => {
     if (matchmaking) {
       setMatchmaking(false);
@@ -2707,16 +2665,16 @@ socketRef.current?.emit("create-room", {
             {activeArenaTheme.readyText}
           </div>
 
-<div
-  key={countdown}
-  className={`font-black animate-[countPop_0.7s_ease-out] ${activeArenaTheme.countdownGlowClass} ${
-    countdown === "BATTLE!"
-      ? `${activeArenaTheme.countdownClass} text-6xl tracking-[0.15em]`
-      : `${activeArenaTheme.countdownClass} text-8xl`
-  }`}
->
-  {countdown}
-</div>
+          <div
+            key={countdown}
+            className={`font-black animate-[countPop_0.7s_ease-out] ${activeArenaTheme.countdownGlowClass} ${
+              countdown === "BATTLE!"
+                ? `${activeArenaTheme.countdownClass} text-6xl tracking-[0.15em]`
+                : `${activeArenaTheme.countdownClass} text-8xl`
+            }`}
+          >
+            {countdown}
+          </div>
 
           <div className={`mt-4 ${arena === "classic" ? "text-white/35" : activeArenaTheme.countdownClass} text-[10px] tracking-[0.35em] opacity-60`}>
             {activeArenaTheme.subText}
@@ -2728,7 +2686,7 @@ socketRef.current?.emit("create-room", {
       {matchFound && (
         <div className="absolute inset-0 z-[1000] flex items-center justify-center overflow-hidden bg-black px-5 text-center">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,82,255,0.20),rgba(0,0,0,0)_56%)]" />
-          <div className="absolute inset-0 opacity-[0.08]">
+          <div className="absolute inset-0 opacity-[0.08] pointer-events-none">
             <div
               className="h-full w-full"
               style={{
@@ -2839,7 +2797,7 @@ socketRef.current?.emit("create-room", {
       {showArenaVote && (
         <div className="absolute inset-0 z-[1100] flex items-center justify-center overflow-hidden bg-black/94 px-4 text-center backdrop-blur-md">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,82,255,0.18),rgba(0,0,0,0)_58%)]" />
-          <div className="absolute inset-0 opacity-[0.08]">
+          <div className="absolute inset-0 opacity-[0.08] pointer-events-none">
             <div
               className="h-full w-full"
               style={{
@@ -2901,6 +2859,7 @@ socketRef.current?.emit("create-room", {
 
                 return (
                   <button
+                    type="button"
                     key={`vote-${item.key}`}
                     onClick={() => {
                       if (!roomIdRef.current) return;
@@ -2915,7 +2874,7 @@ socketRef.current?.emit("create-room", {
                     }`}
                   >
                     <div className={`absolute inset-0 bg-gradient-to-br ${item.previewClass} opacity-80`} />
-                    <div className="absolute inset-x-3 top-3 h-[3px] rounded-full bg-white/20" />
+                    <div className="pointer-events-none absolute inset-x-3 top-3 h-[3px] rounded-full bg-white/20" />
                     <div className={`absolute bottom-3 right-3 h-3 w-3 rounded-full ${item.dot} shadow-[0_0_16px_rgba(255,255,255,0.35)]`} />
 
                     {selected && (
@@ -2981,6 +2940,7 @@ socketRef.current?.emit("create-room", {
           </p>
 
           <button
+            type="button"
             onClick={() => {
               setOpponentLeft(false);
               goMainMenu();
@@ -3006,6 +2966,7 @@ socketRef.current?.emit("create-room", {
 
           <div className="flex flex-col items-center">
             <button
+              type="button"
               onClick={handlePlayAgain}
               disabled={playAgainWaiting}
               className="px-7 py-3 rounded-full bg-[#0052FF] hover:bg-blue-500 disabled:opacity-50 font-black text-white tracking-[0.2em] shadow-[0_0_30px_rgba(0,82,255,0.45)]"
@@ -3014,6 +2975,7 @@ socketRef.current?.emit("create-room", {
             </button>
 
             <button
+              type="button"
               onClick={goMainMenu}
               className="mt-4 px-7 py-3 rounded-full border border-white/20 text-white/70 font-black tracking-[0.2em] hover:bg-white/10 transition"
             >
