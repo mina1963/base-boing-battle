@@ -37,7 +37,7 @@ const STATE_EMIT_MS = 1000 / 60;
 const rooms = new Map();
 const socketRooms = new Map();
 
-let waitingPlayer = null;
+let waitingPlayers = [];
 
 const cleanUsername = (username, fallback = "PLAYER") => {
   if (!username || typeof username !== "string") return fallback;
@@ -572,63 +572,60 @@ io.on("connection", (socket) => {
     startArenaVote(room);
   });
 
-  socket.on("find-match", ({ address, username }) => {
-    console.log("FIND MATCH:", socket.id);
+socket.on("find-match", ({ address, username }) => {
+  console.log("FIND MATCH:", socket.id);
 
-    if (socketRooms.has(socket.id)) return;
+  if (socketRooms.has(socket.id)) {
+    cleanupRoomForSocket(socket);
+  }
 
-    if (waitingPlayer && waitingPlayer.socketId === socket.id) {
-      socket.emit("matchmaking-status", {
-        status: "searching",
-      });
-      return;
-    }
+  waitingPlayers = waitingPlayers.filter(
+    (p) => p.socketId !== socket.id
+  );
 
-    if (!waitingPlayer) {
-      waitingPlayer = {
-        socketId: socket.id,
-        address,
-        username: cleanUsername(username, "PLAYER 1"),
-      };
+  waitingPlayers = waitingPlayers.filter((p) =>
+    io.sockets.sockets.get(p.socketId)
+  );
 
-      socket.emit("matchmaking-status", {
-        status: "searching",
-      });
+  const player = {
+    socketId: socket.id,
+    address,
+    username: cleanUsername(username, "PLAYER"),
+    joinedAt: Date.now(),
+  };
 
-      return;
-    }
+  waitingPlayers.push(player);
 
-    const hostSocket = io.sockets.sockets.get(waitingPlayer.socketId);
+  while (waitingPlayers.length >= 2) {
+    const host = waitingPlayers.shift();
+    const guest = waitingPlayers.shift();
 
-    if (!hostSocket) {
-      waitingPlayer = {
-        socketId: socket.id,
-        address,
-        username: cleanUsername(username, "PLAYER 1"),
-      };
+    if (!host || !guest) break;
 
-      socket.emit("matchmaking-status", {
-        status: "searching",
-      });
+    const hostSocket = io.sockets.sockets.get(host.socketId);
+    const guestSocket = io.sockets.sockets.get(guest.socketId);
 
-      return;
-    }
-
-    const host = waitingPlayer;
-
-    const guest = {
-      socketId: socket.id,
-      address,
-      username: cleanUsername(username, "PLAYER 2"),
-    };
-
-    waitingPlayer = null;
+    if (!hostSocket || !guestSocket) continue;
+    if (host.socketId === guest.socketId) continue;
 
     createMatchedRoom({
-      host,
-      guest,
+      host: {
+        ...host,
+        username: cleanUsername(host.username, "PLAYER 1"),
+      },
+      guest: {
+        ...guest,
+        username: cleanUsername(guest.username, "PLAYER 2"),
+      },
     });
+
+    return;
+  }
+
+  socket.emit("matchmaking-status", {
+    status: "searching",
   });
+});
 
   socket.on("vote-arena", ({ roomCode, arena }) => {
     const room = rooms.get(roomCode);
@@ -637,15 +634,15 @@ io.on("connection", (socket) => {
     handleArenaVote(room, socket.id, arena);
   });
 
-  socket.on("cancel-matchmaking", () => {
-    if (waitingPlayer && waitingPlayer.socketId === socket.id) {
-      waitingPlayer = null;
+socket.on("cancel-matchmaking", () => {
+  waitingPlayers = waitingPlayers.filter(
+    (p) => p.socketId !== socket.id
+  );
 
-      socket.emit("matchmaking-status", {
-        status: "cancelled",
-      });
-    }
+  socket.emit("matchmaking-status", {
+    status: "cancelled",
   });
+});
 
   socket.on("host-state", ({ roomCode }) => {
     const room = rooms.get(roomCode);
@@ -738,9 +735,9 @@ if (room.hostReadyAgain && room.guestReadyAgain) {
   socket.on("disconnect", () => {
     console.log("DISCONNECTED:", socket.id);
 
-    if (waitingPlayer && waitingPlayer.socketId === socket.id) {
-      waitingPlayer = null;
-    }
+waitingPlayers = waitingPlayers.filter(
+  (p) => p.socketId !== socket.id
+);
 
     cleanupRoomForSocket(socket);
   });
