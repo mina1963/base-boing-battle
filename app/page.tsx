@@ -2726,81 +2726,109 @@ socketRef.current?.emit("create-room", {
 
 
       {matchFound && (
-        <div className="absolute inset-0 z-[1000] bg-black flex items-center justify-center overflow-hidden px-8 text-center">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,82,255,0.18),rgba(0,0,0,0)_52%)]" />
-
-          <div className="absolute text-[170px] sm:text-[240px] font-black tracking-[0.18em] text-[#0052FF]/[0.08] select-none pointer-events-none blur-[1px]">
-            BASE
+        <div className="absolute inset-0 z-[1000] flex items-center justify-center overflow-hidden bg-black px-5 text-center">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,82,255,0.20),rgba(0,0,0,0)_56%)]" />
+          <div className="absolute inset-0 opacity-[0.08]">
+            <div
+              className="h-full w-full"
+              style={{
+                backgroundImage: `
+                  linear-gradient(rgba(0,82,255,.55) 1px, transparent 1px),
+                  linear-gradient(90deg, rgba(0,82,255,.55) 1px, transparent 1px)
+                `,
+                backgroundSize: "42px 42px",
+              }}
+            />
           </div>
 
-          <div className="absolute w-[540px] h-[540px] rounded-full border border-[#0052FF]/30 animate-[spin_30s_linear_infinite]" />
-          <div className="absolute w-[380px] h-[380px] rounded-full border border-[#0052FF]/25" />
-          <div className="absolute w-[220px] h-[220px] rounded-full border border-[#0052FF]/20 animate-pulse" />
-          <div className="absolute w-[190px] h-[190px] rounded-full bg-[#0052FF]/20 blur-[120px] animate-pulse" />
+          <div className="absolute left-1/2 top-1/2 h-[620px] w-[620px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#0052FF]/20 animate-[spin_32s_linear_infinite]" />
+          <div className="absolute left-1/2 top-1/2 h-[410px] w-[410px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/10" />
+          <div className="absolute left-1/2 top-1/2 h-[190px] w-[190px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#0052FF]/25 blur-[110px]" />
 
-          <div className="relative z-10 flex -translate-y-6 flex-col items-center animate-[matchPop_0.55s_ease-out]">
-            <div className="text-[#0052FF] text-[10px] font-black tracking-[0.55em] mb-5 opacity-90">
+          <div className="relative z-10 w-full max-w-[560px] rounded-[2rem] border border-[#0052FF]/25 bg-[#020713]/90 p-6 shadow-[0_0_70px_rgba(0,82,255,0.25)] backdrop-blur-xl animate-[matchPop_0.55s_ease-out]">
+            <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full border border-[#0052FF]/60 bg-[#0052FF]/10 shadow-[0_0_40px_rgba(0,82,255,0.55)]">
+              <img
+                src="/base.png"
+                alt="Base"
+                className="h-11 w-11 object-contain drop-shadow-[0_0_24px_rgba(0,82,255,1)]"
+              />
+            </div>
+
+            <div className="text-[#0052FF] text-[10px] font-black tracking-[0.55em]">
               BASE MULTIPLAYER
             </div>
 
-            <img
-              src="/base.png"
-              alt="Base"
-              className="w-20 h-20 object-contain mb-7 drop-shadow-[0_0_42px_rgba(0,82,255,1)] animate-pulse"
-            />
+            <h1 className="mt-3 text-white text-4xl sm:text-5xl font-black tracking-[0.18em] drop-shadow-[0_0_24px_rgba(255,255,255,0.22)]">
+              MATCH FOUND
+            </h1>
 
-            <div className="-translate-y-4">
-              <h1 className="text-white text-5xl sm:text-6xl font-black tracking-[0.2em] drop-shadow-[0_0_26px_rgba(0,82,255,0.65)]">
-                MATCH
-              </h1>
-
-              <h1 className="mt-1 text-[#0052FF] text-6xl sm:text-7xl font-black tracking-[0.18em] drop-shadow-[0_0_38px_rgba(0,82,255,0.95)]">
-                FOUND
-              </h1>
-            </div>
-
-            <div className="mt-7 flex w-full max-w-[92vw] flex-col items-center justify-center">
-              <div
-                className="max-w-[92vw] break-words text-center text-white text-[clamp(28px,7vw,48px)] font-black leading-tight tracking-[0.08em] drop-shadow-[0_0_24px_rgba(255,255,255,.36)] animate-[slideLeft_.45s_ease-out]"
-                title={playerDisplayName}
-              >
-                {playerDisplayName}
-              </div>
-
-              <div className="relative my-1 sm:my-2">
-                <div className="absolute inset-0 rounded-full bg-[#0052FF]/40 blur-2xl" />
-
-                <div className="relative text-[#0052FF] text-[42px] sm:text-[56px] font-black animate-pulse drop-shadow-[0_0_32px_rgba(0,82,255,.95)]">
-                  ⚔
+            <div className="mt-6 grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+              <div className="min-w-0 rounded-2xl border border-[#0052FF]/25 bg-black/35 px-3 py-4 shadow-[inset_0_0_24px_rgba(0,82,255,0.08)]">
+                <div className="text-[8px] font-black tracking-[0.35em] text-[#0052FF]">
+                  YOU
+                </div>
+                <div
+                  className="mt-2 truncate text-white text-xl sm:text-2xl font-black tracking-[0.08em]"
+                  title={playerDisplayName}
+                >
+                  {playerDisplayName}
                 </div>
               </div>
 
-              <div
-                className="max-w-[92vw] break-words text-center text-white text-[clamp(28px,7vw,48px)] font-black leading-tight tracking-[0.08em] drop-shadow-[0_0_24px_rgba(255,255,255,.36)] animate-[slideRight_.45s_ease-out]"
-                title={rivalDisplayName}
-              >
-                {rivalDisplayName}
+              <div className="relative flex h-16 w-16 items-center justify-center">
+                <div className="absolute inset-0 rounded-full bg-[#0052FF]/25 blur-xl" />
+                <div className="relative text-[#0052FF] text-3xl font-black drop-shadow-[0_0_24px_rgba(0,82,255,1)]">
+                  VS
+                </div>
+              </div>
+
+              <div className="min-w-0 rounded-2xl border border-red-400/25 bg-black/35 px-3 py-4 shadow-[inset_0_0_24px_rgba(239,68,68,0.08)]">
+                <div className="text-[8px] font-black tracking-[0.35em] text-red-400">
+                  RIVAL
+                </div>
+                <div
+                  className="mt-2 truncate text-white text-xl sm:text-2xl font-black tracking-[0.08em]"
+                  title={rivalDisplayName}
+                >
+                  {rivalDisplayName}
+                </div>
               </div>
             </div>
 
-            <div className="mt-7 text-center">
-              <div className="text-[#0052FF] text-[11px] font-black tracking-[0.45em] drop-shadow-[0_0_16px_rgba(0,82,255,.85)]">
-                RANKED MATCH
+            {selectedMatchArena ? (
+              <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+                <div className="text-[9px] font-black tracking-[0.42em] text-white/35">
+                  ARENA LOCKED
+                </div>
+                <div className="mt-2 text-[#0052FF] text-xl font-black tracking-[0.18em] drop-shadow-[0_0_20px_rgba(0,82,255,0.8)]">
+                  {getArenaLabel(selectedMatchArena)}
+                </div>
+                <div className="mt-2 text-white/35 text-[10px] font-black tracking-[0.3em]">
+                  BATTLE STARTING
+                </div>
               </div>
-
-              <div className="mt-2 text-white/35 text-[10px] tracking-[0.35em]">
-                FIRST TO 7
+            ) : (
+              <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+                <div className="text-[9px] font-black tracking-[0.42em] text-white/35">
+                  NEXT STEP
+                </div>
+                <div className="mt-2 text-[#0052FF] text-sm font-black tracking-[0.28em]">
+                  ARENA VOTING
+                </div>
+                <div className="mt-2 text-white/35 text-[10px] tracking-[0.28em]">
+                  BOTH PLAYERS CHOOSE MAP
+                </div>
               </div>
-            </div>
+            )}
 
-            <div className="mt-8 flex gap-2">
-              <div className="w-2 h-2 rounded-full bg-[#0052FF] animate-bounce shadow-[0_0_12px_rgba(0,82,255,0.9)]" />
+            <div className="mt-6 flex justify-center gap-2">
+              <div className="h-2 w-2 rounded-full bg-[#0052FF] shadow-[0_0_12px_rgba(0,82,255,0.9)] animate-bounce" />
               <div
-                className="w-2 h-2 rounded-full bg-[#0052FF] animate-bounce shadow-[0_0_12px_rgba(0,82,255,0.9)]"
+                className="h-2 w-2 rounded-full bg-[#0052FF] shadow-[0_0_12px_rgba(0,82,255,0.9)] animate-bounce"
                 style={{ animationDelay: "0.15s" }}
               />
               <div
-                className="w-2 h-2 rounded-full bg-[#0052FF] animate-bounce shadow-[0_0_12px_rgba(0,82,255,0.9)]"
+                className="h-2 w-2 rounded-full bg-[#0052FF] shadow-[0_0_12px_rgba(0,82,255,0.9)] animate-bounce"
                 style={{ animationDelay: "0.3s" }}
               />
             </div>
@@ -2809,16 +2837,52 @@ socketRef.current?.emit("create-room", {
       )}
 
       {showArenaVote && (
-        <div className="absolute inset-0 z-[1100] flex items-center justify-center bg-black/92 px-5 text-center backdrop-blur-md">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,82,255,0.18),rgba(0,0,0,0)_55%)]" />
+        <div className="absolute inset-0 z-[1100] flex items-center justify-center overflow-hidden bg-black/94 px-4 text-center backdrop-blur-md">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,82,255,0.18),rgba(0,0,0,0)_58%)]" />
+          <div className="absolute inset-0 opacity-[0.08]">
+            <div
+              className="h-full w-full"
+              style={{
+                backgroundImage: `
+                  linear-gradient(rgba(0,82,255,.5) 1px, transparent 1px),
+                  linear-gradient(90deg, rgba(0,82,255,.5) 1px, transparent 1px)
+                `,
+                backgroundSize: "44px 44px",
+              }}
+            />
+          </div>
 
-          <div className="relative z-10 w-full max-w-[620px] rounded-[2rem] border border-white/10 bg-[#030712]/90 p-5 shadow-[0_0_60px_rgba(0,82,255,0.22)] sm:p-7">
-            <div className="text-[#0052FF] text-[10px] font-black tracking-[0.45em]">
-              ARENA VOTE
+          <div className="relative z-10 w-full max-w-[760px] rounded-[2rem] border border-[#0052FF]/25 bg-[#030712]/92 p-5 shadow-[0_0_70px_rgba(0,82,255,0.25)] sm:p-7">
+            <div className="text-[#0052FF] text-[10px] font-black tracking-[0.48em]">
+              MATCH FOUND
             </div>
 
-            <h2 className="mt-3 text-3xl font-black tracking-[0.18em] text-white sm:text-4xl">
-              CHOOSE MAP
+            <div className="mt-3 grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+              <div className="min-w-0 rounded-2xl border border-white/10 bg-black/35 px-3 py-3">
+                <div className="text-[8px] font-black tracking-[0.34em] text-[#0052FF]">
+                  YOU
+                </div>
+                <div className="mt-1 truncate text-white text-lg font-black tracking-[0.08em]">
+                  {playerDisplayName}
+                </div>
+              </div>
+
+              <div className="text-[#0052FF] text-2xl font-black drop-shadow-[0_0_20px_rgba(0,82,255,1)]">
+                VS
+              </div>
+
+              <div className="min-w-0 rounded-2xl border border-white/10 bg-black/35 px-3 py-3">
+                <div className="text-[8px] font-black tracking-[0.34em] text-red-400">
+                  RIVAL
+                </div>
+                <div className="mt-1 truncate text-white text-lg font-black tracking-[0.08em]">
+                  {rivalDisplayName}
+                </div>
+              </div>
+            </div>
+
+            <h2 className="mt-6 text-white text-3xl sm:text-4xl font-black tracking-[0.18em]">
+              CHOOSE ARENA
             </h2>
 
             <div className="mt-2 text-white/35 text-[10px] tracking-[0.28em]">
@@ -2830,6 +2894,10 @@ socketRef.current?.emit("create-room", {
                 const selected = votedArena === item.key;
                 const hostVoted = arenaVotes.host === item.key;
                 const guestVoted = arenaVotes.guest === item.key;
+                const myVote = isHostRef.current ? arenaVotes.host : arenaVotes.guest;
+                const rivalVote = isHostRef.current ? arenaVotes.guest : arenaVotes.host;
+                const meVotedThis = myVote === item.key;
+                const rivalVotedThis = rivalVote === item.key;
 
                 return (
                   <button
@@ -2842,15 +2910,21 @@ socketRef.current?.emit("create-room", {
                         arena: item.key,
                       });
                     }}
-                    className={`relative min-h-[132px] overflow-hidden rounded-2xl border p-3 text-left transition ${
+                    className={`relative min-h-[150px] overflow-hidden rounded-2xl border p-3 text-left transition active:scale-[0.98] ${
                       selected ? item.selectedClass : "border-white/10 text-white/60 hover:border-white/30"
                     }`}
                   >
-                    <div className={`absolute inset-0 bg-gradient-to-br ${item.previewClass} opacity-75`} />
+                    <div className={`absolute inset-0 bg-gradient-to-br ${item.previewClass} opacity-80`} />
                     <div className="absolute inset-x-3 top-3 h-[3px] rounded-full bg-white/20" />
-                    <div className={`absolute bottom-3 right-3 h-3 w-3 rounded-full ${item.dot}`} />
+                    <div className={`absolute bottom-3 right-3 h-3 w-3 rounded-full ${item.dot} shadow-[0_0_16px_rgba(255,255,255,0.35)]`} />
 
-                    <div className="relative z-10">
+                    {selected && (
+                      <div className="absolute right-3 top-3 rounded-full bg-white px-2 py-1 text-[8px] font-black tracking-[0.16em] text-black">
+                        VOTED
+                      </div>
+                    )}
+
+                    <div className="relative z-10 flex h-full flex-col">
                       <div className="text-[14px] font-black tracking-[0.16em] text-white">
                         {item.title}
                       </div>
@@ -2858,12 +2932,15 @@ socketRef.current?.emit("create-room", {
                         {item.subtitle}
                       </div>
 
-                      <div className="mt-8 space-y-1 text-[8px] font-black tracking-[0.2em] text-white/55">
-                        <div className={hostVoted ? "text-white" : "text-white/25"}>
-                          HOST {hostVoted ? "✓" : "-"}
+                      <div className="mt-auto space-y-1 pt-10 text-[8px] font-black tracking-[0.2em]">
+                        <div className={meVotedThis ? "text-white" : "text-white/25"}>
+                          YOU {meVotedThis ? "✓" : "-"}
                         </div>
-                        <div className={guestVoted ? "text-white" : "text-white/25"}>
-                          GUEST {guestVoted ? "✓" : "-"}
+                        <div className={rivalVotedThis ? "text-white" : "text-white/25"}>
+                          RIVAL {rivalVotedThis ? "✓" : "-"}
+                        </div>
+                        <div className="text-white/15">
+                          {hostVoted || guestVoted ? "VOTE ACTIVE" : "NO VOTE"}
                         </div>
                       </div>
                     </div>
@@ -2872,15 +2949,23 @@ socketRef.current?.emit("create-room", {
               })}
             </div>
 
-            <div className="mt-5 text-[10px] font-black tracking-[0.3em] text-white/35">
-              {votedArena ? `YOU VOTED ${getArenaLabel(votedArena)}` : "WAITING FOR YOUR VOTE"}
-            </div>
-
-            {selectedMatchArena && (
-              <div className="mt-3 text-[#0052FF] text-sm font-black tracking-[0.28em] animate-pulse">
-                SELECTED: {getArenaLabel(selectedMatchArena)}
+            <div className="mt-5 rounded-2xl border border-white/10 bg-black/30 px-4 py-3">
+              <div className="text-[10px] font-black tracking-[0.3em] text-white/35">
+                {votedArena ? `YOU VOTED ${getArenaLabel(votedArena)}` : "WAITING FOR YOUR VOTE"}
               </div>
-            )}
+
+              {selectedMatchArena ? (
+                <div className="mt-2 text-[#0052FF] text-sm font-black tracking-[0.28em] animate-pulse">
+                  ARENA LOCKED: {getArenaLabel(selectedMatchArena)}
+                </div>
+              ) : (
+                <div className="mt-2 flex justify-center gap-2">
+                  <div className="h-1.5 w-1.5 rounded-full bg-[#0052FF] animate-bounce" />
+                  <div className="h-1.5 w-1.5 rounded-full bg-[#0052FF] animate-bounce" style={{ animationDelay: "0.15s" }} />
+                  <div className="h-1.5 w-1.5 rounded-full bg-[#0052FF] animate-bounce" style={{ animationDelay: "0.3s" }} />
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
