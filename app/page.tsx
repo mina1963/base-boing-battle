@@ -24,6 +24,76 @@ type Spark = {
   color: string;
 };
 
+type Arena = "classic" | "base" | "space" | "temple";
+
+type ArenaTheme = {
+  readyText: string;
+  readyClass: string;
+  countdownClass: string;
+  countdownGlowClass: string;
+  subText: string;
+  flashClass: string;
+  canvasMain: string;
+  canvasGlow: string;
+  canvasRgba: (alpha: number) => string;
+};
+
+const getArenaTheme = (arena: Arena): ArenaTheme => {
+  if (arena === "base") {
+    return {
+      readyText: "BASE READY",
+      readyClass: "text-red-400 drop-shadow-[0_0_18px_rgba(239,68,68,0.95)]",
+      countdownClass: "text-red-400",
+      countdownGlowClass: "drop-shadow-[0_0_38px_rgba(239,68,68,0.98)]",
+      subText: "NEON STADIUM MODE",
+      flashClass: "bg-red-500/25",
+      canvasMain: "#ff4d4d",
+      canvasGlow: "#ef4444",
+      canvasRgba: (alpha: number) => `rgba(239,68,68,${alpha})`,
+    };
+  }
+
+  if (arena === "space") {
+    return {
+      readyText: "ORBIT READY",
+      readyClass: "text-cyan-300 drop-shadow-[0_0_18px_rgba(34,211,238,0.95)]",
+      countdownClass: "text-cyan-100",
+      countdownGlowClass: "drop-shadow-[0_0_38px_rgba(34,211,238,0.98)]",
+      subText: "SPACE STATION MODE",
+      flashClass: "bg-cyan-400/20",
+      canvasMain: "#7ef9ff",
+      canvasGlow: "#22d3ee",
+      canvasRgba: (alpha: number) => `rgba(34,211,238,${alpha})`,
+    };
+  }
+
+  if (arena === "temple") {
+    return {
+      readyText: "RUNE READY",
+      readyClass: "text-amber-300 drop-shadow-[0_0_18px_rgba(251,191,36,0.95)]",
+      countdownClass: "text-amber-100",
+      countdownGlowClass: "drop-shadow-[0_0_38px_rgba(251,191,36,0.98)]",
+      subText: "CRYPTO TEMPLE MODE",
+      flashClass: "bg-amber-300/20",
+      canvasMain: "#ffe680",
+      canvasGlow: "#fbbf24",
+      canvasRgba: (alpha: number) => `rgba(251,191,36,${alpha})`,
+    };
+  }
+
+  return {
+    readyText: "BASE READY",
+    readyClass: "text-[#0052FF] drop-shadow-[0_0_18px_rgba(0,82,255,0.9)]",
+    countdownClass: "text-white",
+    countdownGlowClass: "drop-shadow-[0_0_35px_rgba(0,82,255,0.95)]",
+    subText: "ONCHAIN ARCADE MODE",
+    flashClass: "bg-[#0052FF]/25",
+    canvasMain: "#ffffff",
+    canvasGlow: "#0052FF",
+    canvasRgba: (alpha: number) => `rgba(0,82,255,${alpha})`,
+  };
+};
+
 export default function Home() {
 
   const socketRef = useRef<any>(null);
@@ -166,6 +236,14 @@ const getReadyUsername = () => {
   const [showDifficulty, setShowDifficulty] = useState(false);
 const [aiDifficulty, setAiDifficulty] =
   useState<"easy" | "normal" | "hard">("normal");
+
+const [arena, setArena] = useState<Arena>("classic");
+
+const arenaRef = useRef<Arena>("classic");
+
+useEffect(() => {
+  arenaRef.current = arena;
+}, [arena]);
 
 
 
@@ -833,6 +911,7 @@ if (
   return;
 }
 const roundActive = gameStartedRef.current && !pauseRef.current;
+const activeArena = arenaRef.current;
 
       if (energyRef.current.value < 100 && frame % 5 === 0) {
         energyRef.current.value += 1;
@@ -840,40 +919,260 @@ const roundActive = gameStartedRef.current && !pauseRef.current;
 
       ctx.clearRect(0, 0, W, H);
 
-      ctx.fillStyle = "#020204";
-      ctx.fillRect(0, 0, W, H);
+      if (activeArena === "base") {
+        const baseBg = ctx.createLinearGradient(0, 0, 0, H);
+        baseBg.addColorStop(0, "#020716");
+        baseBg.addColorStop(0.28, "#031d5a");
+        baseBg.addColorStop(0.52, "#003bbd");
+        baseBg.addColorStop(0.76, "#031d5a");
+        baseBg.addColorStop(1, "#020716");
+        ctx.fillStyle = baseBg;
+        ctx.fillRect(0, 0, W, H);
 
-      const gradient = ctx.createRadialGradient(
-        W / 2,
-        H / 2,
-        40,
-        W / 2,
-        H / 2,
-        H / 1.2
-      );
+        const stadiumGlow = ctx.createRadialGradient(
+          W / 2,
+          H / 2,
+          20,
+          W / 2,
+          H / 2,
+          H / 1.05
+        );
+        stadiumGlow.addColorStop(0, "rgba(255,255,255,0.10)");
+        stadiumGlow.addColorStop(0.3, "rgba(0,82,255,0.18)");
+        stadiumGlow.addColorStop(0.72, "rgba(0,82,255,0.04)");
+        stadiumGlow.addColorStop(1, "rgba(0,0,0,0.45)");
+        ctx.fillStyle = stadiumGlow;
+        ctx.fillRect(0, 0, W, H);
 
-      gradient.addColorStop(0, "rgba(0,82,255,0.16)");
-      gradient.addColorStop(0.45, "rgba(0,82,255,0.05)");
-      gradient.addColorStop(1, "rgba(0,0,0,0)");
+        ctx.strokeStyle = "rgba(255,255,255,0.045)";
+        ctx.lineWidth = 1;
 
-      ctx.fillStyle = gradient;
-      ctx.fillRect(0, 0, W, H);
+        for (let x = 52; x < W - 52; x += 48) {
+          ctx.beginPath();
+          ctx.moveTo(x, 24);
+          ctx.lineTo(x, H - 24);
+          ctx.stroke();
+        }
 
-      ctx.strokeStyle = "rgba(0,82,255,0.08)";
-      ctx.lineWidth = 1;
+        for (let y = 54; y < H - 24; y += 54) {
+          ctx.beginPath();
+          ctx.moveTo(32, y);
+          ctx.lineTo(W - 32, y);
+          ctx.stroke();
+        }
 
-      for (let x = 40; x < W; x += 40) {
+        for (let y = 42; y < H - 42; y += 36) {
+          for (let x = 46; x < W - 46; x += 36) {
+            const dotPulse = 0.06 + Math.sin(frame * 0.035 + x * 0.02 + y * 0.02) * 0.025;
+            ctx.fillStyle = `rgba(255,255,255,${dotPulse})`;
+            ctx.fillRect(x, y, 1.2, 1.2);
+          }
+        }
+
+        const arenaGlow = 0.65 + Math.sin(frame * 0.045) * 0.18;
+
+        ctx.save();
+        ctx.strokeStyle = `rgba(0,82,255,${arenaGlow})`;
+        ctx.lineWidth = 4;
+        ctx.shadowColor = "#0052FF";
+        ctx.shadowBlur = 22;
+        ctx.strokeRect(10, 10, W - 20, H - 20);
+
+        ctx.strokeStyle = "rgba(255,255,255,0.22)";
+        ctx.lineWidth = 1;
+        ctx.shadowBlur = 0;
+        ctx.strokeRect(22, 22, W - 44, H - 44);
+
+        for (let x = 38; x <= W - 38; x += 24) {
+          const blink = 0.38 + Math.sin(frame * 0.12 + x * 0.08) * 0.25;
+
+          ctx.beginPath();
+          ctx.arc(x, 15, 2.2, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(255,255,255,${blink})`;
+          ctx.shadowColor = "#0052FF";
+          ctx.shadowBlur = 10;
+          ctx.fill();
+
+          ctx.beginPath();
+          ctx.arc(x, H - 15, 2.2, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        ctx.strokeStyle = `rgba(239,68,68,${0.35 + Math.sin(frame * 0.06) * 0.15})`;
+        ctx.lineWidth = 2;
+        ctx.shadowColor = "#ef4444";
+        ctx.shadowBlur = 18;
         ctx.beginPath();
-        ctx.moveTo(x, 12);
-        ctx.lineTo(x, H - 12);
+        ctx.moveTo(30, 30);
+        ctx.lineTo(30, H - 30);
+        ctx.moveTo(W - 30, 30);
+        ctx.lineTo(W - 30, H - 30);
         ctx.stroke();
-      }
+        ctx.shadowBlur = 0;
+        ctx.restore();
+      } else if (activeArena === "space") {
+        const spaceBg = ctx.createLinearGradient(0, 0, 0, H);
+        spaceBg.addColorStop(0, "#02040d");
+        spaceBg.addColorStop(0.42, "#061536");
+        spaceBg.addColorStop(0.72, "#030918");
+        spaceBg.addColorStop(1, "#000000");
+        ctx.fillStyle = spaceBg;
+        ctx.fillRect(0, 0, W, H);
 
-      for (let y = 60; y < H; y += 60) {
+        const orbitGlow = ctx.createRadialGradient(W / 2, H / 2, 20, W / 2, H / 2, H / 1.1);
+        orbitGlow.addColorStop(0, "rgba(34,211,238,0.22)");
+        orbitGlow.addColorStop(0.35, "rgba(0,82,255,0.10)");
+        orbitGlow.addColorStop(1, "rgba(0,0,0,0)");
+        ctx.fillStyle = orbitGlow;
+        ctx.fillRect(0, 0, W, H);
+
+        for (let i = 0; i < 110; i++) {
+          const sx = (i * 73 + frame * (0.08 + (i % 3) * 0.035)) % W;
+          const sy = (i * 47 + frame * (0.16 + (i % 5) * 0.025)) % H;
+          const a = 0.18 + ((i % 7) / 12);
+          ctx.fillStyle = `rgba(255,255,255,${a})`;
+          ctx.fillRect(sx, sy, i % 5 === 0 ? 1.8 : 1, i % 5 === 0 ? 1.8 : 1);
+        }
+
+        ctx.strokeStyle = "rgba(34,211,238,0.10)";
+        ctx.lineWidth = 1;
+        for (let x = 36; x < W; x += 52) {
+          ctx.beginPath();
+          ctx.moveTo(x, 18);
+          ctx.lineTo(x, H - 18);
+          ctx.stroke();
+        }
+        for (let y = 56; y < H; y += 70) {
+          ctx.beginPath();
+          ctx.moveTo(18, y);
+          ctx.lineTo(W - 18, y);
+          ctx.stroke();
+        }
+
+        ctx.save();
+        const ringPulse = 0.55 + Math.sin(frame * 0.045) * 0.2;
+        ctx.strokeStyle = `rgba(34,211,238,${ringPulse})`;
+        ctx.lineWidth = 3;
+        ctx.shadowColor = "#22d3ee";
+        ctx.shadowBlur = 18;
+        ctx.strokeRect(12, 12, W - 24, H - 24);
+        ctx.setLineDash([10, 14]);
+        ctx.strokeStyle = "rgba(255,255,255,0.22)";
+        ctx.strokeRect(28, 28, W - 56, H - 56);
+        ctx.setLineDash([]);
+        ctx.restore();
+
+        ctx.save();
+        ctx.translate(W / 2, H / 2);
+        ctx.rotate(frame * 0.004);
+        ctx.strokeStyle = "rgba(34,211,238,0.35)";
+        ctx.lineWidth = 1.5;
         ctx.beginPath();
-        ctx.moveTo(12, y);
-        ctx.lineTo(W - 12, y);
+        ctx.ellipse(0, 0, 112, 40, 0, 0, Math.PI * 2);
         ctx.stroke();
+        ctx.beginPath();
+        ctx.ellipse(0, 0, 78, 26, Math.PI / 2.8, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+      } else if (activeArena === "temple") {
+        const templeBg = ctx.createLinearGradient(0, 0, 0, H);
+        templeBg.addColorStop(0, "#140b02");
+        templeBg.addColorStop(0.5, "#241403");
+        templeBg.addColorStop(1, "#050301");
+        ctx.fillStyle = templeBg;
+        ctx.fillRect(0, 0, W, H);
+
+        const goldGlow = ctx.createRadialGradient(W / 2, H / 2, 18, W / 2, H / 2, H / 1.08);
+        goldGlow.addColorStop(0, "rgba(251,191,36,0.22)");
+        goldGlow.addColorStop(0.45, "rgba(120,53,15,0.14)");
+        goldGlow.addColorStop(1, "rgba(0,0,0,0.25)");
+        ctx.fillStyle = goldGlow;
+        ctx.fillRect(0, 0, W, H);
+
+        ctx.strokeStyle = "rgba(251,191,36,0.09)";
+        ctx.lineWidth = 1;
+        for (let x = 40; x < W; x += 40) {
+          ctx.beginPath();
+          ctx.moveTo(x, 18);
+          ctx.lineTo(x, H - 18);
+          ctx.stroke();
+        }
+        for (let y = 60; y < H; y += 60) {
+          ctx.beginPath();
+          ctx.moveTo(18, y);
+          ctx.lineTo(W - 18, y);
+          ctx.stroke();
+        }
+
+        for (let y = 70; y < H - 60; y += 88) {
+          ctx.fillStyle = "rgba(251,191,36,0.12)";
+          ctx.fillRect(18, y, 16, 50);
+          ctx.fillRect(W - 34, y, 16, 50);
+          ctx.fillStyle = "rgba(251,191,36,0.22)";
+          ctx.fillRect(14, y - 5, 24, 6);
+          ctx.fillRect(W - 38, y - 5, 24, 6);
+        }
+
+        ctx.save();
+        const templePulse = 0.5 + Math.sin(frame * 0.045) * 0.18;
+        ctx.strokeStyle = `rgba(251,191,36,${templePulse})`;
+        ctx.lineWidth = 3;
+        ctx.shadowColor = "#fbbf24";
+        ctx.shadowBlur = 18;
+        ctx.strokeRect(12, 12, W - 24, H - 24);
+        ctx.strokeStyle = "rgba(255,255,255,0.16)";
+        ctx.lineWidth = 1;
+        ctx.strokeRect(26, 26, W - 52, H - 52);
+        ctx.restore();
+
+        ctx.save();
+        ctx.translate(W / 2, H / 2);
+        ctx.strokeStyle = "rgba(251,191,36,0.30)";
+        ctx.lineWidth = 1.5;
+        for (let i = 0; i < 6; i++) {
+          ctx.rotate(Math.PI / 3);
+          ctx.beginPath();
+          ctx.moveTo(0, -92);
+          ctx.lineTo(0, -72);
+          ctx.stroke();
+        }
+        ctx.restore();
+      } else {
+        ctx.fillStyle = "#020204";
+        ctx.fillRect(0, 0, W, H);
+
+        const gradient = ctx.createRadialGradient(
+          W / 2,
+          H / 2,
+          40,
+          W / 2,
+          H / 2,
+          H / 1.2
+        );
+
+        gradient.addColorStop(0, "rgba(0,82,255,0.16)");
+        gradient.addColorStop(0.45, "rgba(0,82,255,0.05)");
+        gradient.addColorStop(1, "rgba(0,0,0,0)");
+
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, W, H);
+
+        ctx.strokeStyle = "rgba(0,82,255,0.08)";
+        ctx.lineWidth = 1;
+
+        for (let x = 40; x < W; x += 40) {
+          ctx.beginPath();
+          ctx.moveTo(x, 12);
+          ctx.lineTo(x, H - 12);
+          ctx.stroke();
+        }
+
+        for (let y = 60; y < H; y += 60) {
+          ctx.beginPath();
+          ctx.moveTo(12, y);
+          ctx.lineTo(W - 12, y);
+          ctx.stroke();
+        }
       }
 
       ctx.beginPath();
@@ -887,11 +1186,51 @@ const roundActive = gameStartedRef.current && !pauseRef.current;
 
       const basePulse = 0.42 + Math.sin(frame * 0.018) * 0.08;
       ctx.fillStyle = `rgba(0,82,255,${basePulse})`;
-      ctx.font = "900 46px monospace";
       ctx.textAlign = "center";
       ctx.shadowColor = "#0052FF";
-      ctx.shadowBlur = 22;
-      ctx.fillText("BASE", W / 2, H / 2 + 14);
+      ctx.shadowBlur = activeArena === "base" ? 30 : activeArena === "space" ? 28 : activeArena === "temple" ? 28 : 22;
+
+      if (activeArena === "base") {
+        ctx.font = "bold 10px monospace";
+        ctx.fillStyle = "rgba(255,255,255,0.62)";
+        ctx.fillText("◇ BASE ARENA ◇", W / 2, H / 2 - 50);
+
+        ctx.fillStyle = `rgba(255,255,255,${0.78 + Math.sin(frame * 0.035) * 0.12})`;
+        ctx.font = "900 46px monospace";
+        ctx.fillText("BASE", W / 2, H / 2 + 15);
+
+        ctx.font = "bold 8px monospace";
+        ctx.fillStyle = "rgba(0,82,255,0.78)";
+        ctx.fillText("ONCHAIN STADIUM", W / 2, H / 2 + 38);
+      } else if (activeArena === "space") {
+        ctx.font = "bold 10px monospace";
+        ctx.fillStyle = "rgba(34,211,238,0.78)";
+        ctx.fillText("◇ SPACE STATION ◇", W / 2, H / 2 - 50);
+
+        ctx.fillStyle = `rgba(210,250,255,${0.82 + Math.sin(frame * 0.035) * 0.1})`;
+        ctx.font = "900 40px monospace";
+        ctx.fillText("ORBIT", W / 2, H / 2 + 15);
+
+        ctx.font = "bold 8px monospace";
+        ctx.fillStyle = "rgba(34,211,238,0.72)";
+        ctx.fillText("BASE STATION", W / 2, H / 2 + 38);
+      } else if (activeArena === "temple") {
+        ctx.font = "bold 10px monospace";
+        ctx.fillStyle = "rgba(251,191,36,0.82)";
+        ctx.fillText("◇ CRYPTO TEMPLE ◇", W / 2, H / 2 - 50);
+
+        ctx.fillStyle = `rgba(255,230,150,${0.82 + Math.sin(frame * 0.035) * 0.1})`;
+        ctx.font = "900 36px monospace";
+        ctx.fillText("CHAIN", W / 2, H / 2 + 15);
+
+        ctx.font = "bold 8px monospace";
+        ctx.fillStyle = "rgba(251,191,36,0.72)";
+        ctx.fillText("ANCIENT BASE", W / 2, H / 2 + 38);
+      } else {
+        ctx.font = "900 46px monospace";
+        ctx.fillText("BASE", W / 2, H / 2 + 14);
+      }
+
       ctx.shadowBlur = 0;
 
       ctx.strokeStyle = "rgba(255,255,255,0.15)";
@@ -944,21 +1283,23 @@ const roundActive = gameStartedRef.current && !pauseRef.current;
       ctx.font = "10px monospace";
       ctx.fillText("ENERGY", W / 2, energyY + 22);
 
+      const canvasTheme = getArenaTheme(activeArena);
+
       if (score.player === 6 && score.ai === 6) {
-        ctx.fillStyle = "rgba(239,68,68,0.95)";
+        ctx.fillStyle = canvasTheme.canvasRgba(0.95);
         ctx.font = "bold 28px monospace";
-        ctx.shadowColor = "#ef4444";
-        ctx.shadowBlur = 24;
-        ctx.fillText("FINAL CLASH", W / 2, H / 2 - 95);
+        ctx.shadowColor = canvasTheme.canvasGlow;
+        ctx.shadowBlur = 26;
+        ctx.fillText(activeArena === "base" ? "FINAL BLOCK" : activeArena === "space" ? "ORBIT CLASH" : activeArena === "temple" ? "FINAL RUNE" : "FINAL CLASH", W / 2, H / 2 - 95);
         ctx.shadowBlur = 0;
       } else if (score.player === 6 || score.ai === 6) {
         const matchPulse = 0.65 + Math.sin(frame * 0.08) * 0.35;
 
-        ctx.fillStyle = `rgba(0,82,255,${matchPulse})`;
+        ctx.fillStyle = canvasTheme.canvasRgba(matchPulse);
         ctx.font = "bold 24px monospace";
-        ctx.shadowColor = "#0052FF";
-        ctx.shadowBlur = 22;
-        ctx.fillText("MATCH POINT", W / 2, H / 2 - 95);
+        ctx.shadowColor = canvasTheme.canvasGlow;
+        ctx.shadowBlur = 24;
+        ctx.fillText(activeArena === "base" ? "BASE POINT" : activeArena === "space" ? "ORBIT POINT" : activeArena === "temple" ? "CHAIN POINT" : "MATCH POINT", W / 2, H / 2 - 95);
         ctx.shadowBlur = 0;
       }
 
@@ -969,11 +1310,11 @@ const roundActive = gameStartedRef.current && !pauseRef.current;
         ctx.save();
         ctx.translate(W / 2, H / 2 - 125);
         ctx.scale(messageScale, messageScale);
-        ctx.fillStyle = `rgba(0,82,255,${messageAlpha})`;
+        ctx.fillStyle = canvasTheme.canvasRgba(messageAlpha);
         ctx.font = score.message.length > 15 ? "bold 26px monospace" : "bold 34px monospace";
         ctx.textAlign = "center";
-        ctx.shadowColor = "#0052FF";
-        ctx.shadowBlur = 28;
+        ctx.shadowColor = canvasTheme.canvasGlow;
+        ctx.shadowBlur = 30;
         ctx.fillText(score.message, 0, 0);
         ctx.restore();
 
@@ -1282,13 +1623,25 @@ if (score.ai >= 7) {
 
         const alpha = Math.max(line.life / 35, 0.05);
 
-        ctx.strokeStyle =
-          line.owner === "player"
-            ? `rgba(0,82,255,${alpha})`
-            : `rgba(239,68,68,${alpha})`;
+        if (activeArena === "base") {
+          ctx.strokeStyle = `rgba(239,68,68,${alpha})`;
+          ctx.shadowColor = "#ef4444";
+        } else if (activeArena === "space") {
+          ctx.strokeStyle = `rgba(34,211,238,${alpha})`;
+          ctx.shadowColor = "#22d3ee";
+        } else if (activeArena === "temple") {
+          ctx.strokeStyle = `rgba(251,191,36,${alpha})`;
+          ctx.shadowColor = "#fbbf24";
+        } else {
+          ctx.strokeStyle =
+            line.owner === "player"
+              ? `rgba(0,82,255,${alpha})`
+              : `rgba(239,68,68,${alpha})`;
 
-        ctx.shadowColor = line.owner === "player" ? "#0052FF" : "#ef4444";
-        ctx.shadowBlur = 28;
+          ctx.shadowColor = line.owner === "player" ? "#0052FF" : "#ef4444";
+        }
+
+        ctx.shadowBlur = activeArena === "base" || activeArena === "space" || activeArena === "temple" ? 34 : 28;
 
         ctx.globalCompositeOperation = "lighter";
         ctx.stroke();
@@ -1303,9 +1656,23 @@ if (score.ai >= 7) {
         ctx.beginPath();
         ctx.arc(point.x, point.y, ball.r * alpha * 1.4, 0, Math.PI * 2);
 
-        ctx.fillStyle = `rgba(0,82,255,${alpha * 0.28})`;
-        ctx.shadowColor = "#0052FF";
-        ctx.shadowBlur = 14;
+        ctx.fillStyle =
+          activeArena === "base"
+            ? `rgba(239,68,68,${alpha * 0.30})`
+            : activeArena === "space"
+            ? `rgba(34,211,238,${alpha * 0.30})`
+            : activeArena === "temple"
+            ? `rgba(251,191,36,${alpha * 0.30})`
+            : `rgba(0,82,255,${alpha * 0.28})`;
+        ctx.shadowColor =
+          activeArena === "base"
+            ? "#ef4444"
+            : activeArena === "space"
+            ? "#22d3ee"
+            : activeArena === "temple"
+            ? "#fbbf24"
+            : "#0052FF";
+        ctx.shadowBlur = activeArena === "base" || activeArena === "space" || activeArena === "temple" ? 18 : 14;
 
         ctx.fill();
       }
@@ -1343,19 +1710,19 @@ if (score.ai >= 7) {
 
       ctx.beginPath();
       ctx.arc(ball.x, ball.y, ball.r + 8, 0, Math.PI * 2);
-      ctx.fillStyle = "rgba(0,82,255,0.18)";
+      ctx.fillStyle = activeArena === "base" ? "rgba(239,68,68,0.18)" : activeArena === "space" ? "rgba(34,211,238,0.18)" : activeArena === "temple" ? "rgba(251,191,36,0.18)" : "rgba(0,82,255,0.18)";
       ctx.fill();
 
       ctx.beginPath();
       ctx.arc(ball.x, ball.y, ball.r + 3, 0, Math.PI * 2);
-      ctx.fillStyle = "rgba(0,82,255,0.65)";
+      ctx.fillStyle = activeArena === "base" ? "rgba(239,68,68,0.72)" : activeArena === "space" ? "rgba(34,211,238,0.72)" : activeArena === "temple" ? "rgba(251,191,36,0.72)" : "rgba(0,82,255,0.65)";
       ctx.fill();
 
       ctx.beginPath();
       ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI * 2);
       ctx.fillStyle = "white";
-      ctx.shadowColor = "#0052FF";
-      ctx.shadowBlur = 24;
+      ctx.shadowColor = activeArena === "base" ? "#ef4444" : activeArena === "space" ? "#22d3ee" : activeArena === "temple" ? "#fbbf24" : "#0052FF";
+      ctx.shadowBlur = activeArena === "base" || activeArena === "space" || activeArena === "temple" ? 30 : 24;
       ctx.fill();
 
       ctx.shadowBlur = 0;
@@ -1528,6 +1895,8 @@ const playSound = (
     setScreen("menu");
   };
 
+  const activeArenaTheme = getArenaTheme(arena);
+
   return (
     <main
       className={`fixed inset-0 w-screen h-[100dvh] bg-black flex items-center justify-center overflow-hidden overscroll-none ${
@@ -1606,6 +1975,43 @@ const playSound = (
             <p className="mt-5 text-white/35 text-xs tracking-[0.35em]">
               DEFLECT • SURVIVE • DOMINATE
             </p>
+
+            <div className="mt-8">
+              <p className="text-white/30 text-[10px] font-black tracking-[0.32em]">
+                SELECT ARENA
+              </p>
+
+              <div className="mt-3 grid grid-cols-2 gap-3">
+                {([
+                  ["classic", "CLASSIC"],
+                  ["base", "BASE ARENA"],
+                  ["space", "SPACE"],
+                  ["temple", "TEMPLE"],
+                ] as const).map(([key, label]) => {
+                  const selected = arena === key;
+
+                  return (
+                    <button
+                      key={key}
+                      onClick={() => setArena(key)}
+                      className={`h-[38px] px-4 rounded-full text-[10px] font-black tracking-[0.16em] transition ${
+                        selected
+                          ? key === "base"
+                            ? "bg-white text-[#0052FF] shadow-[0_0_24px_rgba(255,255,255,0.32)]"
+                            : key === "space"
+                            ? "bg-cyan-400 text-black shadow-[0_0_24px_rgba(34,211,238,0.32)]"
+                            : key === "temple"
+                            ? "bg-amber-300 text-black shadow-[0_0_24px_rgba(251,191,36,0.32)]"
+                            : "bg-[#0052FF] text-white shadow-[0_0_22px_rgba(0,82,255,0.35)]"
+                          : "border border-white/20 text-white/60 bg-black/20"
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
 
 <button
   onClick={() => setShowDifficulty(true)}
@@ -2066,45 +2472,149 @@ socketRef.current?.emit("create-room", {
         }`}
       >
         <div
-          className="relative"
+          className={`relative ${
+            arena === "base"
+              ? "drop-shadow-[0_0_38px_rgba(239,68,68,0.28)]"
+              : arena === "space"
+              ? "drop-shadow-[0_0_38px_rgba(34,211,238,0.28)]"
+              : arena === "temple"
+              ? "drop-shadow-[0_0_38px_rgba(251,191,36,0.28)]"
+              : ""
+          }`}
           style={{
             width: "min(100vw, calc(100dvh * 400 / 700), 430px)",
             aspectRatio: "400 / 700",
             maxHeight: "100dvh",
           }}
         >
+          {arena === "base" && (
+            <>
+              <div className="pointer-events-none absolute left-1/2 top-[-20px] z-[1] hidden h-[10px] w-[calc(100%+210px)] -translate-x-1/2 rounded-full bg-red-500/60 shadow-[0_0_28px_rgba(239,68,68,0.95)] sm:block" />
+              <div className="pointer-events-none absolute bottom-[-20px] left-1/2 z-[1] hidden h-[10px] w-[calc(100%+210px)] -translate-x-1/2 rounded-full bg-[#0052FF]/65 shadow-[0_0_28px_rgba(0,82,255,0.95)] sm:block" />
+
+              <div className="pointer-events-none absolute bottom-[5%] left-[-128px] top-[5%] z-[1] hidden w-[112px] flex-col justify-around sm:flex">
+                {["BASE", "BUILD", "ONCHAIN", "BASE", "BUILD"].map((label, index) => (
+                  <div key={`left-${label}-${index}`} className="relative h-[58px] rounded-xl border border-red-400/45 bg-black/75 shadow-[0_0_24px_rgba(239,68,68,0.28)]">
+                    <div className="absolute inset-0 rounded-xl bg-[radial-gradient(circle_at_center,rgba(0,82,255,0.18),rgba(0,0,0,0)_62%)]" />
+                    <div className="absolute -top-5 left-2 right-2 h-4 rounded-t-lg bg-[#050814] border-t border-x border-[#0052FF]/25" />
+                    <div className="absolute inset-x-2 top-2 h-[2px] bg-[#0052FF]/70 shadow-[0_0_10px_rgba(0,82,255,0.9)]" />
+                    <div className={`relative flex h-full items-center justify-center text-[13px] font-black tracking-[0.18em] ${
+                      index % 2 === 0 ? "text-red-300" : "text-[#7db1ff]"
+                    }`}>
+                      {label}
+                    </div>
+                    <div className="absolute -bottom-3 left-2 right-2 flex justify-center gap-[3px] opacity-40">
+                      {Array.from({ length: 9 }).map((_, i) => (
+                        <span key={i} className="h-2 w-1 rounded-full bg-white/60" />
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="pointer-events-none absolute bottom-[5%] right-[-128px] top-[5%] z-[1] hidden w-[112px] flex-col justify-around sm:flex">
+                {["BOING", "BATTLE", "BASE", "ARCADE", "BASE"].map((label, index) => (
+                  <div key={`right-${label}-${index}`} className="relative h-[58px] rounded-xl border border-[#0052FF]/45 bg-black/75 shadow-[0_0_24px_rgba(0,82,255,0.28)]">
+                    <div className="absolute inset-0 rounded-xl bg-[radial-gradient(circle_at_center,rgba(239,68,68,0.16),rgba(0,0,0,0)_62%)]" />
+                    <div className="absolute -top-5 left-2 right-2 h-4 rounded-t-lg bg-[#050814] border-t border-x border-red-400/25" />
+                    <div className="absolute inset-x-2 top-2 h-[2px] bg-red-400/70 shadow-[0_0_10px_rgba(239,68,68,0.9)]" />
+                    <div className={`relative flex h-full items-center justify-center text-[13px] font-black tracking-[0.18em] ${
+                      index % 2 === 0 ? "text-red-300" : "text-[#7db1ff]"
+                    }`}>
+                      {label}
+                    </div>
+                    <div className="absolute -bottom-3 left-2 right-2 flex justify-center gap-[3px] opacity-40">
+                      {Array.from({ length: 9 }).map((_, i) => (
+                        <span key={i} className="h-2 w-1 rounded-full bg-white/60" />
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+          {arena === "space" && (
+            <>
+              <div className="pointer-events-none absolute left-1/2 top-[-20px] z-[1] hidden h-[8px] w-[calc(100%+180px)] -translate-x-1/2 rounded-full bg-cyan-300/60 shadow-[0_0_28px_rgba(34,211,238,0.95)] sm:block" />
+              <div className="pointer-events-none absolute bottom-[-20px] left-1/2 z-[1] hidden h-[8px] w-[calc(100%+180px)] -translate-x-1/2 rounded-full bg-[#0052FF]/65 shadow-[0_0_28px_rgba(0,82,255,0.95)] sm:block" />
+              <div className="pointer-events-none absolute bottom-[8%] left-[-108px] top-[8%] z-[1] hidden w-[92px] flex-col justify-around sm:flex">
+                {["ORBIT", "MOON", "BASE", "STAR"].map((label) => (
+                  <div key={`space-left-${label}`} className="rounded-xl border border-cyan-300/45 bg-black/70 px-3 py-3 text-center text-[11px] font-black tracking-[0.18em] text-cyan-200 shadow-[0_0_22px_rgba(34,211,238,0.25)]">
+                    {label}
+                  </div>
+                ))}
+              </div>
+              <div className="pointer-events-none absolute bottom-[8%] right-[-108px] top-[8%] z-[1] hidden w-[92px] flex-col justify-around sm:flex">
+                {["NOVA", "CHAIN", "VOID", "BASE"].map((label) => (
+                  <div key={`space-right-${label}`} className="rounded-xl border border-[#0052FF]/45 bg-black/70 px-3 py-3 text-center text-[11px] font-black tracking-[0.18em] text-blue-200 shadow-[0_0_22px_rgba(0,82,255,0.25)]">
+                    {label}
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+
+          {arena === "temple" && (
+            <>
+              <div className="pointer-events-none absolute left-1/2 top-[-20px] z-[1] hidden h-[8px] w-[calc(100%+170px)] -translate-x-1/2 rounded-full bg-amber-300/60 shadow-[0_0_28px_rgba(251,191,36,0.95)] sm:block" />
+              <div className="pointer-events-none absolute bottom-[-20px] left-1/2 z-[1] hidden h-[8px] w-[calc(100%+170px)] -translate-x-1/2 rounded-full bg-amber-500/60 shadow-[0_0_28px_rgba(245,158,11,0.95)] sm:block" />
+              <div className="pointer-events-none absolute bottom-[8%] left-[-104px] top-[8%] z-[1] hidden w-[88px] flex-col justify-around sm:flex">
+                {["RUNE", "GOLD", "CHAIN", "BASE"].map((label) => (
+                  <div key={`temple-left-${label}`} className="rounded-xl border border-amber-300/45 bg-black/75 px-3 py-3 text-center text-[11px] font-black tracking-[0.18em] text-amber-200 shadow-[0_0_22px_rgba(251,191,36,0.25)]">
+                    {label}
+                  </div>
+                ))}
+              </div>
+              <div className="pointer-events-none absolute bottom-[8%] right-[-104px] top-[8%] z-[1] hidden w-[88px] flex-col justify-around sm:flex">
+                {["VAULT", "BLOCK", "ALTAR", "BASE"].map((label) => (
+                  <div key={`temple-right-${label}`} className="rounded-xl border border-yellow-500/45 bg-black/75 px-3 py-3 text-center text-[11px] font-black tracking-[0.18em] text-yellow-200 shadow-[0_0_22px_rgba(251,191,36,0.25)]">
+                    {label}
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+
           <canvas
             ref={canvasRef}
             width={400}
             height={700}
-            className="block w-full h-full rounded-none sm:rounded-3xl border border-white/15 touch-none"
+            className={`relative z-10 block w-full h-full rounded-none sm:rounded-3xl touch-none ${
+              arena === "base"
+                ? "border border-red-400/60 shadow-[0_0_28px_rgba(239,68,68,0.45)]"
+                : arena === "space"
+                ? "border border-cyan-300/60 shadow-[0_0_28px_rgba(34,211,238,0.42)]"
+                : arena === "temple"
+                ? "border border-amber-300/60 shadow-[0_0_28px_rgba(251,191,36,0.42)]"
+                : "border border-white/15"
+            }`}
           />
         </div>
       </div>
 
       {goalFlash && (
-        <div className="absolute inset-0 bg-[#0052FF]/25 pointer-events-none z-40" />
+        <div className={`absolute inset-0 ${activeArenaTheme.flashClass} pointer-events-none z-40`} />
       )}
 
       {countdown !== null && (
         <div className="absolute inset-0 flex flex-col items-center justify-center z-40 pointer-events-none">
-          <div className="text-[#0052FF] text-sm font-black tracking-[0.5em] mb-3">
-            BASE READY
+          <div className={`${activeArenaTheme.readyClass} text-sm font-black tracking-[0.5em] mb-3`}>
+            {activeArenaTheme.readyText}
           </div>
 
 <div
   key={countdown}
-  className={`font-black animate-[countPop_0.7s_ease-out] drop-shadow-[0_0_35px_rgba(0,82,255,0.95)] ${
+  className={`font-black animate-[countPop_0.7s_ease-out] ${activeArenaTheme.countdownGlowClass} ${
     countdown === "BATTLE!"
-      ? "text-[#0052FF] text-6xl tracking-[0.15em]"
-      : "text-white text-8xl"
+      ? `${activeArenaTheme.countdownClass} text-6xl tracking-[0.15em]`
+      : `${activeArenaTheme.countdownClass} text-8xl`
   }`}
 >
   {countdown}
 </div>
 
-          <div className="mt-4 text-white/35 text-[10px] tracking-[0.35em]">
-            ONCHAIN ARCADE MODE
+          <div className={`mt-4 ${arena === "classic" ? "text-white/35" : activeArenaTheme.countdownClass} text-[10px] tracking-[0.35em] opacity-60`}>
+            {activeArenaTheme.subText}
           </div>
         </div>
       )}
