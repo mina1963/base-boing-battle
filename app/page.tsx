@@ -94,6 +94,48 @@ const getArenaTheme = (arena: Arena): ArenaTheme => {
   };
 };
 
+const ARENA_OPTIONS: { key: Arena; label: string; title: string; subtitle: string; dot: string; selectedClass: string; previewClass: string }[] = [
+  {
+    key: "classic",
+    label: "CLASSIC",
+    title: "CLASSIC",
+    subtitle: "RETRO GRID",
+    dot: "bg-[#0052FF]",
+    selectedClass: "border-[#0052FF] text-white shadow-[0_0_28px_rgba(0,82,255,0.45)]",
+    previewClass: "from-[#020204] via-[#04112f] to-black",
+  },
+  {
+    key: "base",
+    label: "BASE ARENA",
+    title: "BASE",
+    subtitle: "NEON STADIUM",
+    dot: "bg-red-400",
+    selectedClass: "border-red-400 text-red-100 shadow-[0_0_30px_rgba(239,68,68,0.42)]",
+    previewClass: "from-[#020716] via-[#003bbd] to-[#140305]",
+  },
+  {
+    key: "space",
+    label: "SPACE",
+    title: "ORBIT",
+    subtitle: "SPACE STATION",
+    dot: "bg-cyan-300",
+    selectedClass: "border-cyan-300 text-cyan-100 shadow-[0_0_30px_rgba(34,211,238,0.42)]",
+    previewClass: "from-black via-[#061536] to-[#02040d]",
+  },
+  {
+    key: "temple",
+    label: "TEMPLE",
+    title: "CHAIN",
+    subtitle: "CRYPTO TEMPLE",
+    dot: "bg-amber-300",
+    selectedClass: "border-amber-300 text-amber-100 shadow-[0_0_30px_rgba(251,191,36,0.42)]",
+    previewClass: "from-[#050301] via-[#241403] to-[#140b02]",
+  },
+];
+
+const getArenaLabel = (arena: Arena) =>
+  ARENA_OPTIONS.find((item) => item.key === arena)?.label || "CLASSIC";
+
 export default function Home() {
 
   const socketRef = useRef<any>(null);
@@ -240,6 +282,14 @@ const [aiDifficulty, setAiDifficulty] =
 const [arena, setArena] = useState<Arena>("classic");
 
 const arenaRef = useRef<Arena>("classic");
+
+const [showArenaVote, setShowArenaVote] = useState(false);
+const [votedArena, setVotedArena] = useState<Arena | null>(null);
+const [arenaVotes, setArenaVotes] = useState<{ host: Arena | null; guest: Arena | null }>({
+  host: null,
+  guest: null,
+});
+const [selectedMatchArena, setSelectedMatchArena] = useState<Arena | null>(null);
 
 useEffect(() => {
   arenaRef.current = arena;
@@ -677,7 +727,40 @@ const socket = io(SOCKET_URL, {
   });
 
   socket.on("game-state", (state) => {
+    if (state?.arena && ["classic", "base", "space", "temple"].includes(state.arena)) {
+      arenaRef.current = state.arena;
+      setArena(state.arena);
+    }
+
     applySocketState(state);
+  });
+
+  socket.on("arena-vote-start", ({ votes }) => {
+    setShowArenaVote(true);
+    setMatchFound(true);
+    setSelectedMatchArena(null);
+    setVotedArena(null);
+    setArenaVotes({
+      host: votes?.host ?? null,
+      guest: votes?.guest ?? null,
+    });
+  });
+
+  socket.on("arena-vote-update", ({ votes }) => {
+    setArenaVotes({
+      host: votes?.host ?? null,
+      guest: votes?.guest ?? null,
+    });
+  });
+
+  socket.on("arena-selected", ({ arena }) => {
+    if (["classic", "base", "space", "temple"].includes(arena)) {
+      arenaRef.current = arena;
+      setArena(arena);
+      setSelectedMatchArena(arena);
+    }
+
+    setShowArenaVote(false);
   });
 
   socket.on("remote-line", (line) => {
@@ -722,6 +805,10 @@ const socket = io(SOCKET_URL, {
     setPlayAgainWaiting(false);
     setMatchmaking(false);
     setMatchFound(false);
+    setShowArenaVote(false);
+    setVotedArena(null);
+    setSelectedMatchArena(null);
+    setArenaVotes({ host: null, guest: null });
     setOpponentAddress(null);
     setOpponentUsername(null);
     setCountdown(null);
@@ -740,6 +827,9 @@ const socket = io(SOCKET_URL, {
   return () => {
     socket.off("match-found");
     socket.off("matchmaking-status");
+    socket.off("arena-vote-start");
+    socket.off("arena-vote-update");
+    socket.off("arena-selected");
     socket.off("opponent-left");
     socket.off("opponent-disconnected");
     socket.disconnect();
@@ -1981,32 +2071,37 @@ const playSound = (
                 SELECT ARENA
               </p>
 
-              <div className="mt-3 grid grid-cols-2 gap-3">
-                {([
-                  ["classic", "CLASSIC"],
-                  ["base", "BASE ARENA"],
-                  ["space", "SPACE"],
-                  ["temple", "TEMPLE"],
-                ] as const).map(([key, label]) => {
-                  const selected = arena === key;
+              <div className="mt-3 grid w-[330px] max-w-[92vw] grid-cols-2 gap-3">
+                {ARENA_OPTIONS.map((item) => {
+                  const selected = arena === item.key;
 
                   return (
                     <button
-                      key={key}
-                      onClick={() => setArena(key)}
-                      className={`h-[38px] px-4 rounded-full text-[10px] font-black tracking-[0.16em] transition ${
+                      key={item.key}
+                      onClick={() => setArena(item.key)}
+                      className={`group relative h-[88px] overflow-hidden rounded-2xl border bg-black/45 p-3 text-left transition ${
                         selected
-                          ? key === "base"
-                            ? "bg-white text-[#0052FF] shadow-[0_0_24px_rgba(255,255,255,0.32)]"
-                            : key === "space"
-                            ? "bg-cyan-400 text-black shadow-[0_0_24px_rgba(34,211,238,0.32)]"
-                            : key === "temple"
-                            ? "bg-amber-300 text-black shadow-[0_0_24px_rgba(251,191,36,0.32)]"
-                            : "bg-[#0052FF] text-white shadow-[0_0_22px_rgba(0,82,255,0.35)]"
-                          : "border border-white/20 text-white/60 bg-black/20"
+                          ? item.selectedClass
+                          : "border-white/10 text-white/55 hover:border-white/30"
                       }`}
                     >
-                      {label}
+                      <div className={`absolute inset-0 bg-gradient-to-br ${item.previewClass} opacity-70`} />
+                      <div className="absolute inset-x-3 top-3 h-[3px] rounded-full bg-white/20" />
+                      <div className={`absolute bottom-3 right-3 h-3 w-3 rounded-full ${item.dot} shadow-[0_0_16px_currentColor]`} />
+
+                      <div className="relative z-10">
+                        <div className="text-[13px] font-black tracking-[0.18em] text-white">
+                          {item.title}
+                        </div>
+                        <div className="mt-1 text-[8px] font-black tracking-[0.25em] text-white/45">
+                          {item.subtitle}
+                        </div>
+                        <div className="mt-4 flex gap-1">
+                          <span className={`h-1 w-8 rounded-full ${item.dot}`} />
+                          <span className="h-1 w-5 rounded-full bg-white/25" />
+                          <span className="h-1 w-3 rounded-full bg-white/15" />
+                        </div>
+                      </div>
                     </button>
                   );
                 })}
@@ -2593,7 +2688,17 @@ socketRef.current?.emit("create-room", {
       </div>
 
       {goalFlash && (
-        <div className={`absolute inset-0 ${activeArenaTheme.flashClass} pointer-events-none z-40`} />
+        <div className={`absolute inset-0 ${activeArenaTheme.flashClass} pointer-events-none z-40 flex items-center justify-center`}>
+          <div className={`${activeArenaTheme.countdownClass} ${activeArenaTheme.countdownGlowClass} animate-[countPop_0.7s_ease-out] text-4xl sm:text-6xl font-black tracking-[0.22em] opacity-90`}>
+            {arena === "base"
+              ? "NEON GOAL"
+              : arena === "space"
+              ? "ORBIT GOAL"
+              : arena === "temple"
+              ? "RUNE GOAL"
+              : "GOAL"}
+          </div>
+        </div>
       )}
 
       {countdown !== null && (
@@ -2699,6 +2804,83 @@ socketRef.current?.emit("create-room", {
                 style={{ animationDelay: "0.3s" }}
               />
             </div>
+          </div>
+        </div>
+      )}
+
+      {showArenaVote && (
+        <div className="absolute inset-0 z-[1100] flex items-center justify-center bg-black/92 px-5 text-center backdrop-blur-md">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,82,255,0.18),rgba(0,0,0,0)_55%)]" />
+
+          <div className="relative z-10 w-full max-w-[620px] rounded-[2rem] border border-white/10 bg-[#030712]/90 p-5 shadow-[0_0_60px_rgba(0,82,255,0.22)] sm:p-7">
+            <div className="text-[#0052FF] text-[10px] font-black tracking-[0.45em]">
+              ARENA VOTE
+            </div>
+
+            <h2 className="mt-3 text-3xl font-black tracking-[0.18em] text-white sm:text-4xl">
+              CHOOSE MAP
+            </h2>
+
+            <div className="mt-2 text-white/35 text-[10px] tracking-[0.28em]">
+              BOTH PLAYERS VOTE • DIFFERENT VOTES = RANDOM PICK
+            </div>
+
+            <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+              {ARENA_OPTIONS.map((item) => {
+                const selected = votedArena === item.key;
+                const hostVoted = arenaVotes.host === item.key;
+                const guestVoted = arenaVotes.guest === item.key;
+
+                return (
+                  <button
+                    key={`vote-${item.key}`}
+                    onClick={() => {
+                      if (!roomIdRef.current) return;
+                      setVotedArena(item.key);
+                      socketRef.current?.emit("vote-arena", {
+                        roomCode: roomIdRef.current,
+                        arena: item.key,
+                      });
+                    }}
+                    className={`relative min-h-[132px] overflow-hidden rounded-2xl border p-3 text-left transition ${
+                      selected ? item.selectedClass : "border-white/10 text-white/60 hover:border-white/30"
+                    }`}
+                  >
+                    <div className={`absolute inset-0 bg-gradient-to-br ${item.previewClass} opacity-75`} />
+                    <div className="absolute inset-x-3 top-3 h-[3px] rounded-full bg-white/20" />
+                    <div className={`absolute bottom-3 right-3 h-3 w-3 rounded-full ${item.dot}`} />
+
+                    <div className="relative z-10">
+                      <div className="text-[14px] font-black tracking-[0.16em] text-white">
+                        {item.title}
+                      </div>
+                      <div className="mt-1 text-[8px] font-black tracking-[0.22em] text-white/45">
+                        {item.subtitle}
+                      </div>
+
+                      <div className="mt-8 space-y-1 text-[8px] font-black tracking-[0.2em] text-white/55">
+                        <div className={hostVoted ? "text-white" : "text-white/25"}>
+                          HOST {hostVoted ? "✓" : "-"}
+                        </div>
+                        <div className={guestVoted ? "text-white" : "text-white/25"}>
+                          GUEST {guestVoted ? "✓" : "-"}
+                        </div>
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="mt-5 text-[10px] font-black tracking-[0.3em] text-white/35">
+              {votedArena ? `YOU VOTED ${getArenaLabel(votedArena)}` : "WAITING FOR YOUR VOTE"}
+            </div>
+
+            {selectedMatchArena && (
+              <div className="mt-3 text-[#0052FF] text-sm font-black tracking-[0.28em] animate-pulse">
+                SELECTED: {getArenaLabel(selectedMatchArena)}
+              </div>
+            )}
           </div>
         </div>
       )}

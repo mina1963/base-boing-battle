@@ -51,6 +51,15 @@ const cleanUsername = (username, fallback = "PLAYER") => {
   );
 };
 
+const ARENAS = ["classic", "base", "space", "temple"];
+const ARENA_VOTE_MS = 10000;
+
+const normalizeArena = (arena) =>
+  ARENAS.includes(arena) ? arena : null;
+
+const randomArena = () =>
+  ARENAS[Math.floor(Math.random() * ARENAS.length)];
+
 const createInitialState = () => ({
   ball: {
     x: 200,
@@ -63,6 +72,7 @@ const createInitialState = () => ({
   phase: "waiting",
   winner: null,
   roundStartAt: null,
+  arena: "classic",
 });
 
 const createRoomObject = ({
@@ -83,6 +93,12 @@ const createRoomObject = ({
   guestUsername: guestUsername ? cleanUsername(guestUsername, "PLAYER 2") : null,
   state: createInitialState(),
   lines: [],
+  arena: "classic",
+  arenaVotes: {
+    host: null,
+    guest: null,
+  },
+  arenaVoteTimer: null,
   hostReadyAgain: false,
   guestReadyAgain: false,
   lastTickAt: Date.now(),
@@ -103,6 +119,7 @@ const startCountdown = (room) => {
   room.state.phase = "countdown";
   room.state.roundStartAt = Date.now() + COUNTDOWN_DELAY_MS;
   room.state.winner = null;
+  room.state.arena = room.arena || "classic";
   room.lines = [];
   emitStateToRoom(room);
 };
@@ -205,20 +222,20 @@ const tickRoomPhysics = (room, dtScale = 1) => {
       room.state.roundStartAt &&
       Date.now() >= room.state.roundStartAt + BATTLE_HOLD_MS
     ) {
-room.state.phase = "playing";
-room.state.roundStartAt = null;
+      room.state.phase = "playing";
+      room.state.roundStartAt = null;
 
-if (
-  !room.state.ball.vx ||
-  !room.state.ball.vy ||
-  !Number.isFinite(room.state.ball.vx) ||
-  !Number.isFinite(room.state.ball.vy)
-) {
-  room.state.ball.vx = BALL_START_VX * (Math.random() > 0.5 ? 1 : -1);
-  room.state.ball.vy = BALL_START_VY;
-}
+      if (
+        !room.state.ball.vx ||
+        !room.state.ball.vy ||
+        !Number.isFinite(room.state.ball.vx) ||
+        !Number.isFinite(room.state.ball.vy)
+      ) {
+        room.state.ball.vx = BALL_START_VX * (Math.random() > 0.5 ? 1 : -1);
+        room.state.ball.vy = BALL_START_VY;
+      }
 
-emitStateToRoom(room);
+      emitStateToRoom(room);
     }
 
     return;
@@ -256,7 +273,7 @@ emitStateToRoom(room);
 
       const { dist, lineDx, lineDy } = pointLineDistance(ball, line);
 
-      if (dist < BALL_R + 18) {
+      if (dist < BALL_R + 14) {
         applyLineCollision(ball, line, lineDx, lineDy, dist);
         line.life = 0;
         hitLine = line;
@@ -340,6 +357,11 @@ const cleanupRoomForSocket = (socket) => {
     socketRooms.delete(room.guestSocketId);
   }
 
+  if (room.arenaVoteTimer) {
+    clearTimeout(room.arenaVoteTimer);
+    room.arenaVoteTimer = null;
+  }
+
   rooms.delete(roomCode);
 };
 
@@ -354,6 +376,91 @@ const makeRoomCode = () => {
   } while (rooms.has(code));
 
   return code;
+};
+
+const getArenaVotesPayload = (room) => ({
+  host: room.arenaVotes?.host || null,
+  guest: room.arenaVotes?.guest || null,
+});
+
+const finishArenaVote = (room) => {
+  if (!room || room.state.winner) return;
+
+  if (room.arenaVoteTimer) {
+    clearTimeout(room.arenaVoteTimer);
+    room.arenaVoteTimer = null;
+  }
+
+  const votes = [room.arenaVotes.host, room.arenaVotes.guest].filter(Boolean);
+
+  const selected =
+    votes.length > 0
+      ? votes[Math.floor(Math.random() * votes.length)]
+      : randomArena();
+
+  room.arena = selected;
+  room.state.arena = selected;
+
+  io.to(room.code).emit("arena-selected", {
+    arena: selected,
+    votes: getArenaVotesPayload(room),
+  });
+
+  startCountdown(room);
+
+  io.to(room.code).emit("room-matched", {
+    roomCode: room.code,
+    arena: selected,
+    state: withServerNow(room.state),
+  });
+};
+
+const startArenaVote = (room) => {
+  if (!room) return;
+
+  if (room.arenaVoteTimer) {
+    clearTimeout(room.arenaVoteTimer);
+  }
+
+  room.state.phase = "waiting";
+  room.state.roundStartAt = null;
+  room.state.winner = null;
+  room.state.arena = room.arena || "classic";
+  room.arenaVotes = { host: null, guest: null };
+  room.lines = [];
+
+  const endsAt = Date.now() + ARENA_VOTE_MS;
+
+  io.to(room.code).emit("arena-vote-start", {
+    roomCode: room.code,
+    endsAt,
+    votes: getArenaVotesPayload(room),
+  });
+
+  room.arenaVoteTimer = setTimeout(() => {
+    finishArenaVote(room);
+  }, ARENA_VOTE_MS);
+};
+
+const handleArenaVote = (room, socketId, arena) => {
+  const selectedArena = normalizeArena(arena);
+  if (!room || !selectedArena) return;
+
+  if (socketId === room.hostSocketId) {
+    room.arenaVotes.host = selectedArena;
+  } else if (socketId === room.guestSocketId) {
+    room.arenaVotes.guest = selectedArena;
+  } else {
+    return;
+  }
+
+  io.to(room.code).emit("arena-vote-update", {
+    votes: getArenaVotesPayload(room),
+  });
+
+  if (room.arenaVotes.host && room.arenaVotes.guest) {
+    finishArenaVote(room);
+  }
 };
 
 const createMatchedRoom = ({ host, guest }) => {
@@ -393,12 +500,7 @@ const createMatchedRoom = ({ host, guest }) => {
     opponentUsername: room.hostUsername,
   });
 
-  startCountdown(room);
-
-  io.to(roomCode).emit("room-matched", {
-    roomCode,
-    state: withServerNow(room.state),
-  });
+  startArenaVote(room);
 };
 
 io.on("connection", (socket) => {
@@ -467,12 +569,7 @@ io.on("connection", (socket) => {
       opponentUsername: room.hostUsername,
     });
 
-    startCountdown(room);
-
-    io.to(roomCode).emit("room-matched", {
-      roomCode,
-      state: withServerNow(room.state),
-    });
+    startArenaVote(room);
   });
 
   socket.on("find-match", ({ address, username }) => {
@@ -533,6 +630,13 @@ io.on("connection", (socket) => {
     });
   });
 
+  socket.on("vote-arena", ({ roomCode, arena }) => {
+    const room = rooms.get(roomCode);
+    if (!room) return;
+
+    handleArenaVote(room, socket.id, arena);
+  });
+
   socket.on("cancel-matchmaking", () => {
     if (waitingPlayer && waitingPlayer.socketId === socket.id) {
       waitingPlayer = null;
@@ -571,18 +675,19 @@ io.on("connection", (socket) => {
     if (!owner) return;
     if (room.state.phase !== "playing") return;
 
-const BOTTOM_LINE_LIMIT = GAME_H - 45;
+    const BOTTOM_LINE_LIMIT = GAME_H - 45;
 
-const safeLine = {
-  owner,
-  x1: Math.max(0, Math.min(GAME_W, Number(line.x1))),
-  y1: Math.max(0, Math.min(BOTTOM_LINE_LIMIT, Number(line.y1))),
-  x2: Math.max(0, Math.min(GAME_W, Number(line.x2))),
-  y2: Math.max(0, Math.min(BOTTOM_LINE_LIMIT, Number(line.y2))),
-  life: 45,
-};
+    const safeLine = {
+      owner,
+      x1: Math.max(0, Math.min(GAME_W, Number(line.x1))),
+      y1: Math.max(0, Math.min(BOTTOM_LINE_LIMIT, Number(line.y1))),
+      x2: Math.max(0, Math.min(GAME_W, Number(line.x2))),
+      y2: Math.max(0, Math.min(BOTTOM_LINE_LIMIT, Number(line.y2))),
+      life: 45,
+    };
 
     const ownerLines = room.lines.filter((l) => l.owner === owner);
+
     if (ownerLines.length >= 2) {
       const firstIndex = room.lines.findIndex((l) => l.owner === owner);
       if (firstIndex !== -1) room.lines.splice(firstIndex, 1);
@@ -615,7 +720,9 @@ const safeLine = {
       room.guestReadyAgain = false;
 
       room.state = createInitialState();
+      room.state.arena = room.arena || "classic";
       room.lines = [];
+
       startCountdown(room);
 
       io.to(roomCode).emit("play-again-status", {
