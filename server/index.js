@@ -715,21 +715,24 @@ io.on("connection", (socket) => {
       guestReadyAgain: room.guestReadyAgain,
     });
 
-    if (room.hostReadyAgain && room.guestReadyAgain) {
-      room.hostReadyAgain = false;
-      room.guestReadyAgain = false;
+if (room.hostReadyAgain && room.guestReadyAgain) {
+  room.hostReadyAgain = false;
+  room.guestReadyAgain = false;
 
-      room.state = createInitialState();
-      room.state.arena = room.arena || "classic";
-      room.lines = [];
+  room.state = createInitialState();
+  room.lines = [];
+  room.arenaVotes = {
+    host: null,
+    guest: null,
+  };
 
-      startCountdown(room);
+  io.to(roomCode).emit("play-again-status", {
+    hostReadyAgain: false,
+    guestReadyAgain: false,
+  });
 
-      io.to(roomCode).emit("play-again-status", {
-        hostReadyAgain: false,
-        guestReadyAgain: false,
-      });
-    }
+  startArenaVote(room);
+}
   });
 
   socket.on("disconnect", () => {
