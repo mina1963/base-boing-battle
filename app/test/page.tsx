@@ -27,25 +27,28 @@ export default function TestPage() {
       <p style={{ marginTop: 20 }}>Status: {text}</p>
       <p>Count: {count}</p>
 
-      <button
-        type="button"
-        onClick={run}
-        onTouchStart={run}
-        onPointerDown={run}
-        style={{
-          marginTop: 30,
-          width: 260,
-          height: 70,
-          background: "#0052FF",
-          color: "white",
-          fontSize: 18,
-          fontWeight: 900,
-          borderRadius: 16,
-          border: "none",
-        }}
-      >
-        TEST BUTTON
-      </button>
+<div
+  role="button"
+  tabIndex={0}
+  onClick={run}
+  onTouchStart={run}
+  onPointerDown={run}
+  style={{
+    marginTop: 30,
+    width: 260,
+    height: 70,
+    background: "#0052FF",
+    color: "white",
+    fontSize: 18,
+    fontWeight: 900,
+    borderRadius: 16,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+  }}
+>
+  TEST DIV BUTTON
+</div>
 
       <br />
 
