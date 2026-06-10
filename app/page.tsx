@@ -25,6 +25,7 @@ type Spark = {
 };
 
 type Arena = "classic" | "base" | "space" | "temple";
+type SocketRegion = "EU" | "US";
 
 type ArenaTheme = {
   readyText: string;
@@ -141,6 +142,8 @@ export default function Home() {
   const socketRef = useRef<any>(null);
   const { address, isConnected } = useAccount();
 const { openConnectModal } = useConnectModal();
+const [socketRegion, setSocketRegion] = useState<SocketRegion>("EU");
+const socketRegionRef = useRef<SocketRegion>("EU");
   const [showSplash, setShowSplash] = useState(true);
   const [screen, setScreen] = useState<"menu" | "game">("menu");
   const [winner, setWinner] = useState<string | null>(null);
@@ -249,6 +252,10 @@ useEffect(() => {
   rivalNameRef.current =
     gameModeRef.current === "online" ? rivalDisplayName || "RIVAL" : "AI";
 }, [playerDisplayName, rivalDisplayName]);
+
+useEffect(() => {
+  socketRegionRef.current = socketRegion;
+}, [socketRegion]);
 
 const getReadyUsername = () => {
   const finalName = cleanUsername(usernameInput);
@@ -599,11 +606,16 @@ useEffect(() => {
 
 useEffect(() => {
 const SOCKET_URL =
-  process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:4000";
+  socketRegion === "US"
+    ? process.env.NEXT_PUBLIC_SOCKET_URL_US
+    : process.env.NEXT_PUBLIC_SOCKET_URL_EU;
 
-const socket = io(SOCKET_URL, {
-  transports: ["websocket"],
-});
+const socket = io(
+  SOCKET_URL || process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:4000",
+  {
+    transports: ["websocket"],
+  }
+);
   socketRef.current = socket;
 
   const prepareOnlineGame = () => {
@@ -834,7 +846,7 @@ const socket = io(SOCKET_URL, {
     socket.off("opponent-disconnected");
     socket.disconnect();
   };
-}, []);
+}, [socketRegion]);
 
 
   useEffect(() => {
@@ -2203,9 +2215,47 @@ const playSound = (
         ONLINE 1V1
       </h2>
 
-      <p className="text-[#0052FF] text-xs font-black tracking-[0.35em] mb-8">
+      <p className="text-[#0052FF] text-xs font-black tracking-[0.35em] mb-6">
         BASE MULTIPLAYER
       </p>
+
+      <div className="mb-6 rounded-2xl border border-white/10 bg-black/30 p-3">
+        <p className="text-white/35 text-[10px] font-black tracking-[0.3em] mb-3">
+          REGION
+        </p>
+
+        <div className="grid grid-cols-2 gap-2">
+          {(["EU", "US"] as SocketRegion[]).map((region) => {
+            const selected = socketRegion === region;
+            const disabled = matchmaking || Boolean(roomCode) || screen === "game";
+
+            return (
+              <button
+                key={region}
+                type="button"
+                disabled={disabled}
+                onClick={() => {
+                  if (disabled) return;
+                  setSocketRegion(region);
+                  setOnlineStatus(null);
+                  setShowJoinRoom(false);
+                }}
+                className={`h-[42px] rounded-xl border text-[11px] font-black tracking-[0.22em] transition ${
+                  selected
+                    ? "border-[#0052FF] bg-[#0052FF] text-white shadow-[0_0_18px_rgba(0,82,255,0.35)]"
+                    : "border-white/10 bg-black/35 text-white/45 hover:border-[#0052FF]/50 hover:text-[#0052FF]"
+                } ${disabled ? "opacity-60" : ""}`}
+              >
+                {region === "EU" ? "EU" : "US"}
+              </button>
+            );
+          })}
+        </div>
+
+        <p className="mt-3 text-white/25 text-[9px] font-black tracking-[0.18em]">
+          {socketRegion === "EU" ? "FRANKFURT SERVER" : "OHIO SERVER"}
+        </p>
+      </div>
 
 <button
   onClick={() => {
@@ -2410,7 +2460,7 @@ socketRef.current?.emit("create-room", {
     </div>
 
     <p className="mt-2 text-white/30 text-[10px] tracking-[0.25em]">
-      SHARE THIS CODE WITH A FRIEND
+      SHARE THIS CODE WITH A FRIEND ON {socketRegion}
     </p>
 <button
   onClick={() => {
