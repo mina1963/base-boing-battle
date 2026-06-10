@@ -21,8 +21,32 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://baseboingbattle.online"),
   title: "Base Boing Battle",
-  description: "Base Onchain Arcade",
+  description: "Online 1v1 physics battle built on Base",
+
+  openGraph: {
+    title: "Base Boing Battle",
+    description: "Online 1v1 physics battle built on Base",
+    url: "https://baseboingbattle.online",
+    siteName: "Base Boing Battle",
+    images: [
+      {
+        url: "/og.png",
+        width: 1200,
+        height: 630,
+        alt: "Base Boing Battle",
+      },
+    ],
+    type: "website",
+  },
+
+  twitter: {
+    card: "summary_large_image",
+    title: "Base Boing Battle",
+    description: "Online 1v1 physics battle built on Base",
+    images: ["/og.png"],
+  },
 };
 
 export default function RootLayout({
@@ -36,9 +60,7 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <Providers>
-          {children}
-        </Providers>
+        <Providers>{children}</Providers>
       </body>
     </html>
   );
