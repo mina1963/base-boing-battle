@@ -2066,48 +2066,6 @@ const playSound = (
               DEFLECT • SURVIVE • DOMINATE
             </p>
 
-            <div className="mt-8">
-              <p className="text-white/30 text-[10px] font-black tracking-[0.32em]">
-                SELECT ARENA
-              </p>
-
-              <div className="mt-3 grid w-[330px] max-w-[92vw] grid-cols-2 gap-3">
-                {ARENA_OPTIONS.map((item) => {
-                  const selected = arena === item.key;
-
-                  return (
-                    <button
-                      key={item.key}
-                      onClick={() => setArena(item.key)}
-                      className={`group relative h-[88px] overflow-hidden rounded-2xl border bg-black/45 p-3 text-left transition ${
-                        selected
-                          ? item.selectedClass
-                          : "border-white/10 text-white/55 hover:border-white/30"
-                      }`}
-                    >
-                      <div className={`absolute inset-0 bg-gradient-to-br ${item.previewClass} opacity-70`} />
-                      <div className="absolute inset-x-3 top-3 h-[3px] rounded-full bg-white/20" />
-                      <div className={`absolute bottom-3 right-3 h-3 w-3 rounded-full ${item.dot} shadow-[0_0_16px_currentColor]`} />
-
-                      <div className="relative z-10">
-                        <div className="text-[13px] font-black tracking-[0.18em] text-white">
-                          {item.title}
-                        </div>
-                        <div className="mt-1 text-[8px] font-black tracking-[0.25em] text-white/45">
-                          {item.subtitle}
-                        </div>
-                        <div className="mt-4 flex gap-1">
-                          <span className={`h-1 w-8 rounded-full ${item.dot}`} />
-                          <span className="h-1 w-5 rounded-full bg-white/25" />
-                          <span className="h-1 w-3 rounded-full bg-white/15" />
-                        </div>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
 <button
   onClick={() => setShowDifficulty(true)}
   className="mt-12 w-[240px] h-[58px] rounded-full bg-[#0052FF] text-white font-black tracking-[0.2em] shadow-[0_0_30px_rgba(0,82,255,0.35)]"
@@ -2115,19 +2073,63 @@ const playSound = (
   PLAY VS AI
 </button>
 {showDifficulty && (
-  <div className="absolute inset-0 z-[90] bg-black/80 backdrop-blur-md flex items-center justify-center px-8">
-    <div className="w-full max-w-sm text-center bg-[#050814] border border-[#0052FF]/20 rounded-3xl p-8 shadow-[0_0_50px_rgba(0,82,255,0.15)]">
+  <div className="absolute inset-0 z-[90] bg-black/80 backdrop-blur-md flex items-center justify-center px-6">
+    <div className="w-full max-w-[430px] text-center bg-[#050814] border border-[#0052FF]/20 rounded-3xl p-6 shadow-[0_0_50px_rgba(0,82,255,0.15)]">
       <h2 className="text-white text-3xl font-black mb-2">
         SELECT AI
       </h2>
 
-      <p className="text-[#0052FF] text-xs font-black tracking-[0.35em] mb-8">
+      <p className="text-[#0052FF] text-xs font-black tracking-[0.35em] mb-5">
         DIFFICULTY
       </p>
+
+      <div className="mb-6">
+        <p className="text-white/30 text-[10px] font-black tracking-[0.32em]">
+          SELECT ARENA
+        </p>
+
+        <div className="mt-3 grid w-full grid-cols-2 gap-3">
+          {ARENA_OPTIONS.map((item) => {
+            const selected = arena === item.key;
+
+            return (
+              <button
+                key={item.key}
+                type="button"
+                onClick={() => setArena(item.key)}
+                className={`group relative h-[78px] overflow-hidden rounded-2xl border bg-black/45 p-3 text-left transition ${
+                  selected
+                    ? item.selectedClass
+                    : "border-white/10 text-white/55 hover:border-white/30"
+                }`}
+              >
+                <div className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${item.previewClass} opacity-70`} />
+                <div className="pointer-events-none absolute inset-x-3 top-3 h-[3px] rounded-full bg-white/20" />
+                <div className={`pointer-events-none absolute bottom-3 right-3 h-3 w-3 rounded-full ${item.dot} shadow-[0_0_16px_currentColor]`} />
+
+                <div className="pointer-events-none relative z-10">
+                  <div className="text-[12px] font-black tracking-[0.18em] text-white">
+                    {item.title}
+                  </div>
+                  <div className="mt-1 text-[7px] font-black tracking-[0.25em] text-white/45">
+                    {item.subtitle}
+                  </div>
+                  <div className="mt-3 flex gap-1">
+                    <span className={`h-1 w-8 rounded-full ${item.dot}`} />
+                    <span className="h-1 w-5 rounded-full bg-white/25" />
+                    <span className="h-1 w-3 rounded-full bg-white/15" />
+                  </div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
 
       {(["easy", "normal", "hard"] as const).map((level) => (
         <button
           key={level}
+          type="button"
           onClick={() => {
             setAiDifficulty(level);
             aiDifficultyRef.current = level;
@@ -2136,15 +2138,16 @@ const playSound = (
             setShowDifficulty(false);
             startGame();
           }}
-          className="mt-3 w-full h-[54px] rounded-full border border-[#0052FF]/50 text-[#0052FF] font-black tracking-[0.2em] hover:bg-[#0052FF] hover:text-white transition"
+          className="mt-3 w-full h-[52px] rounded-full border border-[#0052FF]/50 text-[#0052FF] font-black tracking-[0.2em] hover:bg-[#0052FF] hover:text-white transition"
         >
           {level.toUpperCase()}
         </button>
       ))}
 
       <button
+        type="button"
         onClick={() => setShowDifficulty(false)}
-        className="mt-8 text-white/35 text-xs font-black tracking-[0.25em]"
+        className="mt-6 text-white/35 text-xs font-black tracking-[0.25em]"
       >
         BACK
       </button>
