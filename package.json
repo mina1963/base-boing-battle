@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
 "scripts": {
-  "dev": "next dev -H 0.0.0.0 -p 3000",
+  "dev": "next dev",
   "dev:socket": "node server/index.js",
   "dev:all": "concurrently \"npm run dev\" \"npm run dev:socket\"",
   "build": "next build",

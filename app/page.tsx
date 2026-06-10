@@ -141,7 +141,7 @@ export default function Home() {
   const socketRef = useRef<any>(null);
   const { address, isConnected } = useAccount();
 const { openConnectModal } = useConnectModal();
-  const [showSplash, setShowSplash] = useState(false);
+  const [showSplash, setShowSplash] = useState(true);
   const [screen, setScreen] = useState<"menu" | "game">("menu");
   const [winner, setWinner] = useState<string | null>(null);
   const [gameStarted, setGameStarted] = useState(false);
@@ -572,14 +572,6 @@ const startCountdown = (startAtMs: number) => {
       gameStartedRef.current = false;
     }
   };
-
-useEffect(() => {
-  document.addEventListener("touchend", () => {
-    alert("DOCUMENT TOUCH");
-  });
-
-  return () => {};
-}, []);
 
 
 useEffect(() => {
@@ -1993,255 +1985,14 @@ const playSound = (
     setScreen("menu");
   };
 
-
-  const lastNativeTapRef = useRef({ key: "", time: 0 });
-
-  const runBaseButtonAction = (action: string, value?: string | null) => {
-    if (action === "arena" && value) {
-      setArena(value as Arena);
-      return;
-    }
-
-    if (action === "play-ai") {
-      setShowDifficulty(true);
-      return;
-    }
-
-    if (action === "difficulty" && value) {
-      const level = value as "easy" | "normal" | "hard";
-      setAiDifficulty(level);
-      aiDifficultyRef.current = level;
-      setGameMode("ai");
-      gameModeRef.current = "ai";
-      setShowDifficulty(false);
-      startGame();
-      return;
-    }
-
-    if (action === "difficulty-back") {
-      setShowDifficulty(false);
-      return;
-    }
-
-    if (action === "online-open") {
-      setShowOnlineSoon(true);
-      return;
-    }
-
-    if (action === "howto-open") {
-      setShowHowToPlay(true);
-      return;
-    }
-
-    if (action === "howto-close") {
-      setShowHowToPlay(false);
-      return;
-    }
-
-    if (action === "connect-wallet") {
-      if (!isConnected) openConnectModal?.();
-      return;
-    }
-
-    if (action === "username-save") {
-      if (!address) return;
-      getReadyUsername();
-      return;
-    }
-
-    if (action === "find-match") {
-      if (!isConnected) {
-        openConnectModal?.();
-        return;
-      }
-
-      const readyUsername = getReadyUsername();
-      if (!readyUsername || matchmaking) return;
-
-      setMatchmaking(true);
-      setShowJoinRoom(false);
-      setRoomCode(null);
-      setOnlineStatus("SEARCHING OPPONENT...");
-
-      socketRef.current?.emit("find-match", {
-        address,
-        username: readyUsername,
-      });
-      return;
-    }
-
-    if (action === "cancel-match") {
-      setMatchmaking(false);
-      setOnlineStatus(null);
-      socketRef.current?.emit("cancel-matchmaking");
-      return;
-    }
-
-    if (action === "create-room") {
-      if (!isConnected) {
-        openConnectModal?.();
-        return;
-      }
-
-      const readyUsername = getReadyUsername();
-      if (!readyUsername) return;
-
-      if (matchmaking) {
-        setMatchmaking(false);
-        socketRef.current?.emit("cancel-matchmaking");
-      }
-
-      const code = Math.random().toString(36).substring(2, 6).toUpperCase();
-
-      setGameMode("online");
-      gameModeRef.current = "online";
-      setRoomCode(code);
-      setShowJoinRoom(false);
-      setOnlineStatus("WAITING FOR PLAYER...");
-
-      socketRef.current?.emit("create-room", {
-        roomCode: code,
-        address,
-        username: readyUsername,
-      });
-      return;
-    }
-
-    if (action === "join-room-open") {
-      if (!isConnected) {
-        openConnectModal?.();
-        return;
-      }
-
-      const readyUsername = getReadyUsername();
-      if (!readyUsername) return;
-
-      if (matchmaking) {
-        setMatchmaking(false);
-        socketRef.current?.emit("cancel-matchmaking");
-      }
-
-      setShowJoinRoom(true);
-      setRoomCode(null);
-      setOnlineStatus(null);
-      return;
-    }
-
-    if (action === "copy-code") {
-      if (!roomCode) return;
-      navigator.clipboard?.writeText(roomCode);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-      return;
-    }
-
-    if (action === "join-room-submit") {
-      if (!joinCode || !address) return;
-
-      const readyUsername = getReadyUsername();
-      if (!readyUsername) return;
-
-      const cleanCode = joinCode.toUpperCase();
-
-      setGameMode("online");
-      gameModeRef.current = "online";
-      setIsHost(false);
-      isHostRef.current = false;
-      roomIdRef.current = cleanCode;
-      setOnlineStatus("OPPONENT FOUND");
-
-      socketRef.current?.emit("join-room", {
-        roomCode: cleanCode,
-        address,
-        username: readyUsername,
-      });
-      return;
-    }
-
-    if (action === "online-back") {
-      if (matchmaking) {
-        setMatchmaking(false);
-        setMatchFound(false);
-        setOpponentAddress(null);
-        setOpponentUsername(null);
-        socketRef.current?.emit("cancel-matchmaking");
-      }
-
-      setShowOnlineSoon(false);
-      setRoomCode(null);
-      setShowJoinRoom(false);
-      setOnlineStatus(null);
-      setJoinCode("");
-      setActiveRoomId(null);
-    }
-  };
-
-  useEffect(() => {
-    const handleNativeTap = (event: Event) => {
-      const target = event.target as HTMLElement | null;
-      if (!target?.closest) return;
-
-      const element = target.closest("[data-bb-action]") as HTMLElement | null;
-      if (!element) return;
-
-      const action = element.dataset.bbAction;
-      if (!action) return;
-
-      const value = element.dataset.bbValue || null;
-      const key = `${action}:${value || ""}`;
-      const now = Date.now();
-
-      if (
-        lastNativeTapRef.current.key === key &&
-        now - lastNativeTapRef.current.time < 350
-      ) {
-        event.preventDefault();
-        event.stopPropagation();
-        return;
-      }
-
-      lastNativeTapRef.current = { key, time: now };
-      event.preventDefault();
-      event.stopPropagation();
-      runBaseButtonAction(action, value);
-    };
-
-    document.addEventListener("touchend", handleNativeTap, {
-      capture: true,
-      passive: false,
-    });
-    document.addEventListener("pointerup", handleNativeTap, true);
-    document.addEventListener("click", handleNativeTap, true);
-
-    return () => {
-      document.removeEventListener("touchend", handleNativeTap, true);
-      document.removeEventListener("pointerup", handleNativeTap, true);
-      document.removeEventListener("click", handleNativeTap, true);
-    };
-  }, [
-    address,
-    isConnected,
-    joinCode,
-    matchmaking,
-    openConnectModal,
-    roomCode,
-    usernameInput,
-  ]);
-
   const activeArenaTheme = getArenaTheme(arena);
 
   return (
-   <main
-  className={`relative w-screen min-h-screen bg-black ${
-    screen === "game"
-      ? "fixed inset-0 overflow-hidden"
-      : "overflow-y-auto"
-  } ${screenShake ? "goal-shake" : ""}`}
-  style={{
-    touchAction: screen === "game" ? "none" : "auto",
-    WebkitOverflowScrolling: "touch",
-  }}
-
+    <main
+      className={`fixed inset-0 w-screen h-[100dvh] bg-black flex items-center justify-center overflow-hidden overscroll-none ${
+        screenShake ? "goal-shake" : ""
+      }`}
+      style={{ touchAction: "none" }}
     >
       {showSplash && (
         <div className="absolute inset-0 z-[999] bg-black flex items-center justify-center">
@@ -2254,16 +2005,16 @@ const playSound = (
       )}
 
       {!showSplash && screen === "menu" && (
-        <div className="absolute inset-0 z-50 flex items-start justify-center overflow-y-auto pointer-events-auto px-4 py-8">
+        <div className="absolute inset-0 z-50 flex items-center justify-center overflow-hidden">
           <img
             src="/splash.png"
             alt=""
-            className="absolute inset-0 w-full h-full object-cover opacity-20 blur-sm pointer-events-none"
+            className="absolute inset-0 w-full h-full object-cover opacity-20 blur-sm"
           />
 
-          <div className="absolute inset-0 bg-black/75 pointer-events-none" />
+          <div className="absolute inset-0 bg-black/75" />
     
-<div className="absolute inset-0 opacity-[0.08] pointer-events-none">
+<div className="absolute inset-0 opacity-[0.08]">
   <div
     className="w-full h-full"
     style={{
@@ -2277,7 +2028,7 @@ const playSound = (
 </div>
 
 
-          <div className="relative z-10 flex w-full max-w-[430px] flex-col items-center text-center pointer-events-auto pb-10">
+          <div className="relative z-10 flex flex-col items-center text-center">
 
 <div className="mb-4 relative">
   <div className="w-28 h-28 rounded-full border-2 border-[#0052FF]/60 animate-pulse" />
@@ -2320,16 +2071,13 @@ const playSound = (
                 SELECT ARENA
               </p>
 
-              <div className="mt-3 grid w-[330px] max-w-[92vw] grid-cols-2 gap-3 pointer-events-auto">
+              <div className="mt-3 grid w-[330px] max-w-[92vw] grid-cols-2 gap-3">
                 {ARENA_OPTIONS.map((item) => {
                   const selected = arena === item.key;
 
                   return (
                     <button
                       key={item.key}
-                      type="button"
-                      data-bb-action="arena"
-                      data-bb-value={item.key}
                       onClick={() => setArena(item.key)}
                       className={`group relative h-[88px] overflow-hidden rounded-2xl border bg-black/45 p-3 text-left transition ${
                         selected
@@ -2337,7 +2085,7 @@ const playSound = (
                           : "border-white/10 text-white/55 hover:border-white/30"
                       }`}
                     >
-                      <div className={`absolute inset-0 bg-gradient-to-br ${item.previewClass} opacity-70 pointer-events-none`} />
+                      <div className={`absolute inset-0 bg-gradient-to-br ${item.previewClass} opacity-70`} />
                       <div className="absolute inset-x-3 top-3 h-[3px] rounded-full bg-white/20" />
                       <div className={`absolute bottom-3 right-3 h-3 w-3 rounded-full ${item.dot} shadow-[0_0_16px_currentColor]`} />
 
@@ -2361,23 +2109,13 @@ const playSound = (
             </div>
 
 <button
-  type="button"
-  onPointerDown={(e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setShowDifficulty(true);
-  }}
-  onTouchStart={(e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setShowDifficulty(true);
-  }}
+  onClick={() => setShowDifficulty(true)}
   className="mt-12 w-[240px] h-[58px] rounded-full bg-[#0052FF] text-white font-black tracking-[0.2em] shadow-[0_0_30px_rgba(0,82,255,0.35)]"
 >
   PLAY VS AI
 </button>
 {showDifficulty && (
-  <div className="absolute inset-0 z-[90] bg-black/80 backdrop-blur-md flex items-center justify-center px-8 pointer-events-auto">
+  <div className="absolute inset-0 z-[90] bg-black/80 backdrop-blur-md flex items-center justify-center px-8">
     <div className="w-full max-w-sm text-center bg-[#050814] border border-[#0052FF]/20 rounded-3xl p-8 shadow-[0_0_50px_rgba(0,82,255,0.15)]">
       <h2 className="text-white text-3xl font-black mb-2">
         SELECT AI
@@ -2390,9 +2128,6 @@ const playSound = (
       {(["easy", "normal", "hard"] as const).map((level) => (
         <button
           key={level}
-          type="button"
-          data-bb-action="difficulty"
-          data-bb-value={level}
           onClick={() => {
             setAiDifficulty(level);
             aiDifficultyRef.current = level;
@@ -2408,8 +2143,6 @@ const playSound = (
       ))}
 
       <button
-        type="button"
-        data-bb-action="difficulty-back"
         onClick={() => setShowDifficulty(false)}
         className="mt-8 text-white/35 text-xs font-black tracking-[0.25em]"
       >
@@ -2420,8 +2153,6 @@ const playSound = (
 )}
 
             <button
-              type="button"
-              data-bb-action="online-open"
               onClick={() => setShowOnlineSoon(true)}
               className="mt-4 w-[240px] h-[58px] rounded-full border border-[#0052FF]/50 text-[#0052FF] font-black tracking-[0.2em] hover:bg-[#0052FF]/10 transition"
             >
@@ -2429,8 +2160,6 @@ const playSound = (
             </button>
 
             <button
-              type="button"
-              data-bb-action="howto-open"
               onClick={() => setShowHowToPlay(true)}
               className="mt-4 w-[240px] h-[58px] rounded-full border border-white/15 text-white/70 font-black tracking-[0.2em] hover:bg-white/10 transition"
             >
@@ -2441,7 +2170,7 @@ const playSound = (
       )}
 
       {showHowToPlay && (
-        <div className="absolute inset-0 z-[80] bg-black/85 backdrop-blur-md flex items-center justify-center px-8 pointer-events-auto">
+        <div className="absolute inset-0 z-[80] bg-black/85 backdrop-blur-md flex items-center justify-center px-8">
           <div className="max-w-sm text-center bg-[#050814] border border-[#0052FF]/20 rounded-3xl p-8 shadow-[0_0_50px_rgba(0,82,255,0.15)]">
             <h2 className="text-white text-3xl font-black mb-6">
               HOW TO PLAY
@@ -2455,8 +2184,6 @@ const playSound = (
             </div>
 
             <button
-              type="button"
-              data-bb-action="howto-close"
               onClick={() => setShowHowToPlay(false)}
               className="mt-8 px-7 py-3 rounded-full bg-[#0052FF] text-white font-black tracking-[0.2em]"
             >
@@ -2467,7 +2194,7 @@ const playSound = (
       )}
 
 {showOnlineSoon && (
-  <div className="absolute inset-0 z-[80] bg-black/85 backdrop-blur-md flex items-center justify-center px-8 pointer-events-auto">
+  <div className="absolute inset-0 z-[80] bg-black/85 backdrop-blur-md flex items-center justify-center px-8">
     <div className="w-full max-w-sm text-center bg-[#050814] border border-[#0052FF]/20 rounded-3xl p-8 shadow-[0_0_50px_rgba(0,82,255,0.15)]">
       <h2 className="text-white text-3xl font-black mb-2">
         ONLINE 1V1
@@ -2478,8 +2205,6 @@ const playSound = (
       </p>
 
 <button
-  type="button"
-  data-bb-action="connect-wallet"
   onClick={() => {
     if (!isConnected) {
       openConnectModal?.();
@@ -2516,8 +2241,6 @@ const playSound = (
       />
 
       <button
-        type="button"
-        data-bb-action="username-save"
         onClick={() => {
           if (!address) return;
 
@@ -2545,8 +2268,6 @@ const playSound = (
 )}
 
 <button
-  type="button"
-  data-bb-action="find-match"
   onClick={() => {
     if (!isConnected) {
       openConnectModal?.();
@@ -2578,8 +2299,6 @@ const playSound = (
 
 {matchmaking && (
   <button
-    type="button"
-    data-bb-action="cancel-match"
     onClick={() => {
       setMatchmaking(false);
       setOnlineStatus(null);
@@ -2613,8 +2332,6 @@ const playSound = (
 
 
 <button
-  type="button"
-  data-bb-action="create-room"
   onClick={async () => {
     if (!isConnected) {
       openConnectModal?.();
@@ -2654,8 +2371,6 @@ socketRef.current?.emit("create-room", {
 </button>
 
 <button
-  type="button"
-  data-bb-action="join-room-open"
   onClick={() => {
     if (!isConnected) {
       openConnectModal?.();
@@ -2695,8 +2410,6 @@ socketRef.current?.emit("create-room", {
       SHARE THIS CODE WITH A FRIEND
     </p>
 <button
-  type="button"
-  data-bb-action="copy-code"
   onClick={() => {
     if (roomCode) {
       navigator.clipboard.writeText(roomCode);
@@ -2765,8 +2478,6 @@ socketRef.current?.emit("create-room", {
 />
 
 <button
-  type="button"
-  data-bb-action="join-room-submit"
   onClick={async () => {
     if (!joinCode || !address) return;
 
@@ -2826,8 +2537,6 @@ socketRef.current?.emit("create-room", {
 )}
 
 <button
-  type="button"
-  data-bb-action="online-back"
   onClick={() => {
     if (matchmaking) {
       setMatchmaking(false);
