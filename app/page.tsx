@@ -1,9 +1,37 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useAccount } from "wagmi";
+import { useAccount, usePublicClient, useWalletClient } from "wagmi";
 import { useConnectModal } from "@rainbow-me/rainbowkit";
 import { io } from "socket.io-client";
+
+
+const ENERGY_CONTRACT_ADDRESS =
+  "0x55894E2e9B29dad1b526C7F7c5d2d5E8e1B9D7dB" as const;
+
+const ENERGY_ABI = [
+  {
+    inputs: [],
+    name: "activateEnergy",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [{ internalType: "address", name: "player", type: "address" }],
+    name: "isEnergyActive",
+    outputs: [{ internalType: "bool", name: "", type: "bool" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [{ internalType: "address", name: "player", type: "address" }],
+    name: "nextActivation",
+    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+    stateMutability: "view",
+    type: "function",
+  },
+] as const;
 
 
 type Line = {
@@ -142,6 +170,12 @@ export default function Home() {
   const socketRef = useRef<any>(null);
   const { address, isConnected } = useAccount();
 const { openConnectModal } = useConnectModal();
+const publicClient = usePublicClient();
+const { data: walletClient } = useWalletClient();
+
+const [baseEnergyActive, setBaseEnergyActive] = useState(false);
+const [baseEnergyLoading, setBaseEnergyLoading] = useState(false);
+const [baseEnergyStatus, setBaseEnergyStatus] = useState<string | null>(null);
 const [socketRegion, setSocketRegion] = useState<SocketRegion>("EU");
 const socketRegionRef = useRef<SocketRegion>("EU");
   const [showSplash, setShowSplash] = useState(true);
@@ -217,6 +251,90 @@ const [opponentUsername, setOpponentUsername] =
 const [username, setUsername] = useState("");
 const [usernameInput, setUsernameInput] = useState("");
 const [usernameWarning, setUsernameWarning] = useState<string | null>(null);
+
+const formatEnergyTimeLeft = (seconds: number) => {
+  const safeSeconds = Math.max(0, seconds);
+  const hours = Math.floor(safeSeconds / 3600);
+  const minutes = Math.floor((safeSeconds % 3600) / 60);
+
+  if (hours <= 0) return `${minutes}M LEFT`;
+  return `${hours}H ${minutes}M LEFT`;
+};
+
+const checkBaseEnergy = async () => {
+  if (!address || !publicClient) {
+    setBaseEnergyActive(false);
+    setBaseEnergyStatus("CONNECT WALLET TO ACTIVATE ENERGY");
+    return;
+  }
+
+  try {
+    const active = await publicClient.readContract({
+      address: ENERGY_CONTRACT_ADDRESS,
+      abi: ENERGY_ABI,
+      functionName: "isEnergyActive",
+      args: [address],
+    });
+
+    setBaseEnergyActive(Boolean(active));
+
+    if (active) {
+      const left = await publicClient.readContract({
+        address: ENERGY_CONTRACT_ADDRESS,
+        abi: ENERGY_ABI,
+        functionName: "nextActivation",
+        args: [address],
+      });
+
+      setBaseEnergyStatus(
+        `ENERGY ACTIVE • ${formatEnergyTimeLeft(Number(left))}`
+      );
+    } else {
+      setBaseEnergyStatus("ACTIVATE BASE ENERGY TO PLAY");
+    }
+  } catch (err) {
+    console.error("ENERGY CHECK FAILED", err);
+    setBaseEnergyActive(false);
+    setBaseEnergyStatus("ENERGY CHECK FAILED");
+  }
+};
+
+const handleActivateBaseEnergy = async () => {
+  if (!isConnected || !address) {
+    openConnectModal?.();
+    return;
+  }
+
+  if (!walletClient || !publicClient) {
+    setBaseEnergyStatus("WALLET NOT READY");
+    return;
+  }
+
+  try {
+    setBaseEnergyLoading(true);
+    setBaseEnergyStatus("CONFIRM TX IN WALLET");
+
+    const hash = await walletClient.writeContract({
+      address: ENERGY_CONTRACT_ADDRESS,
+      abi: ENERGY_ABI,
+      functionName: "activateEnergy",
+      account: address,
+    });
+
+    setBaseEnergyStatus("ACTIVATING ENERGY...");
+
+    await publicClient.waitForTransactionReceipt({ hash });
+
+    setBaseEnergyActive(true);
+    setBaseEnergyStatus("ENERGY ACTIVE • GAME UNLOCKED");
+    navigator.vibrate?.(40);
+  } catch (err) {
+    console.error("ENERGY TX FAILED", err);
+    setBaseEnergyStatus("TX FAILED OR CANCELLED");
+  } finally {
+    setBaseEnergyLoading(false);
+  }
+};
 
 const cleanUsername = (value: string) =>
   value
@@ -603,6 +721,16 @@ useEffect(() => {
     setUsernameWarning(null);
   }
 }, [address]);
+
+useEffect(() => {
+  checkBaseEnergy();
+
+  const timer = setInterval(() => {
+    checkBaseEnergy();
+  }, 60_000);
+
+  return () => clearInterval(timer);
+}, [address, publicClient]);
 
 useEffect(() => {
 const SOCKET_URL =
@@ -2079,10 +2207,22 @@ const playSound = (
             </p>
 
 <button
-  onClick={() => setShowDifficulty(true)}
-  className="mt-12 w-[240px] h-[58px] rounded-full bg-[#0052FF] text-white font-black tracking-[0.2em] shadow-[0_0_30px_rgba(0,82,255,0.35)]"
+  onClick={() => {
+    if (!baseEnergyActive) {
+      setBaseEnergyStatus("ACTIVATE BASE ENERGY FIRST");
+      navigator.vibrate?.(35);
+      return;
+    }
+
+    setShowDifficulty(true);
+  }}
+  className={`mt-12 w-[240px] h-[58px] rounded-full font-black tracking-[0.2em] transition ${
+    baseEnergyActive
+      ? "bg-[#0052FF] text-white shadow-[0_0_30px_rgba(0,82,255,0.35)]"
+      : "bg-white/5 border border-white/10 text-white/35"
+  }`}
 >
-  PLAY VS AI
+  PLAY VS AI {!baseEnergyActive ? "🔒" : ""}
 </button>
 {showDifficulty && (
   <div className="absolute inset-0 z-[90] bg-black/80 backdrop-blur-md flex items-center justify-center px-6">
@@ -2168,10 +2308,22 @@ const playSound = (
 )}
 
             <button
-              onClick={() => setShowOnlineSoon(true)}
-              className="mt-4 w-[240px] h-[58px] rounded-full border border-[#0052FF]/50 text-[#0052FF] font-black tracking-[0.2em] hover:bg-[#0052FF]/10 transition"
+              onClick={() => {
+                if (!baseEnergyActive) {
+                  setBaseEnergyStatus("ACTIVATE BASE ENERGY FIRST");
+                  navigator.vibrate?.(35);
+                  return;
+                }
+
+                setShowOnlineSoon(true);
+              }}
+              className={`mt-4 w-[240px] h-[58px] rounded-full border font-black tracking-[0.2em] transition ${
+                baseEnergyActive
+                  ? "border-[#0052FF]/50 text-[#0052FF] hover:bg-[#0052FF]/10"
+                  : "border-white/10 text-white/35"
+              }`}
             >
-              ONLINE 1V1
+              ONLINE 1V1 {!baseEnergyActive ? "🔒" : ""}
             </button>
 
             <button
@@ -2180,6 +2332,28 @@ const playSound = (
             >
               HOW TO PLAY
             </button>
+
+            <button
+              onClick={handleActivateBaseEnergy}
+              disabled={baseEnergyLoading || baseEnergyActive}
+              className={`mt-4 w-[240px] h-[58px] rounded-full border font-black tracking-[0.13em] transition ${
+                baseEnergyActive
+                  ? "border-emerald-400/40 text-emerald-300 bg-emerald-400/10"
+                  : "border-[#0052FF]/60 text-white bg-[#0052FF]/15 hover:bg-[#0052FF]/25"
+              }`}
+            >
+              {baseEnergyLoading
+                ? "CONFIRMING..."
+                : baseEnergyActive
+                ? "ENERGY ACTIVE ✅"
+                : "⚡ ACTIVATE ENERGY"}
+            </button>
+
+            {baseEnergyStatus && (
+              <p className="mt-3 max-w-[280px] text-center text-[10px] font-black tracking-[0.22em] text-white/40">
+                {baseEnergyStatus}
+              </p>
+            )}
           </div>
         </div>
       )}
