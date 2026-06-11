@@ -22,8 +22,13 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://baseboingbattle.online"),
+
   title: "Base Boing Battle",
   description: "Online 1v1 physics battle built on Base",
+
+  other: {
+    "base:app_id": "6a2ad1880cfd412b2ab2bac7",
+  },
 
   openGraph: {
     title: "Base Boing Battle",
