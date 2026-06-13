@@ -2188,10 +2188,6 @@ const playSound = (
       e.stopPropagation();
       runMobileTap(handler);
     },
-    onPointerDown: (e: any) => {
-      e.stopPropagation();
-      runMobileTap(handler);
-    },
     onMouseDown: (e: any) => {
       e.stopPropagation();
       runMobileTap(handler);
@@ -2202,23 +2198,17 @@ const playSound = (
     },
   });
 
-
-  const mobileLink = (href: string, handler: () => void) => ({
+  // iOS/Base App fallback:
+  // Do NOT preventDefault on real links. Older iOS WebViews can show a tap
+  // animation but drop React onClick state updates. Native href navigation to
+  // ?action=... is the reliable path.
+  const mobileLink = (href: string, _handler?: () => void) => ({
     href,
     onTouchStart: (e: any) => {
       e.stopPropagation();
-      runMobileTap(handler);
-    },
-    onPointerDown: (e: any) => {
-      e.stopPropagation();
-      runMobileTap(handler);
     },
     onClick: (e: any) => {
-      // Do NOT preventDefault here.
-      // iOS/Base App WebView sometimes drops React click/touch handlers,
-      // so the real href query action must remain as a native fallback.
       e.stopPropagation();
-      runMobileTap(handler);
     },
   });
 
@@ -2333,16 +2323,18 @@ const playSound = (
 
   return (
     <main
-      className={`fixed inset-0 w-screen h-[100dvh] bg-black text-white select-none ${
-        screen === "game" ? "overflow-hidden overscroll-none" : "overflow-y-auto overscroll-y-contain"
-      } ${screenShake ? "goal-shake" : ""}`}
+      className={`${
+        screen === "game"
+          ? "fixed inset-0 h-[100dvh] overflow-hidden overscroll-none"
+          : "relative min-h-[100dvh] overflow-y-auto overscroll-y-contain"
+      } w-screen bg-black text-white select-none ${screenShake ? "goal-shake" : ""}`}
       style={{
         touchAction: screen === "game" ? "none" : "auto",
         WebkitTapHighlightColor: "transparent",
         WebkitOverflowScrolling: "touch",
         paddingTop: "env(safe-area-inset-top)",
         paddingBottom: "env(safe-area-inset-bottom)",
-      } as any}
+      }}
     >
       {showSplash && (
         <div className="absolute inset-0 z-[999] bg-black flex items-center justify-center">
@@ -2355,13 +2347,13 @@ const playSound = (
       )}
 
       {!showSplash && screen === "menu" && (
-        <section className="relative z-10 min-h-[100dvh] w-full flex flex-col px-4 py-4 pb-10">
+        <section className="relative z-10 min-h-[100dvh] w-full flex flex-col px-4 pt-4 pb-28" style={{ touchAction: "auto" }}>
           <img
             src="/splash.png"
             alt=""
-            className="absolute inset-0 h-full w-full object-cover opacity-20 blur-sm"
+            className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-20 blur-sm"
           />
-          <div className="absolute inset-0 bg-black/80" />
+          <div className="pointer-events-none absolute inset-0 bg-black/80" />
 
           <div className="relative z-10 flex items-center justify-between">
             <div>
@@ -2473,7 +2465,7 @@ const playSound = (
               <a
                 {...mobileLink("/mobile?action=energy", handleActivateBaseEnergy)}
                 aria-disabled={baseEnergyLoading}
-                className="h-14 w-full rounded-[24px] bg-white text-black text-sm font-black tracking-[0.22em] active:scale-95 disabled:opacity-50"
+                className="flex h-14 w-full items-center justify-center rounded-[24px] bg-white text-black text-sm font-black tracking-[0.22em] active:scale-95 disabled:opacity-50"
               >
                 {baseEnergyLoading ? "CONFIRMING..." : "ACTIVATE ENERGY"}
               </a>
