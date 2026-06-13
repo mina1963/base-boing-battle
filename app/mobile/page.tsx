@@ -178,7 +178,7 @@ const [baseEnergyLoading, setBaseEnergyLoading] = useState(false);
 const [baseEnergyStatus, setBaseEnergyStatus] = useState<string | null>(null);
 const [socketRegion, setSocketRegion] = useState<SocketRegion>("EU");
 const socketRegionRef = useRef<SocketRegion>("EU");
-  const [showSplash, setShowSplash] = useState(true);
+  const [showSplash, setShowSplash] = useState(false);
   const [screen, setScreen] = useState<"menu" | "game">("menu");
   const [winner, setWinner] = useState<string | null>(null);
   const [gameStarted, setGameStarted] = useState(false);
@@ -977,12 +977,9 @@ const socket = io(
 }, [socketRegion]);
 
 
+  // Mobile/Base App: skip splash overlay to avoid getting stuck on older WebViews.
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setShowSplash(false);
-    }, 5000);
-
-    return () => clearTimeout(timer);
+    setShowSplash(false);
   }, []);
 
   useEffect(() => {
