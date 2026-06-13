@@ -2174,6 +2174,33 @@ const playSound = (
     socketRef.current?.emit("cancel-matchmaking");
   };
 
+  const tapGuardRef = useRef(0);
+
+  const runMobileTap = (handler: () => void) => {
+    const now = Date.now();
+    if (now - tapGuardRef.current < 280) return;
+    tapGuardRef.current = now;
+    handler();
+  };
+
+  const mobileTap = (handler: () => void) => ({
+    onTouchEnd: (e: any) => {
+      e.preventDefault();
+      e.stopPropagation();
+      runMobileTap(handler);
+    },
+    onPointerUp: (e: any) => {
+      e.preventDefault();
+      e.stopPropagation();
+      runMobileTap(handler);
+    },
+    onClick: (e: any) => {
+      e.preventDefault();
+      e.stopPropagation();
+      runMobileTap(handler);
+    },
+  });
+
   return (
     <main
       className={`fixed inset-0 w-screen h-[100dvh] bg-black text-white overflow-hidden overscroll-none select-none ${
@@ -2217,9 +2244,9 @@ const playSound = (
 
             <button
               type="button"
-              onClick={() => {
+              {...mobileTap(() => {
                 openConnectModal?.();
-              }}
+              })}
               className="h-11 px-4 rounded-2xl border border-white/15 bg-white/5 text-[10px] font-black tracking-[0.18em] active:scale-95"
             >
               {isConnected && address
@@ -2232,7 +2259,7 @@ const playSound = (
             <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
-                onClick={() => setSocketRegion("EU")}
+                {...mobileTap(() => setSocketRegion("EU"))}
                 className={`h-11 rounded-2xl text-xs font-black tracking-[0.18em] active:scale-95 ${
                   socketRegion === "EU"
                     ? "bg-[#0052FF] text-white"
@@ -2243,7 +2270,7 @@ const playSound = (
               </button>
               <button
                 type="button"
-                onClick={() => setSocketRegion("US")}
+                {...mobileTap(() => setSocketRegion("US"))}
                 className={`h-11 rounded-2xl text-xs font-black tracking-[0.18em] active:scale-95 ${
                   socketRegion === "US"
                     ? "bg-[#0052FF] text-white"
@@ -2269,10 +2296,10 @@ const playSound = (
               />
               <button
                 type="button"
-                onClick={() => {
+                {...mobileTap(() => {
                   const ready = getReadyUsername();
                   if (ready) navigator.vibrate?.(20);
-                }}
+                })}
                 className="h-12 px-4 rounded-2xl bg-white text-black text-xs font-black tracking-[0.16em] active:scale-95"
               >
                 SAVE
@@ -2291,11 +2318,11 @@ const playSound = (
               <button
                 key={item.key}
                 type="button"
-                onClick={() => {
+                {...mobileTap(() => {
                   setArena(item.key);
                   arenaRef.current = item.key;
                   navigator.vibrate?.(15);
-                }}
+                })}
                 className={`h-[74px] rounded-[22px] border p-3 text-left active:scale-95 bg-gradient-to-br ${item.previewClass} ${
                   arena === item.key
                     ? item.selectedClass
@@ -2317,7 +2344,7 @@ const playSound = (
             {!baseEnergyActive && (
               <button
                 type="button"
-                onClick={handleActivateBaseEnergy}
+                {...mobileTap(handleActivateBaseEnergy)}
                 disabled={baseEnergyLoading}
                 className="h-14 w-full rounded-[24px] bg-white text-black text-sm font-black tracking-[0.22em] active:scale-95 disabled:opacity-50"
               >
@@ -2327,7 +2354,7 @@ const playSound = (
 
             <button
               type="button"
-              onClick={() => setShowDifficulty(true)}
+              {...mobileTap(() => setShowDifficulty(true))}
               className="h-16 w-full rounded-[28px] bg-[#0052FF] text-white text-base font-black tracking-[0.22em] shadow-[0_0_35px_rgba(0,82,255,0.45)] active:scale-95"
             >
               PLAY VS AI
@@ -2335,7 +2362,7 @@ const playSound = (
 
             <button
               type="button"
-              onClick={mobileFindMatch}
+              {...mobileTap(mobileFindMatch)}
               disabled={matchmaking}
               className="h-16 w-full rounded-[28px] border border-white/15 bg-white/5 text-white text-base font-black tracking-[0.22em] active:scale-95 disabled:opacity-50"
             >
@@ -2345,7 +2372,7 @@ const playSound = (
             {matchmaking && (
               <button
                 type="button"
-                onClick={mobileCancelMatch}
+                {...mobileTap(mobileCancelMatch)}
                 className="h-12 w-full rounded-[22px] border border-red-400/25 bg-red-500/10 text-red-200 text-xs font-black tracking-[0.2em] active:scale-95"
               >
                 CANCEL SEARCH
@@ -2354,7 +2381,7 @@ const playSound = (
 
             <button
               type="button"
-              onClick={() => setShowHowToPlay(true)}
+              {...mobileTap(() => setShowHowToPlay(true))}
               className="h-11 w-full rounded-[20px] text-white/45 text-xs font-black tracking-[0.22em] active:scale-95"
             >
               HOW TO PLAY
@@ -2388,7 +2415,7 @@ const playSound = (
 
             <button
               type="button"
-              onClick={goMainMenu}
+              {...mobileTap(goMainMenu)}
               className="absolute left-3 top-3 z-30 h-10 px-3 rounded-2xl border border-white/15 bg-black/55 text-[10px] font-black tracking-[0.16em] text-white/70 backdrop-blur active:scale-95"
             >
               MENU
@@ -2417,7 +2444,7 @@ const playSound = (
               <button
                 key={level}
                 type="button"
-                onClick={() => mobileStartAi(level)}
+                {...mobileTap(() => mobileStartAi(level))}
                 className="mt-3 h-14 w-full rounded-[24px] border border-white/10 bg-white/5 text-sm font-black tracking-[0.22em] text-white active:scale-95"
               >
                 {level.toUpperCase()}
@@ -2426,7 +2453,7 @@ const playSound = (
 
             <button
               type="button"
-              onClick={() => setShowDifficulty(false)}
+              {...mobileTap(() => setShowDifficulty(false))}
               className="mt-4 h-12 w-full rounded-[22px] text-xs font-black tracking-[0.22em] text-white/40 active:scale-95"
             >
               BACK
@@ -2445,7 +2472,7 @@ const playSound = (
             </p>
             <button
               type="button"
-              onClick={() => setShowHowToPlay(false)}
+              {...mobileTap(() => setShowHowToPlay(false))}
               className="mt-6 h-14 w-full rounded-[24px] bg-[#0052FF] text-sm font-black tracking-[0.22em] text-white active:scale-95"
             >
               GOT IT
@@ -2492,14 +2519,14 @@ const playSound = (
                   <button
                     key={`mobile-vote-${item.key}`}
                     type="button"
-                    onClick={() => {
+                    {...mobileTap(() => {
                       if (!roomIdRef.current) return;
                       setVotedArena(item.key);
                       socketRef.current?.emit("vote-arena", {
                         roomCode: roomIdRef.current,
                         arena: item.key,
                       });
-                    }}
+                    })}
                     className={`min-h-[92px] rounded-[22px] border p-3 text-left bg-gradient-to-br ${item.previewClass} active:scale-95 ${
                       votedArena === item.key || myVote === item.key
                         ? item.selectedClass
@@ -2539,7 +2566,7 @@ const playSound = (
             <h2 className="text-2xl font-black">OPPONENT LEFT</h2>
             <button
               type="button"
-              onClick={goMainMenu}
+              {...mobileTap(goMainMenu)}
               className="mt-6 h-14 w-full rounded-[24px] bg-[#0052FF] text-sm font-black tracking-[0.22em] active:scale-95"
             >
               MAIN MENU
@@ -2565,7 +2592,7 @@ const playSound = (
 
             <button
               type="button"
-              onClick={handlePlayAgain}
+              {...mobileTap(handlePlayAgain)}
               disabled={playAgainWaiting}
               className="mt-7 h-14 w-full rounded-[24px] bg-[#0052FF] text-sm font-black tracking-[0.22em] active:scale-95 disabled:opacity-50"
             >
@@ -2574,7 +2601,7 @@ const playSound = (
 
             <button
               type="button"
-              onClick={goMainMenu}
+              {...mobileTap(goMainMenu)}
               className="mt-3 h-12 w-full rounded-[22px] border border-white/15 text-xs font-black tracking-[0.22em] text-white/55 active:scale-95"
             >
               MAIN MENU
