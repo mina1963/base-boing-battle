@@ -1718,29 +1718,24 @@ export default function Home() {
     socketRef.current?.emit("cancel-matchmaking");
   };
 
-  // FIX: Tap guard 280ms → 150ms for Base App WebView responsiveness
+  // FIX: Base App WebView uyumlu tap handler.
+  // - stopPropagation KALDIRILDI: Base App'te event zincirini kesiyor, buton çalışmıyor.
+  // - onClick HER ZAMAN handler'ı çağırır (WebView'da en güvenilir event).
+  // - onTouchStart da çağırır ama tapGuard ile çift tetiklenmeyi önler.
   const tapGuardRef = useRef(0);
 
-  const runMobileTap = (handler: () => void) => {
-    const now = Date.now();
-    if (now - tapGuardRef.current < 150) return;
-    tapGuardRef.current = now;
-    handler();
+  const mobileTap = (handler: () => void) => {
+    const fire = () => {
+      const now = Date.now();
+      if (now - tapGuardRef.current < 300) return;
+      tapGuardRef.current = now;
+      handler();
+    };
+    return {
+      onTouchStart: () => { fire(); },
+      onClick: () => { fire(); },
+    };
   };
-
-  const mobileTap = (handler: () => void) => ({
-    onTouchStart: (e: React.TouchEvent) => {
-      e.stopPropagation();
-      runMobileTap(handler);
-    },
-    onMouseDown: (e: React.MouseEvent) => {
-      e.stopPropagation();
-      runMobileTap(handler);
-    },
-    onClick: (e: React.MouseEvent) => {
-      e.stopPropagation();
-    },
-  });
 
   return (
     <main
