@@ -2184,18 +2184,19 @@ const playSound = (
   };
 
   const mobileTap = (handler: () => void) => ({
-    onTouchEnd: (e: any) => {
-      e.preventDefault();
+    onTouchStart: (e: any) => {
       e.stopPropagation();
       runMobileTap(handler);
     },
-    onPointerUp: (e: any) => {
-      e.preventDefault();
+    onPointerDown: (e: any) => {
+      e.stopPropagation();
+      runMobileTap(handler);
+    },
+    onMouseDown: (e: any) => {
       e.stopPropagation();
       runMobileTap(handler);
     },
     onClick: (e: any) => {
-      e.preventDefault();
       e.stopPropagation();
       runMobileTap(handler);
     },
@@ -2204,8 +2205,18 @@ const playSound = (
 
   const mobileLink = (href: string, handler: () => void) => ({
     href,
+    onTouchStart: (e: any) => {
+      e.stopPropagation();
+      runMobileTap(handler);
+    },
+    onPointerDown: (e: any) => {
+      e.stopPropagation();
+      runMobileTap(handler);
+    },
     onClick: (e: any) => {
-      e.preventDefault();
+      // Do NOT preventDefault here.
+      // iOS/Base App WebView sometimes drops React click/touch handlers,
+      // so the real href query action must remain as a native fallback.
       e.stopPropagation();
       runMobileTap(handler);
     },
@@ -2322,15 +2333,16 @@ const playSound = (
 
   return (
     <main
-      className={`fixed inset-0 w-screen h-[100dvh] bg-black text-white overflow-hidden overscroll-none select-none ${
-        screenShake ? "goal-shake" : ""
-      }`}
+      className={`fixed inset-0 w-screen h-[100dvh] bg-black text-white select-none ${
+        screen === "game" ? "overflow-hidden overscroll-none" : "overflow-y-auto overscroll-y-contain"
+      } ${screenShake ? "goal-shake" : ""}`}
       style={{
-        touchAction: screen === "game" ? "none" : "manipulation",
+        touchAction: screen === "game" ? "none" : "auto",
         WebkitTapHighlightColor: "transparent",
+        WebkitOverflowScrolling: "touch",
         paddingTop: "env(safe-area-inset-top)",
         paddingBottom: "env(safe-area-inset-bottom)",
-      }}
+      } as any}
     >
       {showSplash && (
         <div className="absolute inset-0 z-[999] bg-black flex items-center justify-center">
@@ -2343,7 +2355,7 @@ const playSound = (
       )}
 
       {!showSplash && screen === "menu" && (
-        <section className="relative z-10 min-h-[100dvh] w-full flex flex-col px-4 py-4">
+        <section className="relative z-10 min-h-[100dvh] w-full flex flex-col px-4 py-4 pb-10">
           <img
             src="/splash.png"
             alt=""
