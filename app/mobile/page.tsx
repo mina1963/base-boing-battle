@@ -2555,13 +2555,15 @@ const playSound = (
               </button>
             )}
 
-            <button
-              type="button"
-              {...mobileAction("difficulty")}
-              className="flex h-16 w-full items-center justify-center rounded-[28px] bg-[#0052FF] text-white text-base font-black tracking-[0.22em] shadow-[0_0_35px_rgba(0,82,255,0.45)] active:scale-95"
-            >
-              PLAY VS AI
-            </button>
+<button
+  type="button"
+  onClick={() => {
+    alert("PLAY AI CLICKED");
+  }}
+  className="flex h-16 w-full items-center justify-center rounded-[28px] bg-[#0052FF] text-white text-base font-black tracking-[0.22em] shadow-[0_0_35px_rgba(0,82,255,0.45)] active:scale-95"
+>
+  PLAY VS AI
+</button>
 
             <button
               type="button"
