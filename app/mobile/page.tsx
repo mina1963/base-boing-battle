@@ -2180,62 +2180,120 @@ const playSound = (
     const now = Date.now();
     if (now - tapGuardRef.current < 120) return;
     tapGuardRef.current = now;
-    try {
-      navigator.vibrate?.(8);
-    } catch {}
     handler();
   };
 
-  const stopMobileEvent = (e: any) => {
-    try {
-      e?.stopPropagation?.();
-    } catch {}
+  const runMobileAction = (action: string, value?: string | null) => {
+    if (action === "region" && (value === "EU" || value === "US")) {
+      setSocketRegion(value);
+      navigator.vibrate?.(10);
+      return;
+    }
+
+    if (action === "arena" && value && ["classic", "base", "space", "temple"].includes(value)) {
+      const nextArena = value as Arena;
+      setArena(nextArena);
+      arenaRef.current = nextArena;
+      navigator.vibrate?.(15);
+      return;
+    }
+
+    if (action === "energy") {
+      handleActivateBaseEnergy();
+      return;
+    }
+
+    if (action === "difficulty") {
+      setShowDifficulty(true);
+      navigator.vibrate?.(10);
+      return;
+    }
+
+    if (action === "online") {
+      mobileFindMatch();
+      return;
+    }
+
+    if (action === "cancel") {
+      mobileCancelMatch();
+      return;
+    }
+
+    if (action === "howto") {
+      setShowHowToPlay(true);
+      return;
+    }
+
+    if (action === "close-howto") {
+      setShowHowToPlay(false);
+      return;
+    }
+
+    if (action === "close-difficulty") {
+      setShowDifficulty(false);
+      return;
+    }
+
+    if (action === "menu") {
+      goMainMenu();
+      return;
+    }
+
+    if (action === "start-ai" && (value === "easy" || value === "normal" || value === "hard")) {
+      mobileStartAi(value);
+    }
   };
 
   const mobileTap = (handler: () => void) => ({
     onTouchStart: (e: any) => {
-      stopMobileEvent(e);
+      e.stopPropagation();
       runMobileTap(handler);
     },
     onPointerDown: (e: any) => {
-      stopMobileEvent(e);
+      e.stopPropagation();
       runMobileTap(handler);
     },
     onMouseDown: (e: any) => {
-      stopMobileEvent(e);
+      e.stopPropagation();
       runMobileTap(handler);
     },
     onClick: (e: any) => {
-      try {
-        e?.preventDefault?.();
-      } catch {}
-      stopMobileEvent(e);
+      e.preventDefault();
+      e.stopPropagation();
       runMobileTap(handler);
     },
   });
 
-  const mobileLink = (href: string, handler: () => void) => ({
-    href,
-    role: "button",
-    onTouchStart: (e: any) => {
-      stopMobileEvent(e);
-      runMobileTap(handler);
-    },
-    onPointerDown: (e: any) => {
-      stopMobileEvent(e);
-      runMobileTap(handler);
-    },
-    onMouseDown: (e: any) => {
-      stopMobileEvent(e);
-      runMobileTap(handler);
-    },
-    onClick: (e: any) => {
-      try {
-        e?.preventDefault?.();
-      } catch {}
-      stopMobileEvent(e);
-      runMobileTap(handler);
-    },
+  const mobileAction = (action: string, value?: string) => ({
+    "data-mobile-action": action,
+    "data-mobile-value": value || "",
+    ...mobileTap(() => runMobileAction(action, value)),
+  });
+
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+
+    const nativeHandler = (event: Event) => {
+      const target = event.target as HTMLElement | null;
+      const el = target?.closest?.("[data-mobile-action]") as HTMLElement | null;
+      if (!el) return;
+
+      const action = el.dataset.mobileAction;
+      if (!action) return;
+
+      event.stopPropagation();
+      runMobileTap(() => runMobileAction(action, el.dataset.mobileValue || null));
+    };
+
+    document.addEventListener("touchstart", nativeHandler, true);
+    document.addEventListener("pointerdown", nativeHandler, true);
+    document.addEventListener("mousedown", nativeHandler, true);
+
+    return () => {
+      document.removeEventListener("touchstart", nativeHandler, true);
+      document.removeEventListener("pointerdown", nativeHandler, true);
+      document.removeEventListener("mousedown", nativeHandler, true);
+    };
   });
 
   useEffect(() => {
@@ -2349,11 +2407,10 @@ const playSound = (
 
   return (
     <main
-      className={`fixed inset-0 w-screen bg-black text-white overscroll-none select-none ${
+      className={`fixed inset-0 w-screen h-[100dvh] bg-black text-white overscroll-none select-none ${
         screenShake ? "goal-shake" : ""
       }`}
       style={{
-        height: "100dvh",
         overflowY: screen === "menu" ? "auto" : "hidden",
         overflowX: "hidden",
         touchAction: screen === "game" ? "none" : "pan-y",
@@ -2374,7 +2431,7 @@ const playSound = (
       )}
 
       {!showSplash && screen === "menu" && (
-        <section className="relative z-10 min-h-[100dvh] w-full flex flex-col px-4 py-4" style={{ touchAction: "pan-y" }}>
+        <section className="relative z-10 min-h-[100dvh] w-full flex flex-col px-4 py-4">
           <img
             src="/splash.png"
             alt=""
@@ -2407,8 +2464,9 @@ const playSound = (
 
           <div className="relative z-10 mt-4 rounded-[28px] border border-white/10 bg-black/45 p-3 shadow-[0_0_35px_rgba(0,82,255,0.20)]">
             <div className="grid grid-cols-2 gap-2">
-              <a
-                {...mobileLink("/mobile?action=region&region=EU", () => setSocketRegion("EU"))}
+              <button
+                type="button"
+                {...mobileAction("region", "EU")}
                 className={`flex h-11 items-center justify-center rounded-2xl text-xs font-black tracking-[0.18em] active:scale-95 ${
                   socketRegion === "EU"
                     ? "bg-[#0052FF] text-white"
@@ -2416,9 +2474,10 @@ const playSound = (
                 }`}
               >
                 EU
-              </a>
-              <a
-                {...mobileLink("/mobile?action=region&region=US", () => setSocketRegion("US"))}
+              </button>
+              <button
+                type="button"
+                {...mobileAction("region", "US")}
                 className={`flex h-11 items-center justify-center rounded-2xl text-xs font-black tracking-[0.18em] active:scale-95 ${
                   socketRegion === "US"
                     ? "bg-[#0052FF] text-white"
@@ -2426,7 +2485,7 @@ const playSound = (
                 }`}
               >
                 US
-              </a>
+              </button>
             </div>
 
             <div className="mt-3 flex items-center gap-2">
@@ -2463,13 +2522,10 @@ const playSound = (
 
           <div className="relative z-10 mt-3 grid grid-cols-2 gap-2">
             {ARENA_OPTIONS.map((item) => (
-              <a
+              <button
                 key={item.key}
-                {...mobileLink(`/mobile?action=arena&arena=${item.key}`, () => {
-                  setArena(item.key);
-                  arenaRef.current = item.key;
-                  navigator.vibrate?.(15);
-                })}
+                type="button"
+                {...mobileAction("arena", item.key)}
                 className={`h-[74px] rounded-[22px] border p-3 text-left active:scale-95 bg-gradient-to-br ${item.previewClass} ${
                   arena === item.key
                     ? item.selectedClass
@@ -2483,51 +2539,56 @@ const playSound = (
                 <div className="mt-1 text-[9px] font-black tracking-[0.15em] opacity-60">
                   {item.subtitle}
                 </div>
-              </a>
+              </button>
             ))}
           </div>
 
           <div className="relative z-10 mt-auto space-y-3 pb-2">
             {!baseEnergyActive && (
-              <a
-                {...mobileLink("/mobile?action=energy", handleActivateBaseEnergy)}
+              <button
+                type="button"
+                {...mobileAction("energy")}
                 aria-disabled={baseEnergyLoading}
-                className="flex h-14 w-full items-center justify-center rounded-[24px] bg-white text-black text-sm font-black tracking-[0.22em] active:scale-95 disabled:opacity-50"
+                className="h-14 w-full rounded-[24px] bg-white text-black text-sm font-black tracking-[0.22em] active:scale-95 disabled:opacity-50"
               >
                 {baseEnergyLoading ? "CONFIRMING..." : "ACTIVATE ENERGY"}
-              </a>
+              </button>
             )}
 
-            <a
-              {...mobileLink("/mobile?action=difficulty", () => setShowDifficulty(true))}
+            <button
+              type="button"
+              {...mobileAction("difficulty")}
               className="flex h-16 w-full items-center justify-center rounded-[28px] bg-[#0052FF] text-white text-base font-black tracking-[0.22em] shadow-[0_0_35px_rgba(0,82,255,0.45)] active:scale-95"
             >
               PLAY VS AI
-            </a>
+            </button>
 
-            <a
-              {...mobileLink("/mobile?action=online", mobileFindMatch)}
+            <button
+              type="button"
+              {...mobileAction("online")}
               aria-disabled={matchmaking}
               className="flex h-16 w-full items-center justify-center rounded-[28px] border border-white/15 bg-white/5 text-white text-base font-black tracking-[0.22em] active:scale-95 opacity-100"
             >
               {matchmaking ? "SEARCHING..." : "ONLINE 1V1"}
-            </a>
+            </button>
 
             {matchmaking && (
-              <a
-                {...mobileLink("/mobile?action=cancel", mobileCancelMatch)}
+              <button
+                type="button"
+                {...mobileAction("cancel")}
                 className="flex h-12 w-full items-center justify-center rounded-[22px] border border-red-400/25 bg-red-500/10 text-red-200 text-xs font-black tracking-[0.2em] active:scale-95"
               >
                 CANCEL SEARCH
-              </a>
+              </button>
             )}
 
-            <a
-              {...mobileLink("/mobile?action=howto", () => setShowHowToPlay(true))}
+            <button
+              type="button"
+              {...mobileAction("howto")}
               className="flex h-11 w-full items-center justify-center rounded-[20px] text-white/45 text-xs font-black tracking-[0.22em] active:scale-95"
             >
               HOW TO PLAY
-            </a>
+            </button>
           </div>
         </section>
       )}
@@ -2555,12 +2616,13 @@ const playSound = (
               }}
             />
 
-            <a
-              {...mobileLink("/mobile?action=menu", goMainMenu)}
+            <button
+              type="button"
+              {...mobileAction("menu")}
               className="absolute left-3 top-3 z-30 flex h-10 items-center px-3 rounded-2xl border border-white/15 bg-black/55 text-[10px] font-black tracking-[0.16em] text-white/70 backdrop-blur active:scale-95"
             >
               MENU
-            </a>
+            </button>
 
             <div className="pointer-events-none absolute right-3 top-3 z-30 rounded-2xl border border-white/10 bg-black/45 px-3 py-2 text-right backdrop-blur">
               <div className="text-[9px] font-black tracking-[0.18em] text-white/35">
@@ -2582,21 +2644,23 @@ const playSound = (
             </p>
 
             {(["easy", "normal", "hard"] as const).map((level) => (
-              <a
+              <button
                 key={level}
-                {...mobileLink(`/mobile?action=start-ai&difficulty=${level}`, () => mobileStartAi(level))}
+                type="button"
+                {...mobileAction("start-ai", level)}
                 className="mt-3 flex h-14 w-full items-center justify-center rounded-[24px] border border-white/10 bg-white/5 text-sm font-black tracking-[0.22em] text-white active:scale-95"
               >
                 {level.toUpperCase()}
-              </a>
+              </button>
             ))}
 
-            <a
-              {...mobileLink("/mobile?action=close-difficulty", () => setShowDifficulty(false))}
+            <button
+              type="button"
+              {...mobileAction("close-difficulty")}
               className="mt-4 flex h-12 w-full items-center justify-center rounded-[22px] text-xs font-black tracking-[0.22em] text-white/40 active:scale-95"
             >
               BACK
-            </a>
+            </button>
           </div>
         </div>
       )}
@@ -2609,12 +2673,13 @@ const playSound = (
               Draw short neon lines on your half. Bounce the ball into the rival goal.
               First to 7 wins. Energy refills while playing.
             </p>
-            <a
-              {...mobileLink("/mobile?action=close-howto", () => setShowHowToPlay(false))}
+            <button
+              type="button"
+              {...mobileAction("close-howto")}
               className="mt-6 flex h-14 w-full items-center justify-center rounded-[24px] bg-[#0052FF] text-sm font-black tracking-[0.22em] text-white active:scale-95"
             >
               GOT IT
-            </a>
+            </button>
           </div>
         </div>
       )}
