@@ -2201,13 +2201,132 @@ const playSound = (
     },
   });
 
+
+  const mobileLink = (href: string, handler: () => void) => ({
+    href,
+    onClick: (e: any) => {
+      e.preventDefault();
+      e.stopPropagation();
+      runMobileTap(handler);
+    },
+  });
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const params = new URLSearchParams(window.location.search);
+    const action = params.get("action");
+    if (!action) return;
+
+    const clearAction = () => {
+      window.history.replaceState(null, "", "/mobile");
+    };
+
+    const arenaParam = params.get("arena") as Arena | null;
+    const regionParam = params.get("region") as SocketRegion | null;
+    const difficultyParam = params.get("difficulty") as
+      | "easy"
+      | "normal"
+      | "hard"
+      | null;
+
+    if (action === "menu") {
+      goMainMenu();
+      clearAction();
+      return;
+    }
+
+    if (action === "region" && (regionParam === "EU" || regionParam === "US")) {
+      setSocketRegion(regionParam);
+      clearAction();
+      return;
+    }
+
+    if (
+      action === "arena" &&
+      arenaParam &&
+      ["classic", "base", "space", "temple"].includes(arenaParam)
+    ) {
+      setArena(arenaParam);
+      arenaRef.current = arenaParam;
+      clearAction();
+      return;
+    }
+
+    if (action === "difficulty") {
+      setShowDifficulty(true);
+      clearAction();
+      return;
+    }
+
+    if (
+      action === "start-ai" &&
+      difficultyParam &&
+      ["easy", "normal", "hard"].includes(difficultyParam)
+    ) {
+      mobileStartAi(difficultyParam);
+      clearAction();
+      return;
+    }
+
+    if (action === "online") {
+      mobileFindMatch();
+      clearAction();
+      return;
+    }
+
+    if (action === "cancel") {
+      mobileCancelMatch();
+      clearAction();
+      return;
+    }
+
+    if (action === "howto") {
+      setShowHowToPlay(true);
+      clearAction();
+      return;
+    }
+
+    if (action === "close-howto") {
+      setShowHowToPlay(false);
+      clearAction();
+      return;
+    }
+
+    if (action === "close-difficulty") {
+      setShowDifficulty(false);
+      clearAction();
+      return;
+    }
+
+    if (action === "energy") {
+      handleActivateBaseEnergy();
+      clearAction();
+      return;
+    }
+
+    if (action === "play-again") {
+      handlePlayAgain();
+      clearAction();
+    }
+  }, [
+    address,
+    isConnected,
+    baseEnergyActive,
+    walletClient,
+    publicClient,
+    socketRegion,
+    usernameInput,
+    matchmaking,
+  ]);
+
   return (
     <main
       className={`fixed inset-0 w-screen h-[100dvh] bg-black text-white overflow-hidden overscroll-none select-none ${
         screenShake ? "goal-shake" : ""
       }`}
       style={{
-        touchAction: "none",
+        touchAction: screen === "game" ? "none" : "manipulation",
         WebkitTapHighlightColor: "transparent",
         paddingTop: "env(safe-area-inset-top)",
         paddingBottom: "env(safe-area-inset-bottom)",
@@ -2257,28 +2376,26 @@ const playSound = (
 
           <div className="relative z-10 mt-4 rounded-[28px] border border-white/10 bg-black/45 p-3 shadow-[0_0_35px_rgba(0,82,255,0.20)]">
             <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                {...mobileTap(() => setSocketRegion("EU"))}
-                className={`h-11 rounded-2xl text-xs font-black tracking-[0.18em] active:scale-95 ${
+              <a
+                {...mobileLink("/mobile?action=region&region=EU", () => setSocketRegion("EU"))}
+                className={`flex h-11 items-center justify-center rounded-2xl text-xs font-black tracking-[0.18em] active:scale-95 ${
                   socketRegion === "EU"
                     ? "bg-[#0052FF] text-white"
                     : "bg-white/5 text-white/50 border border-white/10"
                 }`}
               >
                 EU
-              </button>
-              <button
-                type="button"
-                {...mobileTap(() => setSocketRegion("US"))}
-                className={`h-11 rounded-2xl text-xs font-black tracking-[0.18em] active:scale-95 ${
+              </a>
+              <a
+                {...mobileLink("/mobile?action=region&region=US", () => setSocketRegion("US"))}
+                className={`flex h-11 items-center justify-center rounded-2xl text-xs font-black tracking-[0.18em] active:scale-95 ${
                   socketRegion === "US"
                     ? "bg-[#0052FF] text-white"
                     : "bg-white/5 text-white/50 border border-white/10"
                 }`}
               >
                 US
-              </button>
+              </a>
             </div>
 
             <div className="mt-3 flex items-center gap-2">
@@ -2315,10 +2432,9 @@ const playSound = (
 
           <div className="relative z-10 mt-3 grid grid-cols-2 gap-2">
             {ARENA_OPTIONS.map((item) => (
-              <button
+              <a
                 key={item.key}
-                type="button"
-                {...mobileTap(() => {
+                {...mobileLink(`/mobile?action=arena&arena=${item.key}`, () => {
                   setArena(item.key);
                   arenaRef.current = item.key;
                   navigator.vibrate?.(15);
@@ -2336,56 +2452,51 @@ const playSound = (
                 <div className="mt-1 text-[9px] font-black tracking-[0.15em] opacity-60">
                   {item.subtitle}
                 </div>
-              </button>
+              </a>
             ))}
           </div>
 
           <div className="relative z-10 mt-auto space-y-3 pb-2">
             {!baseEnergyActive && (
-              <button
-                type="button"
-                {...mobileTap(handleActivateBaseEnergy)}
-                disabled={baseEnergyLoading}
+              <a
+                {...mobileLink("/mobile?action=energy", handleActivateBaseEnergy)}
+                aria-disabled={baseEnergyLoading}
                 className="h-14 w-full rounded-[24px] bg-white text-black text-sm font-black tracking-[0.22em] active:scale-95 disabled:opacity-50"
               >
                 {baseEnergyLoading ? "CONFIRMING..." : "ACTIVATE ENERGY"}
-              </button>
+              </a>
             )}
 
-            <button
-              type="button"
-              {...mobileTap(() => setShowDifficulty(true))}
-              className="h-16 w-full rounded-[28px] bg-[#0052FF] text-white text-base font-black tracking-[0.22em] shadow-[0_0_35px_rgba(0,82,255,0.45)] active:scale-95"
+            <a
+              {...mobileLink("/mobile?action=difficulty", () => setShowDifficulty(true))}
+              className="flex h-16 w-full items-center justify-center rounded-[28px] bg-[#0052FF] text-white text-base font-black tracking-[0.22em] shadow-[0_0_35px_rgba(0,82,255,0.45)] active:scale-95"
             >
               PLAY VS AI
-            </button>
+            </a>
 
-            <button
-              type="button"
-              {...mobileTap(mobileFindMatch)}
-              disabled={matchmaking}
-              className="h-16 w-full rounded-[28px] border border-white/15 bg-white/5 text-white text-base font-black tracking-[0.22em] active:scale-95 disabled:opacity-50"
+            <a
+              {...mobileLink("/mobile?action=online", mobileFindMatch)}
+              aria-disabled={matchmaking}
+              className="flex h-16 w-full items-center justify-center rounded-[28px] border border-white/15 bg-white/5 text-white text-base font-black tracking-[0.22em] active:scale-95 opacity-100"
             >
               {matchmaking ? "SEARCHING..." : "ONLINE 1V1"}
-            </button>
+            </a>
 
             {matchmaking && (
-              <button
-                type="button"
-                {...mobileTap(mobileCancelMatch)}
-                className="h-12 w-full rounded-[22px] border border-red-400/25 bg-red-500/10 text-red-200 text-xs font-black tracking-[0.2em] active:scale-95"
+              <a
+                {...mobileLink("/mobile?action=cancel", mobileCancelMatch)}
+                className="flex h-12 w-full items-center justify-center rounded-[22px] border border-red-400/25 bg-red-500/10 text-red-200 text-xs font-black tracking-[0.2em] active:scale-95"
               >
                 CANCEL SEARCH
-              </button>
+              </a>
             )}
 
-            <button
-              type="button"
-              {...mobileTap(() => setShowHowToPlay(true))}
-              className="h-11 w-full rounded-[20px] text-white/45 text-xs font-black tracking-[0.22em] active:scale-95"
+            <a
+              {...mobileLink("/mobile?action=howto", () => setShowHowToPlay(true))}
+              className="flex h-11 w-full items-center justify-center rounded-[20px] text-white/45 text-xs font-black tracking-[0.22em] active:scale-95"
             >
               HOW TO PLAY
-            </button>
+            </a>
           </div>
         </section>
       )}
@@ -2413,13 +2524,12 @@ const playSound = (
               }}
             />
 
-            <button
-              type="button"
-              {...mobileTap(goMainMenu)}
-              className="absolute left-3 top-3 z-30 h-10 px-3 rounded-2xl border border-white/15 bg-black/55 text-[10px] font-black tracking-[0.16em] text-white/70 backdrop-blur active:scale-95"
+            <a
+              {...mobileLink("/mobile?action=menu", goMainMenu)}
+              className="absolute left-3 top-3 z-30 flex h-10 items-center px-3 rounded-2xl border border-white/15 bg-black/55 text-[10px] font-black tracking-[0.16em] text-white/70 backdrop-blur active:scale-95"
             >
               MENU
-            </button>
+            </a>
 
             <div className="pointer-events-none absolute right-3 top-3 z-30 rounded-2xl border border-white/10 bg-black/45 px-3 py-2 text-right backdrop-blur">
               <div className="text-[9px] font-black tracking-[0.18em] text-white/35">
@@ -2441,23 +2551,21 @@ const playSound = (
             </p>
 
             {(["easy", "normal", "hard"] as const).map((level) => (
-              <button
+              <a
                 key={level}
-                type="button"
-                {...mobileTap(() => mobileStartAi(level))}
-                className="mt-3 h-14 w-full rounded-[24px] border border-white/10 bg-white/5 text-sm font-black tracking-[0.22em] text-white active:scale-95"
+                {...mobileLink(`/mobile?action=start-ai&difficulty=${level}`, () => mobileStartAi(level))}
+                className="mt-3 flex h-14 w-full items-center justify-center rounded-[24px] border border-white/10 bg-white/5 text-sm font-black tracking-[0.22em] text-white active:scale-95"
               >
                 {level.toUpperCase()}
-              </button>
+              </a>
             ))}
 
-            <button
-              type="button"
-              {...mobileTap(() => setShowDifficulty(false))}
-              className="mt-4 h-12 w-full rounded-[22px] text-xs font-black tracking-[0.22em] text-white/40 active:scale-95"
+            <a
+              {...mobileLink("/mobile?action=close-difficulty", () => setShowDifficulty(false))}
+              className="mt-4 flex h-12 w-full items-center justify-center rounded-[22px] text-xs font-black tracking-[0.22em] text-white/40 active:scale-95"
             >
               BACK
-            </button>
+            </a>
           </div>
         </div>
       )}
@@ -2470,13 +2578,12 @@ const playSound = (
               Draw short neon lines on your half. Bounce the ball into the rival goal.
               First to 7 wins. Energy refills while playing.
             </p>
-            <button
-              type="button"
-              {...mobileTap(() => setShowHowToPlay(false))}
-              className="mt-6 h-14 w-full rounded-[24px] bg-[#0052FF] text-sm font-black tracking-[0.22em] text-white active:scale-95"
+            <a
+              {...mobileLink("/mobile?action=close-howto", () => setShowHowToPlay(false))}
+              className="mt-6 flex h-14 w-full items-center justify-center rounded-[24px] bg-[#0052FF] text-sm font-black tracking-[0.22em] text-white active:scale-95"
             >
               GOT IT
-            </button>
+            </a>
           </div>
         </div>
       )}
