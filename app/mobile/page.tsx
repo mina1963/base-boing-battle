@@ -2258,7 +2258,6 @@ const playSound = (
       runMobileTap(handler);
     },
     onClick: (e: any) => {
-      e.preventDefault();
       e.stopPropagation();
       runMobileTap(handler);
     },
@@ -2267,20 +2266,54 @@ const playSound = (
   const mobileAction = (action: string, value?: string) => ({
     "data-mobile-action": action,
     "data-mobile-value": value || "",
+    style: {
+      touchAction: "manipulation",
+      WebkitTapHighlightColor: "transparent",
+      position: "relative" as const,
+      zIndex: 50,
+    },
     ...mobileTap(() => runMobileAction(action, value)),
   });
 
   useEffect(() => {
     if (typeof document === "undefined") return;
 
-    const nativeHandler = (event: Event) => {
+    const findActionElement = (event: Event) => {
       const target = event.target as HTMLElement | null;
-      const el = target?.closest?.("[data-mobile-action]") as HTMLElement | null;
+      const direct = target?.closest?.("[data-mobile-action]") as HTMLElement | null;
+      if (direct) return direct;
+
+      let clientX: number | null = null;
+      let clientY: number | null = null;
+
+      const anyEvent = event as any;
+      if (anyEvent.touches?.[0]) {
+        clientX = anyEvent.touches[0].clientX;
+        clientY = anyEvent.touches[0].clientY;
+      } else if (typeof anyEvent.clientX === "number") {
+        clientX = anyEvent.clientX;
+        clientY = anyEvent.clientY;
+      }
+
+      if (clientX === null || clientY === null) return null;
+
+      const stack = document.elementsFromPoint(clientX, clientY) as HTMLElement[];
+      for (const item of stack) {
+        const el = item.closest?.("[data-mobile-action]") as HTMLElement | null;
+        if (el) return el;
+      }
+
+      return null;
+    };
+
+    const nativeHandler = (event: Event) => {
+      const el = findActionElement(event);
       if (!el) return;
 
       const action = el.dataset.mobileAction;
       if (!action) return;
 
+      if (event.cancelable) event.preventDefault();
       event.stopPropagation();
       runMobileTap(() => runMobileAction(action, el.dataset.mobileValue || null));
     };
@@ -2288,11 +2321,13 @@ const playSound = (
     document.addEventListener("touchstart", nativeHandler, true);
     document.addEventListener("pointerdown", nativeHandler, true);
     document.addEventListener("mousedown", nativeHandler, true);
+    document.addEventListener("click", nativeHandler, true);
 
     return () => {
       document.removeEventListener("touchstart", nativeHandler, true);
       document.removeEventListener("pointerdown", nativeHandler, true);
       document.removeEventListener("mousedown", nativeHandler, true);
+      document.removeEventListener("click", nativeHandler, true);
     };
   });
 
@@ -2421,7 +2456,7 @@ const playSound = (
       }}
     >
       {showSplash && (
-        <div className="absolute inset-0 z-[999] bg-black flex items-center justify-center">
+        <div className="absolute inset-0 z-[999] bg-black flex items-center justify-center pointer-events-none">
           <img
             src="/splash.png"
             alt="Base Boing Battle"
@@ -2431,15 +2466,15 @@ const playSound = (
       )}
 
       {!showSplash && screen === "menu" && (
-        <section className="relative z-10 min-h-[100dvh] w-full flex flex-col px-4 py-4">
+        <section className="relative z-10 isolate min-h-[100dvh] w-full flex flex-col px-4 py-4">
           <img
             src="/splash.png"
             alt=""
-            className="absolute inset-0 h-full w-full object-cover opacity-20 blur-sm"
+            className="pointer-events-none absolute inset-0 z-0 h-full w-full object-cover opacity-20 blur-sm"
           />
-          <div className="absolute inset-0 bg-black/80" />
+          <div className="pointer-events-none absolute inset-0 z-0 bg-black/80" />
 
-          <div className="relative z-10 flex items-center justify-between">
+          <div className="relative z-20 flex items-center justify-between">
             <div>
               <p className="text-[10px] font-black tracking-[0.35em] text-[#0052FF]">
                 MOBILE MODE
@@ -2462,7 +2497,7 @@ const playSound = (
             </button>
           </div>
 
-          <div className="relative z-10 mt-4 rounded-[28px] border border-white/10 bg-black/45 p-3 shadow-[0_0_35px_rgba(0,82,255,0.20)]">
+          <div className="relative z-20 mt-4 rounded-[28px] border border-white/10 bg-black/45 p-3 shadow-[0_0_35px_rgba(0,82,255,0.20)]">
             <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
@@ -2556,14 +2591,12 @@ const playSound = (
             )}
 
 <button
-  type="button"
-  onClick={() => {
-    alert("PLAY AI CLICKED");
-  }}
-  className="flex h-16 w-full items-center justify-center rounded-[28px] bg-[#0052FF] text-white text-base font-black tracking-[0.22em] shadow-[0_0_35px_rgba(0,82,255,0.45)] active:scale-95"
->
-  PLAY VS AI
-</button>
+              type="button"
+              {...mobileAction("difficulty")}
+              className="flex h-16 w-full items-center justify-center rounded-[28px] bg-[#0052FF] text-white text-base font-black tracking-[0.22em] shadow-[0_0_35px_rgba(0,82,255,0.45)] active:scale-95"
+            >
+              PLAY VS AI
+            </button>
 
             <button
               type="button"
