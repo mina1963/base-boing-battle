@@ -94,9 +94,27 @@ export default function MobilePage() {
   .sectionLabel:before, .sectionLabel:after { content:""; height:1px; flex:1; background:linear-gradient(90deg, transparent, rgba(255,255,255,.18)); }
   .sectionLabel:after { background:linear-gradient(90deg, rgba(255,255,255,.18), transparent); }
 
+  #splashScreen { background:
+    radial-gradient(circle at 50% 34%, rgba(0,82,255,.34), transparent 34%),
+    radial-gradient(circle at 50% 70%, rgba(34,211,238,.12), transparent 30%),
+    #000; }
+  #splashCard { position:relative; width:min(84vw,380px); min-height:390px; display:flex; flex-direction:column; align-items:center; justify-content:center; border-radius:42px; overflow:hidden; border:1px solid rgba(255,255,255,.12); background:linear-gradient(180deg, rgba(255,255,255,.09), rgba(255,255,255,.025)); box-shadow:0 0 90px rgba(0,82,255,.42); }
+  #splashCard:before { content:""; position:absolute; inset:-110px; background:conic-gradient(from 90deg, transparent, rgba(0,82,255,.42), transparent, rgba(34,211,238,.20), transparent); animation:spin 7s linear infinite; }
+  #splashCardInner { position:absolute; inset:1px; border-radius:41px; background:rgba(0,0,0,.72); display:flex; flex-direction:column; align-items:center; justify-content:center; }
+  .splashOrb { width:116px; height:116px; border-radius:999px; margin-bottom:18px; background:radial-gradient(circle at 32% 25%, #fff, #b7ccff 14%, #0052ff 40%, #03153f 72%, #000 100%); box-shadow:0 0 58px rgba(0,82,255,.68), inset 0 0 28px rgba(255,255,255,.20); position:relative; }
+  .splashOrb:before, .splashOrb:after { content:""; position:absolute; inset:-16px; border-radius:999px; border:1px solid rgba(34,211,238,.30); transform:rotate(-18deg) scaleY(.46); box-shadow:0 0 30px rgba(34,211,238,.18); }
+  .splashOrb:after { inset:-27px; opacity:.45; transform:rotate(24deg) scaleY(.34); }
+  .splashTitle { font-size:31px; line-height:.92; text-align:center; font-weight:1000; letter-spacing:.10em; text-shadow:0 0 32px rgba(0,82,255,.95); }
+  .splashSub { margin-top:14px; color:rgba(255,255,255,.58); font-size:10px; letter-spacing:.26em; font-weight:1000; }
+  .menuOrbit { position:absolute; width:180px; height:180px; border-radius:999px; border:1px solid rgba(34,211,238,.12); left:50%; top:80px; transform:translateX(-50%) rotate(-12deg) scaleY(.42); pointer-events:none; box-shadow:0 0 42px rgba(0,82,255,.18); }
+  .menuActionGrid { display:grid; grid-template-columns:1.15fr .85fr; gap:10px; }
+  .miniBtn { min-height:62px; border-radius:26px; border:1px solid rgba(255,255,255,.16); background:rgba(255,255,255,.08); color:white; font-size:12px; letter-spacing:.16em; font-weight:1000; touch-action:manipulation; }
+  .statusStrip { display:flex; gap:8px; justify-content:center; margin-top:12px; }
+  .statusChip { padding:7px 9px; border-radius:999px; background:rgba(0,82,255,.12); border:1px solid rgba(0,82,255,.22); color:rgba(255,255,255,.70); font-size:8px; letter-spacing:.16em; font-weight:1000; }
+
 </style>
 <div id="app">
-  <div id="splashScreen"><div id="splashLogo">BASE<br/>BOING</div></div>
+  <div id="splashScreen"><div id="splashCard"><div id="splashCardInner"><div class="splashOrb"></div><div class="splashTitle">BASE<br/>BOING<br/>BATTLE</div><div class="splashSub">MOBILE ARENA LOADING</div></div></div></div>
   <div id="noise"></div>
   <section id="menuScreen" class="screen active">
     <div class="center">
@@ -106,11 +124,13 @@ export default function MobilePage() {
           <div class="orb"></div>
           <h1>BASE<br/>BOING<br/>BATTLE</h1>
           <div class="sub">MOBILE ONCHAIN ARCADE</div>
+          <div class="menuOrbit"></div>
           <div class="featureGrid">
             <div class="feature"><strong>DRAW</strong><span>LINES</span></div>
             <div class="feature"><strong>DEFLECT</strong><span>BALL</span></div>
             <div class="feature"><strong>SCORE</strong><span>FIRST 7</span></div>
           </div>
+          <div class="statusStrip"><div class="statusChip">AI</div><div class="statusChip">ONLINE</div><div class="statusChip">MOBILE</div></div>
         </div>
       </div>
 
@@ -124,7 +144,10 @@ export default function MobilePage() {
       </div>
 
       <div class="card">
-        <button id="playBtn" class="btn">PLAY VS AI</button>
+        <div class="menuActionGrid">
+          <button id="playBtn" class="btn">PLAY VS AI</button>
+          <button id="howBtnTop" class="miniBtn">HOW TO<br/>PLAY</button>
+        </div>
       </div>
 
       <div class="card">
@@ -203,7 +226,7 @@ export default function MobilePage() {
   var arena='classic', difficulty='normal', socketRegion='EU', mode='ai';
   var canvas, ctx, raf=0;
   var ball, lines, trail, sparks, score, energy, started=false, paused=false, drawing=null, goalLocked=false;
-  var frame=0, audioUnlocked=false, lastWallSound=0;
+  var frame=0, audioUnlocked=false, lastWallSound=0, lastOnlineScoreTotal=null, lastOnlineRoundKey=null, onlineCountdownTimer=null, onlineBattleTimer=null;
   var socket=null, socketReady=false, isHost=false, roleKnown=false, roomCode=null, mobileId='mobile_'+Math.random().toString(16).slice(2,10), onlineTarget={x:200,y:350,vx:1.2,vy:1.8}, onlineStateAt=Date.now();
   var SOCKET_EU='https://base-boing-battle-1.onrender.com';
   var SOCKET_US='https://base-boing-battle-usa.onrender.com';
@@ -263,6 +286,38 @@ export default function MobilePage() {
     text.classList.remove('pop');
     void text.offsetWidth;
     text.classList.add('pop');
+  }
+
+  function clearOnlineCountdown(){
+    if(onlineCountdownTimer){ clearTimeout(onlineCountdownTimer); onlineCountdownTimer=null; }
+    if(onlineBattleTimer){ clearTimeout(onlineBattleTimer); onlineBattleTimer=null; }
+  }
+  function startOnlineCountdown(roundRaw, serverNowRaw){
+    if(!roundRaw) return;
+    var key=String(roundRaw);
+    if(lastOnlineRoundKey===key) return;
+    lastOnlineRoundKey=key;
+    clearOnlineCountdown();
+    started=false; paused=true;
+    var serverStart=typeof roundRaw==='number'?roundRaw:new Date(roundRaw).getTime();
+    var serverNow=Number(serverNowRaw);
+    var startAtMs=(isFinite(serverStart)&&isFinite(serverNow)) ? Date.now()+Math.max(0, serverStart-serverNow) : serverStart;
+    var lastText='';
+    function tick(){
+      var remaining=startAtMs-Date.now();
+      var next='';
+      if(remaining>2000) next='3';
+      else if(remaining>1000) next='2';
+      else if(remaining>0) next='1';
+      else next='BATTLE!';
+      if(next!==lastText){ setOverlay(next); lastText=next; }
+      if(next==='BATTLE!'){
+        onlineBattleTimer=setTimeout(function(){ $('overlayText').textContent=''; started=true; paused=false; goalLocked=false; },600);
+        return;
+      }
+      onlineCountdownTimer=setTimeout(tick,80);
+    }
+    tick();
   }
   function resetBall(dir){
     goalLocked=false;
@@ -345,7 +400,7 @@ export default function MobilePage() {
   }
   function startOnlineMatch(){
     canvas=$('gameCanvas'); ctx=canvas.getContext('2d');
-    score={player:0,ai:0,msg:'',life:0}; resetBall('down');
+    score={player:0,ai:0,msg:'',life:0}; lastOnlineScoreTotal=null; lastOnlineRoundKey=null; clearOnlineCountdown(); resetBall('down');
     $('scoreHud').textContent=(isHost?'HOST':'GUEST')+' • RIVAL 0 ◇ 0 YOU';
     $('resultPanel').classList.remove('active');
     show('gameScreen'); started=false; paused=true; setOverlay('WAITING');
@@ -358,17 +413,35 @@ export default function MobilePage() {
     var hostScore=Number(state.host_score!=null?state.host_score:(state.hostScore||0));
     var guestScore=Number(state.guest_score!=null?state.guest_score:(state.guestScore||0));
     if(!score) score={player:0,ai:0,msg:'',life:0};
+    var prevPlayer=score.player||0;
+    var prevAi=score.ai||0;
     score.player=isHost?hostScore:guestScore;
     score.ai=isHost?guestScore:hostScore;
     $('scoreHud').textContent=(isHost?'HOST':'GUEST')+' • RIVAL '+score.ai+' ◇ '+score.player+' YOU';
+    var totalScore=score.player+score.ai;
+    if(lastOnlineScoreTotal!==null && totalScore>lastOnlineScoreTotal){
+      if(score.player>prevPlayer) setOverlay('YOU SCORES');
+      else if(score.ai>prevAi) setOverlay('RIVAL SCORES');
+      flash(); playSound('goal');
+    }
+    lastOnlineScoreTotal=totalScore;
     var bx=Number(state.ball_x!=null?state.ball_x:(state.ball&&state.ball.x)||ball.x);
     var by=Number(state.ball_y!=null?state.ball_y:(state.ball&&state.ball.y)||ball.y);
     var bvx=Number(state.ball_vx!=null?state.ball_vx:(state.ball&&state.ball.vx)||ball.vx);
     var bvy=Number(state.ball_vy!=null?state.ball_vy:(state.ball&&state.ball.vy)||ball.vy);
     onlineTarget.x=bx; onlineTarget.y=isHost?by:H-by; onlineTarget.vx=bvx; onlineTarget.vy=isHost?bvy:-bvy; onlineStateAt=Date.now();
     var phase=state.phase||'';
-    if(phase==='countdown'){ started=false; paused=true; if(state.round_start_at||state.roundStartAt){ setOverlay('READY'); } }
-    if(phase==='playing'){ started=true; paused=false; $('overlayText').textContent=''; }
+    if(phase==='countdown'){
+      started=false; paused=true;
+      var roundRaw=state.round_start_at||state.roundStartAt;
+      var serverNow=state.serverNow||state.server_now;
+      if(roundRaw) startOnlineCountdown(roundRaw, serverNow);
+      else setOverlay('3');
+    }
+    if(phase==='playing'){
+      if(!onlineCountdownTimer && !onlineBattleTimer){ $('overlayText').textContent=''; }
+      started=true; paused=false;
+    }
     var winner=state.winner || (hostScore>=7?'host':guestScore>=7?'guest':null);
     if(winner){
       started=false; paused=true;
@@ -579,6 +652,7 @@ export default function MobilePage() {
   document.querySelectorAll('.difficulty').forEach(function(btn){ bindTap(btn,function(){ difficulty=btn.getAttribute('data-difficulty')||'normal'; document.querySelectorAll('.difficulty').forEach(function(b){b.classList.remove('selected')}); btn.classList.add('selected'); }); });
   bindTap($('playBtn'), newMatch);
   bindTap($('howBtn'), function(){ show('howScreen'); });
+  bindTap($('howBtnTop'), function(){ show('howScreen'); });
   bindTap($('backHowBtn'), function(){ show('menuScreen'); });
   bindTap($('menuBtn'), function(){ started=false; paused=true; $('overlayText').textContent=''; $('resultPanel').classList.remove('active'); if(mode==='online'){ try{ if(socket) socket.emit('leave-room',{ roomCode:roomCode }); }catch(e){} } mode='ai'; show('menuScreen'); });
   bindTap($('restartBtn'), function(){ if(mode==='online'){ setOverlay('ONLINE RESTART DISABLED'); } else newMatch(); });
