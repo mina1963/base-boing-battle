@@ -667,158 +667,412 @@ export default function MobilePage() {
   .modeBtn.primary { background:linear-gradient(180deg,rgba(0,82,255,.34),rgba(0,82,255,.12)); border-color:rgba(91,155,255,.42); box-shadow:0 0 34px rgba(0,82,255,.28); }
 
 
-  /* ULTRA LUX BASE ARCADE LOBBY */
-  #menuScreen{
+
+  /* === PREMIUM CYBER ARENA LOBBY v2 === */
+  #menuScreen {
     padding:0 !important;
     overflow:hidden !important;
-    background:
-      radial-gradient(circle at 50% 28%, rgba(0,82,255,.42), transparent 36%),
-      radial-gradient(circle at 50% 72%, rgba(0,180,255,.18), transparent 28%),
-      linear-gradient(180deg,#020612 0%,#02030a 58%,#000207 100%) !important;
+    background:#020409 !important;
   }
-  #menuScreen:before{
-    content:""; position:absolute; inset:0; pointer-events:none; opacity:.42;
+  .arenaLobby {
+    position:relative;
+    width:100%;
+    height:100dvh;
+    max-width:430px;
+    margin:0 auto;
+    overflow:hidden;
     background:
-      linear-gradient(rgba(0,118,255,.16) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(0,118,255,.16) 1px, transparent 1px);
+      radial-gradient(circle at 50% 38%, rgba(0,82,255,.30), transparent 38%),
+      radial-gradient(circle at 50% 78%, rgba(119,60,255,.16), transparent 32%),
+      linear-gradient(180deg, #030716 0%, #02040a 58%, #000 100%);
+  }
+  .arenaLobby:before {
+    content:"";
+    position:absolute;
+    inset:0;
+    background:
+      linear-gradient(rgba(44,126,255,.075) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(44,126,255,.065) 1px, transparent 1px);
     background-size:34px 34px;
-    mask-image:linear-gradient(to bottom, rgba(0,0,0,.85), rgba(0,0,0,.45) 62%, rgba(0,0,0,.85));
+    opacity:.62;
+    transform:perspective(420px) rotateX(0deg);
   }
-  #menuScreen:after{
-    content:""; position:absolute; inset:0; pointer-events:none;
+  .arenaLobby:after {
+    content:"";
+    position:absolute;
+    left:-16%; right:-16%; bottom:-7%;
+    height:40%;
     background:
-      radial-gradient(circle at 50% 42%, transparent 0 38%, rgba(0,0,0,.16) 52%, rgba(0,0,0,.55) 100%),
-      linear-gradient(90deg, rgba(0,0,0,.62), transparent 22%, transparent 78%, rgba(0,0,0,.62));
+      radial-gradient(ellipse at 50% 8%, rgba(0,170,255,.42), transparent 36%),
+      linear-gradient(rgba(0,126,255,.22) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,126,255,.16) 1px, transparent 1px);
+    background-size:auto, 36px 36px, 36px 36px;
+    transform:perspective(360px) rotateX(62deg);
+    transform-origin:top center;
+    opacity:.9;
+    filter:drop-shadow(0 0 24px rgba(0,82,255,.32));
   }
-  .luxLobby{
-    position:relative; z-index:2; width:100%; height:100dvh; max-width:430px; margin:0 auto; overflow:hidden;
-    display:flex; flex-direction:column; justify-content:space-between;
-    padding:calc(env(safe-area-inset-top) + 12px) 18px calc(env(safe-area-inset-bottom) + 16px);
+  .arenaSideGlow {
+    position:absolute;
+    inset:0;
+    pointer-events:none;
+    background:
+      linear-gradient(110deg, rgba(0,82,255,.34) 0 2px, transparent 2px 18%, rgba(0,82,255,.18) 18.5%, transparent 19%),
+      linear-gradient(250deg, rgba(0,82,255,.34) 0 2px, transparent 2px 18%, rgba(0,82,255,.18) 18.5%, transparent 19%);
+    opacity:.52;
+    mix-blend-mode:screen;
   }
-  .luxTop{ display:flex; align-items:center; gap:10px; height:54px; }
-  .luxUser{
-    flex:1; height:48px; border-radius:22px; border:1px solid rgba(0,132,255,.72);
-    background:linear-gradient(180deg, rgba(0,22,56,.88), rgba(0,8,28,.66)); color:white;
-    display:flex; align-items:center; gap:10px; padding:6px 10px;
-    box-shadow:0 0 22px rgba(0,82,255,.34), inset 0 0 24px rgba(0,82,255,.13);
+  .arenaParticles {
+    position:absolute;
+    inset:0;
+    pointer-events:none;
+    background-image:
+      radial-gradient(circle, rgba(0,174,255,.85) 0 1px, transparent 2px),
+      radial-gradient(circle, rgba(144,80,255,.65) 0 1px, transparent 2px);
+    background-size:64px 92px, 98px 140px;
+    background-position:12px 20px, 37px 60px;
+    opacity:.28;
+    animation:driftParticles 9s linear infinite;
+  }
+  @keyframes driftParticles { to { transform:translateY(-42px); } }
+  .arenaTop {
+    position:absolute;
+    z-index:5;
+    top:calc(env(safe-area-inset-top) + 18px);
+    left:18px;
+    right:18px;
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+  .arenaProfile {
+    flex:1;
+    min-height:60px;
+    border-radius:30px;
+    border:1px solid rgba(0,136,255,.78);
+    background:linear-gradient(90deg, rgba(0,18,48,.88), rgba(0,7,22,.62));
+    box-shadow:0 0 26px rgba(0,82,255,.38), inset 0 0 24px rgba(0,132,255,.10);
+    display:flex;
+    align-items:center;
+    gap:12px;
+    padding:8px 12px;
+  }
+  .arenaAvatar {
+    width:44px;
+    height:44px;
+    border-radius:50%;
+    background:radial-gradient(circle at 32% 24%, #fff, #84bdff 17%, #0052ff 54%, #00163d 100%);
+    box-shadow:0 0 24px rgba(0,132,255,.92);
+    color:white;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:23px;
+    font-weight:1000;
+    font-style:italic;
+  }
+  .arenaName {
+    font-size:20px;
+    line-height:1;
+    font-weight:1000;
+    letter-spacing:.04em;
+    text-shadow:0 0 12px rgba(255,255,255,.35);
+  }
+  .arenaOnline {
+    margin-top:7px;
+    color:#30ff77;
+    font-size:10px;
+    font-weight:1000;
+    letter-spacing:.20em;
+  }
+  .arenaEdit, .arenaHelp {
+    width:46px;
+    height:46px;
+    border-radius:20px;
+    border:1px solid rgba(0,136,255,.72);
+    background:rgba(0,13,35,.72);
+    color:#5ee7ff;
+    font-size:20px;
+    font-weight:1000;
+    box-shadow:0 0 20px rgba(0,82,255,.32), inset 0 0 18px rgba(0,132,255,.08);
     touch-action:manipulation;
   }
-  .luxBaseBadge{
-    width:34px; height:34px; border-radius:999px; display:flex; align-items:center; justify-content:center;
-    font-weight:1000; font-style:italic; font-size:21px; color:white;
-    background:radial-gradient(circle at 28% 20%, #fff, #79c4ff 16%, #0052ff 54%, #03133e 100%);
-    box-shadow:0 0 22px rgba(0,122,255,.9), inset 0 0 8px rgba(255,255,255,.28);
+  .arenaLogoWrap {
+    position:absolute;
+    z-index:3;
+    left:0;
+    right:0;
+    top:146px;
+    text-align:center;
   }
-  .luxUserText{ display:flex; flex-direction:column; align-items:flex-start; min-width:0; line-height:1; }
-  .luxUserText strong{ max-width:170px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:16px; letter-spacing:.04em; font-weight:1000; }
-  .luxUserText em{ margin-top:6px; font-style:normal; color:#29ff8b; font-size:9px; letter-spacing:.22em; font-weight:1000; text-shadow:0 0 10px rgba(41,255,139,.55); }
-  .luxEdit{ margin-left:auto; width:26px; height:26px; border-radius:999px; display:flex; align-items:center; justify-content:center; border:1px solid rgba(91,190,255,.35); color:#58d7ff; font-size:13px; background:rgba(255,255,255,.04); }
-  .luxHelp{
-    width:48px; height:48px; border-radius:20px; border:1px solid rgba(0,132,255,.72);
-    background:linear-gradient(180deg, rgba(0,22,56,.82), rgba(0,8,28,.64)); color:#7fe3ff; font-size:23px; font-weight:1000;
-    box-shadow:0 0 20px rgba(0,82,255,.28); touch-action:manipulation;
+  .arenaBigB {
+    position:absolute;
+    left:50%;
+    top:-72px;
+    transform:translateX(-50%) skewX(-8deg);
+    font-size:270px;
+    line-height:.8;
+    font-weight:1000;
+    color:transparent;
+    -webkit-text-stroke:2px rgba(0,82,255,.28);
+    text-shadow:0 0 42px rgba(0,82,255,.18);
+    opacity:.82;
   }
-  .luxStage{ position:relative; flex:1; min-height:0; display:flex; flex-direction:column; align-items:center; justify-content:center; padding-bottom:10px; }
-  .luxGhostB{
-    position:absolute; top:1%; left:50%; transform:translateX(-50%) skewX(-9deg);
-    font-size:min(70vw,330px); line-height:.8; font-weight:1000; color:transparent; -webkit-text-stroke:1px rgba(0,108,255,.18);
-    text-shadow:0 0 42px rgba(0,82,255,.13); opacity:.95; pointer-events:none;
+  .arenaLogoBase {
+    position:relative;
+    z-index:2;
+    display:block;
+    font-size:76px;
+    line-height:.82;
+    font-weight:1000;
+    font-style:italic;
+    letter-spacing:.01em;
+    color:#23a4ff;
+    -webkit-text-stroke:1px rgba(179,235,255,.65);
+    text-shadow:
+      0 3px 0 #00358d,
+      0 0 18px rgba(0,180,255,.95),
+      0 0 44px rgba(0,82,255,.72);
+    transform:skewX(-8deg);
   }
-  .luxTitle{ position:relative; z-index:2; text-align:center; margin-top:-8px; }
-  .luxTitleBase{
-    font-size:76px; line-height:.8; font-style:italic; font-weight:1000; letter-spacing:.02em;
-    background:linear-gradient(180deg,#8fe4ff 0%,#1da0ff 34%,#0052ff 68%,#002a86 100%);
-    -webkit-background-clip:text; background-clip:text; color:transparent;
-    -webkit-text-stroke:1px rgba(170,235,255,.42);
-    text-shadow:0 0 10px rgba(0,154,255,.95), 0 0 34px rgba(0,82,255,.85), 0 8px 0 rgba(0,0,0,.38);
+  .arenaLogoSub {
+    position:relative;
+    z-index:2;
+    margin-top:12px;
+    color:white;
+    font-size:22px;
+    font-weight:1000;
+    letter-spacing:.34em;
+    text-indent:.34em;
+    text-shadow:0 0 16px rgba(255,255,255,.80), 0 0 28px rgba(0,82,255,.62);
   }
-  .luxTitleSub{
-    margin-top:10px; color:#f4f8ff; font-size:21px; letter-spacing:.44em; text-indent:.44em; font-weight:1000;
-    text-shadow:0 0 16px rgba(120,190,255,.9);
+  .arenaStands {
+    position:absolute;
+    z-index:1;
+    left:-28px;
+    right:-28px;
+    top:285px;
+    height:195px;
+    border-radius:50% 50% 0 0;
+    background:
+      radial-gradient(ellipse at center, rgba(0,82,255,.22), transparent 46%),
+      repeating-linear-gradient(90deg, rgba(40,160,255,.16) 0 2px, transparent 2px 18px),
+      linear-gradient(180deg, rgba(10,25,55,.0), rgba(8,18,42,.52));
+    border-top:1px solid rgba(0,140,255,.35);
+    opacity:.76;
   }
-  .luxPortal{ position:relative; width:100%; height:240px; margin-top:20px; display:flex; align-items:center; justify-content:center; }
-  .luxBeam{
-    position:absolute; width:162px; height:185px; bottom:28px; border-radius:42% 42% 8% 8%;
-    background:linear-gradient(180deg, rgba(80,210,255,.28), rgba(0,82,255,.08) 60%, transparent);
-    filter:blur(.2px); opacity:.95; box-shadow:0 0 38px rgba(0,160,255,.26);
+  .arenaBanners {
+    position:absolute;
+    z-index:2;
+    top:328px;
+    left:18px;
+    right:18px;
+    display:flex;
+    justify-content:space-between;
+    pointer-events:none;
   }
-  .luxBall{
-    position:absolute; bottom:86px; width:118px; height:118px; border-radius:999px;
-    background:radial-gradient(circle at 28% 18%, #fff 0 9%, #baf2ff 18%, #31c4ff 36%, #0067ff 64%, #03184c 100%);
-    box-shadow:0 0 34px rgba(0,180,255,.95), 0 0 72px rgba(0,82,255,.72), inset -14px -20px 34px rgba(0,0,0,.25);
-    animation:luxFloat 2.8s ease-in-out infinite;
+  .arenaBanner {
+    width:38px;
+    height:108px;
+    border:1px solid rgba(0,136,255,.70);
+    background:linear-gradient(180deg, rgba(0,82,255,.22), rgba(0,0,0,.38));
+    box-shadow:0 0 18px rgba(0,82,255,.34);
+    color:#4e9dff;
+    font-size:13px;
+    font-weight:1000;
+    letter-spacing:.12em;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    writing-mode:vertical-rl;
   }
-  .luxBall:before{ content:""; position:absolute; left:24px; right:24px; top:54px; height:9px; border-radius:999px; background:#020817; transform:rotate(-8deg); }
-  .luxBall:after{ content:""; position:absolute; left:42px; top:45px; width:13px; height:28px; border-radius:999px; background:#020817; box-shadow:34px 0 0 #020817; }
-  .luxRing{
-    position:absolute; bottom:48px; width:238px; height:58px; border-radius:50%; border:3px solid rgba(0,216,255,.82);
-    box-shadow:0 0 18px rgba(0,220,255,.95), inset 0 0 18px rgba(0,82,255,.62);
-    background:radial-gradient(ellipse at 50% 50%, rgba(0,154,255,.35), transparent 62%);
+  .arenaBallStage {
+    position:absolute;
+    z-index:4;
+    left:0;
+    right:0;
+    top:374px;
+    height:170px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
   }
-  @keyframes luxFloat{ 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-16px); } }
-  .luxActions{ position:relative; z-index:3; display:flex; flex-direction:column; align-items:center; gap:13px; }
-  .luxPlay{
-    width:100%; height:88px; border:0; color:white; font-size:36px; font-style:italic; font-weight:1000; letter-spacing:.20em;
-    background:linear-gradient(180deg, rgba(15,126,255,.95), rgba(0,48,142,.95));
-    clip-path:polygon(8% 0,92% 0,100% 50%,92% 100%,8% 100%,0 50%);
-    box-shadow:0 0 0 2px rgba(90,228,255,.92), 0 0 34px rgba(0,154,255,.95), inset 0 0 36px rgba(255,255,255,.10);
-    text-shadow:0 0 18px rgba(255,255,255,.9); touch-action:manipulation;
+  .arenaBall {
+    width:142px;
+    height:142px;
+    border-radius:50%;
+    background:
+      radial-gradient(circle at 28% 20%, rgba(255,255,255,.98) 0 13%, rgba(145,225,255,.96) 18%, #28a6ff 43%, #0052ff 66%, #001946 100%);
+    box-shadow:
+      0 0 36px rgba(0,180,255,.98),
+      0 0 76px rgba(0,82,255,.75),
+      inset -18px -22px 38px rgba(0,0,0,.35);
+    position:relative;
+    animation:arenaFloat 2.7s ease-in-out infinite;
   }
-  .luxPlay span{ color:#39eaff; font-style:normal; font-size:26px; letter-spacing:.08em; text-shadow:0 0 16px rgba(57,234,255,.95); }
-  .luxSettings{
-    height:32px; border:0; background:transparent; color:#4de8ff; font-size:13px; letter-spacing:.32em; font-weight:1000;
-    text-shadow:0 0 12px rgba(77,232,255,.8); touch-action:manipulation;
+  @keyframes arenaFloat { 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-14px); } }
+  .arenaBall:before {
+    content:"";
+    position:absolute;
+    left:32px;
+    right:32px;
+    top:65px;
+    height:14px;
+    border-radius:999px;
+    background:#010611;
+    transform:rotate(-6deg);
   }
-  .luxBuilt{ margin-top:3px; color:#005cff; font-size:11px; letter-spacing:.30em; font-weight:1000; text-shadow:0 0 14px rgba(0,82,255,.74); }
-  .luxBuilt b{ color:#2da8ff; }
-  .luxHiddenInput{ position:absolute; left:-9999px; top:-9999px; width:1px; height:1px; opacity:0; }
-  .luxWarn{ position:absolute; bottom:112px; left:0; right:0; text-align:center; color:#ff6b6b; font-size:10px; font-weight:1000; letter-spacing:.14em; }
-  @media (max-height:700px){
-    .luxTitleBase{font-size:66px}.luxTitleSub{font-size:18px}.luxPortal{height:205px;margin-top:10px}.luxBall{width:104px;height:104px;bottom:75px}.luxRing{bottom:40px}.luxPlay{height:78px;font-size:32px}.luxLobby{padding-left:16px;padding-right:16px}
+  .arenaBall:after {
+    content:"";
+    position:absolute;
+    left:48px;
+    top:55px;
+    width:17px;
+    height:32px;
+    border-radius:999px;
+    background:#010611;
+    box-shadow:42px 0 0 #010611;
+    transform:rotate(-3deg);
   }
-  @media (min-width:520px){ .luxLobby{max-width:430px;} }
+  .arenaPlatform {
+    position:absolute;
+    z-index:3;
+    left:50%;
+    top:506px;
+    width:260px;
+    height:76px;
+    transform:translateX(-50%);
+    border-radius:50%;
+    background:radial-gradient(ellipse at 50% 38%, rgba(0,225,255,.9), rgba(0,82,255,.28) 42%, transparent 72%);
+    filter:drop-shadow(0 0 26px rgba(0,174,255,.82));
+  }
+  .arenaPlatform:after {
+    content:"";
+    position:absolute;
+    left:24px;
+    right:24px;
+    top:18px;
+    height:36px;
+    border-radius:50%;
+    border:3px solid rgba(62,220,255,.86);
+    box-shadow:0 0 28px rgba(0,200,255,.9), inset 0 0 18px rgba(0,82,255,.52);
+  }
+  .arenaPlay {
+    position:absolute;
+    z-index:7;
+    left:22px;
+    right:22px;
+    bottom:118px;
+    min-height:86px;
+    border:1px solid rgba(124,229,255,.98);
+    color:white;
+    font-size:42px;
+    font-style:italic;
+    font-weight:1000;
+    letter-spacing:.12em;
+    background:linear-gradient(180deg, rgba(0,35,104,.98), rgba(0,82,255,.48) 50%, rgba(0,18,58,.96));
+    clip-path:polygon(8% 0, 92% 0, 100% 50%, 92% 100%, 8% 100%, 0 50%);
+    box-shadow:0 0 34px rgba(0,170,255,.9), inset 0 0 38px rgba(0,132,255,.38), inset 0 2px 0 rgba(255,255,255,.34);
+    text-shadow:0 0 18px rgba(255,255,255,.85);
+    touch-action:manipulation;
+  }
+  .arenaPlay span {
+    color:#49f1ff;
+    font-size:32px;
+    letter-spacing:0;
+    margin:0 18px;
+    text-shadow:0 0 18px rgba(0,240,255,.95);
+  }
+  .arenaSettings {
+    position:absolute;
+    z-index:7;
+    left:50%;
+    bottom:72px;
+    transform:translateX(-50%);
+    border:0;
+    background:transparent;
+    color:#65efff;
+    font-size:16px;
+    font-weight:1000;
+    letter-spacing:.28em;
+    text-shadow:0 0 16px rgba(0,220,255,.88);
+    touch-action:manipulation;
+  }
+  .arenaBuilt {
+    position:absolute;
+    z-index:7;
+    left:0;
+    right:0;
+    bottom:28px;
+    color:#0078ff;
+    text-align:center;
+    font-size:13px;
+    font-weight:1000;
+    letter-spacing:.28em;
+    text-shadow:0 0 14px rgba(0,82,255,.72);
+  }
+  #nameEditPanel { display:none !important; }
+  @media (max-height:700px) {
+    .arenaLogoWrap { top:128px; }
+    .arenaLogoBase { font-size:66px; }
+    .arenaLogoSub { font-size:19px; }
+    .arenaBallStage { top:342px; }
+    .arenaBall { width:122px; height:122px; }
+    .arenaBall:before { top:56px; left:28px; right:28px; }
+    .arenaBall:after { top:48px; left:41px; box-shadow:36px 0 0 #010611; }
+    .arenaPlatform { top:458px; width:235px; }
+    .arenaPlay { bottom:104px; min-height:76px; font-size:36px; }
+    .arenaSettings { bottom:64px; }
+    .arenaBuilt { bottom:25px; }
+  }
 
 </style>
 <div id="app">
   <div id="noise"></div>
   <section id="menuScreen" class="screen active">
-    <div class="luxLobby">
-      <div class="luxTop">
-        <button id="editNameBtn" class="luxUser">
-          <span class="luxBaseBadge">B</span>
-          <span class="luxUserText">
-            <strong id="profileName">PLAYER</strong>
-            <em>ONLINE</em>
-          </span>
-          <span class="luxEdit">✎</span>
-        </button>
-        <button id="howBtnTop" class="luxHelp">?</button>
-      </div>
+    <div class="arenaLobby">
+      <div class="arenaParticles"></div>
+      <div class="arenaSideGlow"></div>
 
-      <div class="luxStage">
-        <div class="luxGhostB">B</div>
-        <div class="luxTitle">
-          <div class="luxTitleBase">BASE</div>
-          <div class="luxTitleSub">BOING BATTLE</div>
+      <div class="arenaTop">
+        <div class="arenaProfile" id="profileTapArea">
+          <div class="arenaAvatar">B</div>
+          <div>
+            <div id="profileName" class="arenaName">PLAYER</div>
+            <div class="arenaOnline">ONLINE</div>
+          </div>
         </div>
-
-        <div class="luxPortal">
-          <div class="luxBeam"></div>
-          <div class="luxBall"></div>
-          <div class="luxRing"></div>
-        </div>
+        <button id="editNameBtn" class="arenaEdit">✎</button>
+        <button id="howBtnTop" class="arenaHelp">?</button>
       </div>
 
-      <div class="luxActions">
-        <button id="playBtn" class="luxPlay"><span>››</span> PLAY <span>‹‹</span></button>
-        <button id="settingsBtn" class="luxSettings">⚙ SETTINGS</button>
-        <div class="luxBuilt">BUILT ON <b>BASE</b></div>
+      <div class="arenaLogoWrap">
+        <div class="arenaBigB">B</div>
+        <div class="arenaLogoBase">BASE</div>
+        <div class="arenaLogoSub">BOING BATTLE</div>
       </div>
 
-      <input id="usernameInput" maxlength="10" class="luxHiddenInput" />
-      <div id="nameWarn" class="luxWarn"></div>
+      <div class="arenaStands"></div>
+      <div class="arenaBanners">
+        <div class="arenaBanner">BASE</div>
+        <div class="arenaBanner">BASE</div>
+      </div>
+
+      <div class="arenaBallStage"><div class="arenaBall"></div></div>
+      <div class="arenaPlatform"></div>
+
+      <div class="finalUsernameEdit" id="nameEditPanel">
+        <input id="usernameInput" maxlength="10" placeholder="USERNAME" />
+        <button id="saveNameBtn">SAVE</button>
+        <div id="nameWarn"></div>
+      </div>
+
+      <button id="playBtn" class="arenaPlay"><span>»</span>PLAY<span>«</span></button>
+      <button id="settingsBtn" class="arenaSettings">⚙ SETTINGS</button>
+      <div class="arenaBuilt">BUILT ON BASE</div>
     </div>
   </section>
+
 
   <section id="settingsScreen" class="screen">
     <div class="mobileSubPage">
@@ -1479,7 +1733,8 @@ export default function MobilePage() {
   var nameInput=$('usernameInput'); if(nameInput){ nameInput.addEventListener('input',function(){ this.value=cleanName(this.value); }); }
   var roomInput=$('roomCodeInput'); if(roomInput){ roomInput.addEventListener('input',function(){ this.value=cleanName(this.value); }); }
   bindTap($('saveNameBtn'), saveName);
-  bindTap($('editNameBtn'), function(){ var current=(playerName==='PLAYER'?'':playerName); var v=prompt('USERNAME', current); if(v===null) return; var name=cleanName(v); var input=$('usernameInput'); if(input) input.value=name; saveName(); });
+  bindTap($('editNameBtn'), function(){ var current=playerName==='PLAYER'?'':playerName; var next=prompt('USERNAME', current); if(next!==null){ var input=$('usernameInput'); if(input){ input.value=next; } saveName(); } });
+  bindTap($('profileTapArea'), function(){ var current=playerName==='PLAYER'?'':playerName; var next=prompt('USERNAME', current); if(next!==null){ var input=$('usernameInput'); if(input){ input.value=next; } saveName(); } });
   loadSound();
 
   document.querySelectorAll('.region').forEach(function(btn){ bindTap(btn,function(){ socketRegion=btn.getAttribute('data-region')||'EU'; document.querySelectorAll('.region').forEach(function(b){b.classList.remove('selected')}); btn.classList.add('selected'); }); });
