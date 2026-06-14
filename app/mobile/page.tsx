@@ -112,98 +112,115 @@ export default function MobilePage() {
   .statusStrip { display:flex; gap:8px; justify-content:center; margin-top:12px; }
   .statusChip { padding:7px 9px; border-radius:999px; background:rgba(0,82,255,.12); border:1px solid rgba(0,82,255,.22); color:rgba(255,255,255,.70); font-size:8px; letter-spacing:.16em; font-weight:1000; }
 
+  .nameInput {
+    width:100%; min-height:58px; border-radius:24px; outline:none;
+    border:1px solid rgba(255,255,255,.16); background:rgba(0,0,0,.46); color:white;
+    text-align:center; font-size:18px; font-weight:1000; letter-spacing:.18em; text-transform:uppercase;
+    box-shadow:inset 0 0 24px rgba(0,82,255,.14), 0 0 24px rgba(0,82,255,.10);
+  }
+  .nameInput::placeholder { color:rgba(255,255,255,.34); }
+  .nameWarning { display:none; margin-top:9px; text-align:center; color:#f87171; font-size:10px; font-weight:1000; letter-spacing:.16em; }
+  .nameWarning.active { display:block; }
+  .premiumRegionGrid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .region {
+    position:relative; min-height:70px; overflow:hidden; border-radius:24px;
+    background:linear-gradient(145deg, rgba(255,255,255,.08), rgba(255,255,255,.025));
+    box-shadow:inset 0 0 24px rgba(255,255,255,.03);
+  }
+  .region:before { content:""; position:absolute; inset:-40px; opacity:0; background:conic-gradient(from 120deg, transparent, rgba(34,211,238,.32), transparent); transition:opacity .22s ease; }
+  .region.selected:before { opacity:1; animation:spin 8s linear infinite; }
+  .region span { position:relative; z-index:1; display:block; font-size:17px; letter-spacing:.18em; }
+  .region small { position:relative; z-index:1; display:block; margin-top:5px; font-size:8px; letter-spacing:.14em; opacity:.60; }
+  .region.selected { border-color:#22d3ee; color:white; box-shadow:0 0 28px rgba(34,211,238,.32), inset 0 0 30px rgba(34,211,238,.10); background:linear-gradient(145deg, rgba(34,211,238,.18), rgba(0,82,255,.10)); }
+  .duelCard { margin-top:10px; display:grid; grid-template-columns:1fr auto 1fr; gap:8px; align-items:center; }
+  .duelName { border:1px solid rgba(255,255,255,.12); background:rgba(255,255,255,.055); border-radius:18px; padding:10px 6px; text-align:center; font-size:11px; font-weight:1000; letter-spacing:.13em; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .duelVs { color:#9dc0ff; font-size:11px; font-weight:1000; letter-spacing:.16em; }
 
-  /* GAME LOBBY STYLE MENU */
-  #menuScreen { padding:16px 18px 20px; background:radial-gradient(circle at 50% 10%, rgba(0,82,255,.22), transparent 30%), #020204; }
-  .lobby { min-height:100%; display:flex; flex-direction:column; gap:14px; max-width:430px; margin:0 auto; padding-top:calc(env(safe-area-inset-top) + 4px); padding-bottom:calc(env(safe-area-inset-bottom) + 10px); }
-  .topBar { display:flex; align-items:center; justify-content:space-between; gap:10px; }
-  .profilePill { flex:1; min-height:54px; border-radius:22px; padding:8px 10px; display:flex; align-items:center; gap:10px; border:1px solid rgba(255,255,255,.12); background:linear-gradient(180deg, rgba(255,255,255,.09), rgba(255,255,255,.035)); box-shadow:0 0 26px rgba(0,82,255,.13); }
-  .avatarBall { width:38px; height:38px; border-radius:999px; background:radial-gradient(circle at 35% 25%, #fff, #bcd2ff 18%, #0052ff 48%, #061a4d 75%, #000 100%); box-shadow:0 0 22px rgba(0,82,255,.55); position:relative; flex:0 0 auto; }
-  .avatarBall:after { content:""; position:absolute; left:5px; right:5px; top:16px; height:6px; border-radius:99px; background:rgba(255,255,255,.78); transform:rotate(-12deg); }
-  .profileName { font-weight:1000; font-size:12px; letter-spacing:.09em; color:white; }
-  .profileSub { margin-top:3px; color:#72a6ff; font-size:9px; letter-spacing:.13em; font-weight:1000; }
-  .coinPill { min-width:74px; height:40px; border-radius:18px; border:1px solid rgba(255,255,255,.12); background:rgba(0,0,0,.44); display:flex; align-items:center; justify-content:center; gap:6px; font-size:10px; font-weight:1000; letter-spacing:.08em; box-shadow:inset 0 0 18px rgba(255,255,255,.035); }
-  .coinDot { width:14px; height:14px; border-radius:50%; background:radial-gradient(circle,#fff5b5,#fbbf24 55%,#7a4100); box-shadow:0 0 12px rgba(251,191,36,.35); }
-  .hamburger { width:44px; height:40px; border-radius:18px; border:1px solid rgba(255,255,255,.13); background:rgba(0,0,0,.42); color:white; font-size:22px; font-weight:1000; }
-  .lobbyHero { position:relative; min-height:282px; border-radius:34px; overflow:hidden; border:1px solid rgba(255,255,255,.10); background:linear-gradient(180deg, rgba(8,22,48,.98), rgba(1,4,12,.96)); box-shadow:0 0 48px rgba(0,82,255,.20); }
-  .lobbyHero:before { content:""; position:absolute; inset:0; background:linear-gradient(120deg, transparent 8%, rgba(0,82,255,.11) 12%, transparent 20%, transparent 78%, rgba(0,82,255,.13) 86%, transparent 94%); opacity:.95; }
-  .lobbyHero:after { content:""; position:absolute; left:50%; bottom:-70px; width:330px; height:170px; transform:translateX(-50%); border-radius:50%; background:radial-gradient(circle at 50% 5%, rgba(0,82,255,.36), rgba(0,82,255,.08) 34%, transparent 70%); }
-  .heroLogo { position:absolute; top:34px; left:0; right:0; text-align:center; font-size:42px; line-height:.86; font-weight:1000; letter-spacing:.09em; text-shadow:0 4px 0 rgba(255,255,255,.10), 0 0 34px rgba(0,82,255,.95); }
-  .heroLogo span { display:block; color:#64a5ff; font-size:50px; letter-spacing:.075em; text-shadow:0 0 30px rgba(0,82,255,.95); }
-  .heroArc { position:absolute; top:22px; left:50%; width:170px; height:76px; transform:translateX(-50%); border-top:6px solid rgba(170,210,255,.70); border-radius:50%; filter:drop-shadow(0 0 12px rgba(0,82,255,.8)); opacity:.7; }
-  .heroBall { position:absolute; left:50%; bottom:52px; width:82px; height:82px; transform:translateX(-50%); border-radius:50%; background:radial-gradient(circle at 32% 24%, #fff, #dceaff 16%, #7fb1ff 36%, #0052ff 62%, #051944 100%); box-shadow:0 0 40px rgba(0,82,255,.74), 0 18px 42px rgba(0,0,0,.7); animation:floatBall 2.4s ease-in-out infinite; }
-  .heroBall:before { content:""; position:absolute; left:11px; right:11px; top:34px; height:12px; border-radius:999px; background:rgba(255,255,255,.88); transform:rotate(-10deg); }
-  .heroBall:after { content:""; position:absolute; left:27px; top:31px; width:7px; height:13px; border-radius:999px; background:#020817; box-shadow:22px 0 0 #020817; }
-  .heroPlatform { position:absolute; left:50%; bottom:26px; width:170px; height:30px; transform:translateX(-50%); border-radius:50%; background:radial-gradient(ellipse, rgba(0,120,255,.72), rgba(0,82,255,.18) 48%, transparent 72%); filter:blur(.2px); }
-  @keyframes floatBall { 0%,100%{ transform:translateX(-50%) translateY(0); } 50%{ transform:translateX(-50%) translateY(-13px); } }
-  .bigPlay { position:relative; width:92%; min-height:64px; margin:-32px auto 0; border-radius:18px; border:1px solid rgba(155,205,255,.36); background:linear-gradient(180deg,#1e88ff,#0052ff 58%,#05276f); color:white; font-size:22px; font-weight:1000; letter-spacing:.16em; box-shadow:0 0 34px rgba(0,82,255,.56), inset 0 2px 0 rgba(255,255,255,.28); z-index:3; clip-path:polygon(8% 0, 92% 0, 100% 50%, 92% 100%, 8% 100%, 0 50%); }
-  .bigPlay .playIcon { display:inline-block; margin-right:10px; transform:translateY(1px); }
-  .quickModes { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
-  .quickCard { min-height:58px; border-radius:18px; border:1px solid rgba(255,255,255,.13); background:linear-gradient(180deg,rgba(255,255,255,.09),rgba(255,255,255,.035)); color:white; font-weight:1000; font-size:12px; letter-spacing:.12em; display:flex; align-items:center; justify-content:center; gap:8px; box-shadow:0 0 20px rgba(0,82,255,.10); }
-  .quickIcon { font-size:18px; filter:drop-shadow(0 0 10px rgba(0,82,255,.7)); }
-  .usernameCard { border-radius:22px; padding:10px; border:1px solid rgba(255,255,255,.12); background:rgba(0,0,0,.32); display:grid; grid-template-columns:1fr auto; gap:8px; align-items:center; }
-  #usernameInput { width:100%; height:46px; border:1px solid rgba(255,255,255,.13); border-radius:16px; background:rgba(255,255,255,.08); color:white; text-align:center; font-size:14px; font-weight:1000; letter-spacing:.12em; outline:none; text-transform:uppercase; }
-  #usernameInput::placeholder { color:rgba(255,255,255,.34); }
-  #saveNameBtn { height:46px; min-width:74px; border:0; border-radius:16px; background:white; color:#020204; font-size:11px; font-weight:1000; letter-spacing:.12em; }
-  #nameWarn { min-height:16px; text-align:center; color:#ff7b7b; font-size:9px; font-weight:1000; letter-spacing:.12em; margin-top:6px; }
-  .premiumRegionWrap { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
-  .region { position:relative; min-height:66px; overflow:hidden; border-radius:22px; background:linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.025)); }
-  .region:before { content:""; position:absolute; inset:0; background:radial-gradient(circle at 50% 0%, rgba(34,211,238,.22), transparent 58%); opacity:.35; }
-  .region strong { position:relative; display:block; font-size:16px; letter-spacing:.16em; }
-  .region span { position:relative; display:block; margin-top:5px; font-size:8px; color:rgba(255,255,255,.48); letter-spacing:.16em; }
-  .region.selected { border-color:#64d8ff; background:linear-gradient(180deg, rgba(34,211,238,.22), rgba(0,82,255,.10)); box-shadow:0 0 28px rgba(34,211,238,.32), inset 0 0 18px rgba(255,255,255,.06); }
-  .bottomNav { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; padding:10px; border-radius:24px; border:1px solid rgba(255,255,255,.10); background:rgba(0,0,0,.36); box-shadow:0 0 26px rgba(0,82,255,.12); }
-  .navItem { min-height:48px; border:0; border-radius:16px; background:transparent; color:rgba(255,255,255,.52); font-size:8px; letter-spacing:.10em; font-weight:1000; }
-  .navItem b { display:block; font-size:18px; margin-bottom:4px; color:#6aa7ff; }
-  .navItem.active { background:rgba(0,82,255,.12); color:#8ebaff; }
+  .choiceCard { min-height:78px; width:100%; border:1px solid rgba(255,255,255,.13); border-radius:24px; background:linear-gradient(180deg, rgba(255,255,255,.075), rgba(255,255,255,.025)); color:white; text-align:left; padding:14px 16px; font-weight:1000; letter-spacing:.12em; touch-action:manipulation; box-shadow:0 0 24px rgba(0,82,255,.10); }
+  .choiceCard strong { display:block; font-size:15px; }
+  .choiceCard span { display:block; margin-top:7px; font-size:9px; color:rgba(255,255,255,.52); letter-spacing:.16em; }
+  .choiceCard.primaryChoice { background:linear-gradient(135deg, rgba(0,82,255,.32), rgba(255,255,255,.055)); border-color:rgba(0,82,255,.42); box-shadow:0 0 32px rgba(0,82,255,.26); }
+  .choiceCard:active { transform:scale(.978); }
+  .roomInput { width:100%; height:60px; border-radius:22px; border:1px solid rgba(255,255,255,.16); background:rgba(0,0,0,.35); color:white; text-align:center; font-size:19px; font-weight:1000; letter-spacing:.24em; outline:none; text-transform:uppercase; }
+  .modeMini { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .smallBack { min-height:52px; border-radius:22px; font-size:12px; }
 
 </style>
 <div id="app">
   <div id="splashScreen"><div id="splashCard"><div id="splashCardInner"><div class="splashOrb"></div><div class="splashTitle">BASE<br/>BOING<br/>BATTLE</div><div class="splashSub">MOBILE ARENA LOADING</div></div></div></div>
   <div id="noise"></div>
   <section id="menuScreen" class="screen active">
-    <div class="lobby">
-      <div class="topBar">
-        <div class="profilePill">
-          <div class="avatarBall"></div>
-          <div>
-            <div id="profileName" class="profileName">PLAYER</div>
-            <div class="profileSub">READY TO BOING</div>
+    <div class="center">
+      <div class="premiumShell">
+        <div class="premiumInner">
+          <div class="titleBadge">BUILT ON BASE</div>
+          <div class="orb"></div>
+          <h1>BASE<br/>BOING<br/>BATTLE</h1>
+          <div class="sub">MOBILE ONCHAIN ARCADE</div>
+          <div class="menuOrbit"></div>
+          <div class="featureGrid">
+            <div class="feature"><strong>DRAW</strong><span>LINES</span></div>
+            <div class="feature"><strong>DEFLECT</strong><span>BALL</span></div>
+            <div class="feature"><strong>SCORE</strong><span>FIRST 7</span></div>
           </div>
+          <div class="statusStrip"><div class="statusChip">AI</div><div class="statusChip">ONLINE</div><div class="statusChip">MOBILE</div></div>
         </div>
-        <div class="coinPill"><span class="coinDot"></span><span>12.5K</span></div>
-        <button id="howBtnTop" class="hamburger">≡</button>
       </div>
 
-      <div class="lobbyHero">
-        <div class="heroArc"></div>
-        <div class="heroLogo">BASE<span>BOING</span>BATTLE</div>
-        <div class="heroBall"></div>
-        <div class="heroPlatform"></div>
+      <div class="card">
+        <div class="sectionLabel">PLAYER NAME</div>
+        <input id="usernameInput" class="nameInput" maxlength="10" placeholder="USERNAME" autocomplete="off" autocapitalize="characters" />
+        <div id="nameWarning" class="nameWarning">ENTER USERNAME FIRST</div>
       </div>
 
-      <button id="playBtn" class="bigPlay"><span class="playIcon">▶</span>PLAY</button>
-
-      <div class="usernameCard">
-        <input id="usernameInput" maxlength="10" placeholder="USERNAME" />
-        <button id="saveNameBtn">SAVE</button>
-        <div id="nameWarn" style="grid-column:1 / -1"></div>
+      <div class="card">
+        <button id="playBtn" class="bigPlay"><span class="playIcon">▶</span>PLAY</button>
       </div>
 
-      <div class="quickModes">
-        <button id="onlineBtn" class="quickCard"><span class="quickIcon">⚔</span>ONLINE 1V1</button>
-        <button id="howBtn" class="quickCard"><span class="quickIcon">?</span>HOW TO PLAY</button>
+      <div class="modeMini">
+        <button id="howBtn" class="miniBtn">HOW TO<br/>PLAY</button>
+        <button id="howBtnTop" class="miniBtn">RULES<br/>GUIDE</button>
       </div>
 
+      <div class="sub">CHOOSE MODE AFTER PLAY</div>
+    </div>
+  </section>
+
+  <section id="modeScreen" class="screen">
+    <div class="center">
+      <div>
+        <div class="titleBadge">CHOOSE MODE</div>
+        <h1>BOING<br/>ARENA</h1>
+        <div class="sub">SELECT YOUR BATTLE TYPE</div>
+      </div>
+      <div class="card">
+        <button id="modeAiBtn" class="choiceCard primaryChoice"><strong>VS AI</strong><span>TRAIN AGAINST BOT</span></button>
+        <div style="height:10px"></div>
+        <button id="modeOnlineBtn" class="choiceCard"><strong>ONLINE 1V1</strong><span>RANDOM PLAYER MATCH</span></button>
+        <div style="height:10px"></div>
+        <button id="modeCreateBtn" class="choiceCard"><strong>CREATE ROOM</strong><span>INVITE WITH ROOM CODE</span></button>
+        <div style="height:10px"></div>
+        <button id="modeJoinBtn" class="choiceCard"><strong>JOIN ROOM</strong><span>ENTER FRIEND CODE</span></button>
+      </div>
       <div class="card">
         <div class="sectionLabel">REGION</div>
-        <div class="premiumRegionWrap">
-          <button class="region selected" data-region="EU"><strong>EU</strong><span>FRANKFURT</span></button>
-          <button class="region" data-region="US"><strong>US</strong><span>VIRGINIA</span></button>
+        <div class="premiumRegionGrid">
+          <button class="region selected" data-region="EU"><span>EU</span><small>FRANKFURT</small></button>
+          <button class="region" data-region="US"><span>US</span><small>AMERICA</small></button>
         </div>
       </div>
+      <button id="backModeBtn" class="btn secondary smallBack">MAIN MENU</button>
+    </div>
+  </section>
 
-      <div class="card">
+  <section id="arenaScreen" class="screen">
+    <div class="center">
+      <div>
+        <div id="arenaModeTitle" class="titleBadge">VS AI</div>
+        <h1>SELECT<br/>ARENA</h1>
+        <div class="sub">MAPS APPEAR AFTER MODE SELECT</div>
+      </div>
+      <div id="difficultyCard" class="card">
         <div class="sectionLabel">DIFFICULTY</div>
         <div class="row">
           <button class="difficulty" data-difficulty="easy">EASY</button>
@@ -211,7 +228,6 @@ export default function MobilePage() {
           <button class="difficulty" data-difficulty="hard">HARD</button>
         </div>
       </div>
-
       <div class="card">
         <div class="sectionLabel">ARENA</div>
         <div class="grid">
@@ -221,13 +237,24 @@ export default function MobilePage() {
           <button class="arena" data-arena="temple">TEMPLE<small>CHAIN RUNES</small></button>
         </div>
       </div>
+      <button id="startModeBtn" class="btn">START</button>
+      <button id="backArenaBtn" class="btn secondary smallBack">BACK</button>
+    </div>
+  </section>
 
-      <div class="bottomNav">
-        <button class="navItem active"><b>⌂</b>HOME</button>
-        <button class="navItem"><b>🏆</b>RANK</button>
-        <button class="navItem"><b>◇</b>BASE</button>
-        <button class="navItem"><b>⚙</b>SET</button>
+  <section id="roomScreen" class="screen">
+    <div class="center">
+      <div>
+        <div class="titleBadge">JOIN ROOM</div>
+        <h1>ENTER<br/>CODE</h1>
+        <div class="sub">PRIVATE FRIEND MATCH</div>
       </div>
+      <div class="card">
+        <input id="roomCodeInput" class="roomInput" maxlength="8" placeholder="ROOM" autocomplete="off" autocapitalize="characters" />
+        <div id="roomWarn" class="nameWarning"></div>
+      </div>
+      <button id="joinRoomBtn" class="btn">JOIN ROOM</button>
+      <button id="backRoomBtn" class="btn secondary smallBack">BACK</button>
     </div>
   </section>
 
@@ -250,6 +277,11 @@ export default function MobilePage() {
       </div>
       <div class="card">
         <div id="matchStatus">CONNECTING SOCKET...</div>
+        <div class="duelCard">
+          <div id="matchYou" class="duelName">YOU</div>
+          <div class="duelVs">VS</div>
+          <div id="matchRival" class="duelName">RIVAL</div>
+        </div>
       </div>
       <button id="cancelMatchBtn" class="btn red">CANCEL</button>
     </div>
@@ -279,55 +311,45 @@ export default function MobilePage() {
 <script>
 (function(){
   var W=400,H=700;
-  var arena='classic', difficulty='normal', socketRegion='EU', mode='ai';
+  var arena='classic', difficulty='normal', socketRegion='EU', mode='ai', playerName='YOU', rivalName='RIVAL';
   var canvas, ctx, raf=0;
   var ball, lines, trail, sparks, score, energy, started=false, paused=false, drawing=null, goalLocked=false;
   var frame=0, audioUnlocked=false, lastWallSound=0, lastOnlineScoreTotal=null, lastOnlineRoundKey=null, onlineCountdownTimer=null, onlineBattleTimer=null;
   var socket=null, socketReady=false, isHost=false, roleKnown=false, roomCode=null, mobileId='mobile_'+Math.random().toString(16).slice(2,10), onlineTarget={x:200,y:350,vx:1.2,vy:1.8}, onlineStateAt=Date.now();
-  var playerName='PLAYER', rivalName='RIVAL';
   var SOCKET_EU='https://base-boing-battle-1.onrender.com';
   var SOCKET_US='https://base-boing-battle-usa.onrender.com';
   function flash(){ var f=$('goalFlash'); var gw=$('gameWrap'); if(f){ f.classList.add('active'); setTimeout(function(){f.classList.remove('active')},220); } if(gw){ gw.classList.add('shake'); setTimeout(function(){gw.classList.remove('shake')},330); } }
 
   function $(id){ return document.getElementById(id); }
-  function cleanName(value){ return String(value||'').replace(/[^a-zA-Z0-9_]/g,'').slice(0,10).toUpperCase(); }
-  function loadName(){
-    var saved=''; try{ saved=localStorage.getItem('bbb_mobile_username')||''; }catch(e){}
-    playerName=cleanName(saved)||'PLAYER';
-    var input=$('usernameInput'); if(input) input.value=playerName==='PLAYER'?'':playerName;
-    var profile=$('profileName'); if(profile) profile.textContent=playerName;
-  }
-  function saveName(){
+  function cleanName(v){ return String(v||'').replace(/[^a-zA-Z0-9_]/g,'').slice(0,10).toUpperCase(); }
+  function getPlayerName(){
     var input=$('usernameInput');
-    var finalName=cleanName(input&&input.value);
-    var warn=$('nameWarn');
-    if(!finalName){ if(warn) warn.textContent='ENTER USERNAME FIRST'; return false; }
+    var finalName=cleanName(input?input.value:playerName);
+    if(!finalName){
+      var warn=$('nameWarning'); if(warn) warn.classList.add('active');
+      setOverlay('ENTER NAME');
+      try{ navigator.vibrate&&navigator.vibrate(25); }catch(e){}
+      return null;
+    }
     playerName=finalName;
-    try{ localStorage.setItem('bbb_mobile_username', playerName); }catch(e){}
-    if(input) input.value=playerName;
-    var profile=$('profileName'); if(profile) profile.textContent=playerName;
-    if(warn) warn.textContent='SAVED';
-    setTimeout(function(){ if(warn && warn.textContent==='SAVED') warn.textContent=''; },900);
-    return true;
+    if(input) input.value=finalName;
+    var warn=$('nameWarning'); if(warn) warn.classList.remove('active');
+    try{ localStorage.setItem('base_boing_mobile_username', finalName); }catch(e){}
+    return finalName;
   }
-  function requireName(){
-    var input=$('usernameInput');
-    var candidate=cleanName(input&&input.value) || cleanName(playerName);
-    if(candidate && candidate!=='PLAYER'){ playerName=candidate; saveName(); return true; }
-    var warn=$('nameWarn'); if(warn) warn.textContent='ENTER USERNAME FIRST';
-    show('menuScreen');
-    return false;
-  }
-  function displayName(name){ return cleanName(name)||'PLAYER'; }
+  function shortName(v){ v=cleanName(v)||'PLAYER'; return v.length>10?v.slice(0,10):v; }
   function updateScoreHud(){
     if(!$('scoreHud')||!score) return;
-    var left = mode==='online' ? displayName(rivalName) : 'AI';
-    var right = displayName(playerName);
-    $('scoreHud').textContent=left+' '+score.ai+' ◇ '+score.player+' '+right;
+    var left = mode==='online' ? shortName(rivalName) : 'AI';
+    var right = shortName(playerName||'YOU');
+    $('scoreHud').textContent = left+' '+score.ai+' ◇ '+score.player+' '+right;
+  }
+  function loadSavedName(){
+    try{ var saved=localStorage.getItem('base_boing_mobile_username'); if(saved){ playerName=cleanName(saved); var input=$('usernameInput'); if(input) input.value=playerName; } }catch(e){}
   }
   function setMatchStatus(v){ var el=$('matchStatus'); if(el) el.textContent=v; }
   function show(id){
-    ['menuScreen','howScreen','matchScreen','gameScreen'].forEach(function(s){ $(s).classList.remove('active'); });
+    ['menuScreen','modeScreen','arenaScreen','roomScreen','howScreen','matchScreen','gameScreen'].forEach(function(s){ $(s).classList.remove('active'); });
     $(id).classList.add('active');
   }
   function bindTap(el, fn){
@@ -432,6 +454,8 @@ export default function MobilePage() {
     socket.io.uri=url;
     socket.on('connect',function(){ socketReady=true; setMatchStatus('CONNECTED • SEARCHING...'); if(cb) cb(); });
     socket.on('disconnect',function(){ socketReady=false; });
+    socket.on('room-created',function(data){ data=data||{}; mode='online'; isHost=true; roleKnown=true; roomCode=data.roomCode||data.room_code||data.code||roomCode; setMatchStatus('ROOM '+(roomCode||'CREATED')+' • WAITING RIVAL'); });
+    socket.on('join-error',function(message){ setMatchStatus(String(message||'JOIN ERROR')); });
     socket.on('matchmaking-status',function(data){
       if(data && data.status==='searching') setMatchStatus('SEARCHING OPPONENT...');
       if(data && data.status==='cancelled'){ setMatchStatus('CANCELLED'); show('menuScreen'); }
@@ -440,7 +464,6 @@ export default function MobilePage() {
       data=data||{};
       mode='online';
       roomCode=data.roomCode||data.room_code||roomCode;
-      rivalName=cleanName(data.opponentUsername||data.opponent_username||data.rivalUsername)||'RIVAL';
 
       // IMPORTANT: never let both mobile clients become host.
       // The server sends role: "host" or "guest". Host uses server coordinates,
@@ -449,6 +472,8 @@ export default function MobilePage() {
         isHost=(data.role==='host');
         roleKnown=true;
       }
+      rivalName=cleanName(data.opponentUsername || data.opponent_username || data.rivalUsername || data.rival_username || 'RIVAL');
+      var my=$('matchYou'), rv=$('matchRival'); if(my) my.textContent=shortName(playerName); if(rv) rv.textContent=shortName(rivalName);
 
       setMatchStatus((isHost?'HOST':'GUEST')+' • MATCH FOUND');
       setOverlay(isHost?'HOST READY':'GUEST READY');
@@ -458,7 +483,6 @@ export default function MobilePage() {
       data=data||{};
       mode='online';
       roomCode=data.roomCode||data.room_code||roomCode;
-      rivalName=cleanName(data.opponentUsername||data.opponent_username||data.rivalUsername)||'RIVAL';
 
       // Older/manual room event. Do not force isHost=true here; that was causing
       // both mobile devices to behave like the same side.
@@ -469,6 +493,8 @@ export default function MobilePage() {
         isHost=data.isHost;
         roleKnown=true;
       }
+      rivalName=cleanName(data.opponentUsername || data.opponent_username || data.rivalUsername || data.rival_username || 'RIVAL');
+      var my=$('matchYou'), rv=$('matchRival'); if(my) my.textContent=shortName(playerName); if(rv) rv.textContent=shortName(rivalName);
 
       setMatchStatus((isHost?'HOST':'GUEST')+' • MATCH FOUND');
       setTimeout(function(){ startOnlineMatch(); if(data.state) applyOnlineState(data.state); },900);
@@ -482,16 +508,64 @@ export default function MobilePage() {
     socket.on('connect_error',function(){ setMatchStatus('SOCKET CONNECTION FAILED'); });
   }
   function startOnlineSearch(){
-    if(!requireName()) return;
+    var readyName=getPlayerName();
+    if(!readyName) return;
     mode='online'; isHost=false; roleKnown=false; roomCode=null; rivalName='RIVAL'; show('matchScreen'); setMatchStatus('CONNECTING SOCKET...');
+    var my=$('matchYou'), rv=$('matchRival'); if(my) my.textContent=readyName; if(rv) rv.textContent='RIVAL';
     ensureSocket(function(){
-      var name=displayName(playerName);
-      try{ socket.emit('find-match',{ address:mobileId, username:name, region:socketRegion }); }catch(e){ setMatchStatus('SEARCH FAILED'); }
+      try{ socket.emit('find-match',{ address:mobileId, username:readyName, region:socketRegion }); }catch(e){ setMatchStatus('SEARCH FAILED'); }
     });
   }
   function cancelOnlineSearch(){
     try{ if(socket) socket.emit('cancel-matchmaking',{ address:mobileId }); }catch(e){}
     mode='ai'; roomCode=null; show('menuScreen');
+  }
+  function openModeMenu(){
+    if(!requireName()) return;
+    show('modeScreen');
+  }
+  function openArenaFor(nextMode){
+    if(!requireName()) return;
+    pendingMode=nextMode;
+    var label= nextMode==='ai' ? 'VS AI' : nextMode==='online' ? 'ONLINE 1V1' : nextMode==='create' ? 'CREATE ROOM' : 'ARENA';
+    var title=$('arenaModeTitle'); if(title) title.textContent=label;
+    var diff=$('difficultyCard'); if(diff) diff.style.display = nextMode==='ai' ? 'block' : 'none';
+    var start=$('startModeBtn');
+    if(start) start.textContent = nextMode==='ai' ? 'START VS AI' : nextMode==='online' ? 'FIND MATCH' : nextMode==='create' ? 'CREATE ROOM' : 'START';
+    show('arenaScreen');
+  }
+  function startSelectedMode(){
+    if(!requireName()) return;
+    if(pendingMode==='ai'){ newMatch(); return; }
+    if(pendingMode==='online'){ startOnlineSearch(); return; }
+    if(pendingMode==='create'){ startCreateRoom(); return; }
+  }
+  function openJoinRoom(){
+    if(!requireName()) return;
+    var input=$('roomCodeInput'); if(input) input.value='';
+    var warn=$('roomWarn'); if(warn) warn.textContent='';
+    show('roomScreen');
+  }
+  function startCreateRoom(){
+    if(!requireName()) return;
+    mode='online'; isHost=true; roleKnown=true; roomCode=null; rivalName='RIVAL';
+    show('matchScreen'); setMatchStatus('CREATING ROOM...');
+    ensureSocket(function(){
+      try{ socket.emit('create-room',{ address:mobileId, username:displayName(playerName), arena:arena, region:socketRegion }); }
+      catch(e){ setMatchStatus('CREATE ROOM FAILED'); }
+    });
+  }
+  function startJoinRoom(){
+    if(!requireName()) return;
+    var input=$('roomCodeInput');
+    var code=String(input&&input.value||'').replace(/[^a-zA-Z0-9]/g,'').toUpperCase();
+    if(!code){ var warn=$('roomWarn'); if(warn) warn.textContent='ENTER ROOM CODE'; return; }
+    mode='online'; isHost=false; roleKnown=true; roomCode=code; rivalName='RIVAL';
+    show('matchScreen'); setMatchStatus('JOINING ROOM '+code+'...');
+    ensureSocket(function(){
+      try{ socket.emit('join-room',{ roomCode:code, address:mobileId, username:displayName(playerName) }); }
+      catch(e){ setMatchStatus('JOIN ROOM FAILED'); }
+    });
   }
   function startOnlineMatch(){
     canvas=$('gameCanvas'); ctx=canvas.getContext('2d');
@@ -515,8 +589,8 @@ export default function MobilePage() {
     updateScoreHud();
     var totalScore=score.player+score.ai;
     if(lastOnlineScoreTotal!==null && totalScore>lastOnlineScoreTotal){
-      if(score.player>prevPlayer) setOverlay(displayName(playerName)+' SCORES');
-      else if(score.ai>prevAi) setOverlay(displayName(rivalName)+' SCORES');
+      if(score.player>prevPlayer) setOverlay(shortName(playerName)+' SCORES');
+      else if(score.ai>prevAi) setOverlay(shortName(rivalName)+' SCORES');
       flash(); playSound('goal');
     }
     lastOnlineScoreTotal=totalScore;
@@ -543,7 +617,7 @@ export default function MobilePage() {
       var youWin=(winner==='host'&&isHost)||(winner==='guest'&&!isHost);
       $('resultTitle').textContent=youWin?'YOU WIN':'RIVAL WINS';
       $('resultTitle').style.color=youWin?theme().main:'#ef4444';
-      $('resultScore').textContent=displayName(rivalName)+' '+score.ai+' ◇ '+score.player+' '+displayName(playerName);
+      $('resultScore').textContent=shortName(rivalName)+' '+score.ai+' ◇ '+score.player+' '+shortName(playerName);
       $('resultPanel').classList.add('active');
     }
   }
@@ -556,8 +630,9 @@ export default function MobilePage() {
   }
   function opponentLeft(){ started=false; paused=true; setOverlay('OPPONENT LEFT'); setTimeout(function(){ show('menuScreen'); },1200); }
   function newMatch(){
-    if(!requireName()) return;
-    mode='ai'; isHost=false; roleKnown=false; roomCode=null;
+    var readyName=getPlayerName();
+    if(!readyName) return;
+    mode='ai'; isHost=false; roleKnown=false; roomCode=null; rivalName='AI';
     canvas=$('gameCanvas'); ctx=canvas.getContext('2d');
     score={player:0,ai:0,msg:'',life:0}; resetBall('down');
     updateScoreHud();
@@ -616,14 +691,14 @@ export default function MobilePage() {
     var text=$('overlayText');
     if(score.player>=7 || score.ai>=7){
       text.textContent='';
-      $('resultTitle').textContent=score.player>=7?displayName(playerName)+' WINS':'AI WINS';
+      $('resultTitle').textContent=score.player>=7?shortName(playerName)+' WINS':'AI WINS';
       $('resultTitle').style.color=score.player>=7?theme().main:'#ef4444';
       $('resultTitle').style.textShadow='0 0 26px '+(score.player>=7?theme().main:'#ef4444');
-      $('resultScore').textContent='AI '+score.ai+' ◇ '+score.player+' '+displayName(playerName);
+      $('resultScore').textContent='AI '+score.ai+' ◇ '+score.player+' '+shortName(playerName);
       $('resultPanel').classList.add('active');
       return;
     }
-    setOverlay(who==='player'?displayName(playerName)+' SCORES':'AI SCORES');
+    setOverlay(who==='player'?shortName(playerName)+' SCORES':'AI SCORES');
     setTimeout(function(){ resetBall(who==='player'?'down':'up'); countdown(3); },950);
   }
   function drawBg(){
@@ -739,17 +814,29 @@ export default function MobilePage() {
   }
   function loop(){ if(ctx) render(); raf=requestAnimationFrame(loop); }
 
-  loadName();
-  var nameInput=$('usernameInput'); if(nameInput){ nameInput.addEventListener('input',function(){ this.value=cleanName(this.value); }); }
-  bindTap($('saveNameBtn'), saveName);
+  loadSavedName();
+  var nameInput=$('usernameInput');
+  if(nameInput){
+    nameInput.addEventListener('input',function(){ nameInput.value=cleanName(nameInput.value); playerName=nameInput.value||'YOU'; var warn=$('nameWarning'); if(playerName&&warn) warn.classList.remove('active'); });
+    nameInput.addEventListener('blur',function(){ var n=cleanName(nameInput.value); if(n){ playerName=n; try{localStorage.setItem('base_boing_mobile_username', n)}catch(e){} } });
+  }
   setTimeout(function(){ var sp=$('splashScreen'); if(sp) sp.classList.add('hide'); }, 1200);
 
   document.querySelectorAll('.region').forEach(function(btn){ bindTap(btn,function(){ socketRegion=btn.getAttribute('data-region')||'EU'; document.querySelectorAll('.region').forEach(function(b){b.classList.remove('selected')}); btn.classList.add('selected'); }); });
   bindTap($('onlineBtn'), startOnlineSearch);
   bindTap($('cancelMatchBtn'), cancelOnlineSearch);
+  bindTap($('modeAiBtn'), function(){ openArenaFor('ai'); });
+  bindTap($('modeOnlineBtn'), function(){ openArenaFor('online'); });
+  bindTap($('modeCreateBtn'), function(){ openArenaFor('create'); });
+  bindTap($('modeJoinBtn'), openJoinRoom);
+  bindTap($('backModeBtn'), function(){ show('menuScreen'); });
+  bindTap($('startModeBtn'), startSelectedMode);
+  bindTap($('backArenaBtn'), function(){ show('modeScreen'); });
+  bindTap($('joinRoomBtn'), startJoinRoom);
+  bindTap($('backRoomBtn'), function(){ show('modeScreen'); });
   document.querySelectorAll('.arena').forEach(function(btn){ bindTap(btn,function(){ arena=btn.getAttribute('data-arena')||'classic'; document.querySelectorAll('.arena').forEach(function(b){b.classList.remove('selected')}); btn.classList.add('selected'); }); });
   document.querySelectorAll('.difficulty').forEach(function(btn){ bindTap(btn,function(){ difficulty=btn.getAttribute('data-difficulty')||'normal'; document.querySelectorAll('.difficulty').forEach(function(b){b.classList.remove('selected')}); btn.classList.add('selected'); }); });
-  bindTap($('playBtn'), newMatch);
+  bindTap($('playBtn'), openModeMenu);
   bindTap($('howBtn'), function(){ show('howScreen'); });
   bindTap($('howBtnTop'), function(){ show('howScreen'); });
   bindTap($('backHowBtn'), function(){ show('menuScreen'); });
