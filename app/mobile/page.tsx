@@ -666,39 +666,269 @@ export default function MobilePage() {
   .modeBtn span { display:block; margin-top:6px; font-size:9px; color:rgba(255,255,255,.52); letter-spacing:.16em; }
   .modeBtn.primary { background:linear-gradient(180deg,rgba(0,82,255,.34),rgba(0,82,255,.12)); border-color:rgba(91,155,255,.42); box-shadow:0 0 34px rgba(0,82,255,.28); }
 
+
+
+  /* FULL SCREEN ARCADE LOBBY - BASE BLUE / BLACK */
+  #menuScreen {
+    padding:0 !important;
+    overflow:hidden !important;
+    background:
+      radial-gradient(circle at 50% 18%, rgba(0,82,255,.34), transparent 34%),
+      radial-gradient(circle at 50% 70%, rgba(0,180,255,.12), transparent 35%),
+      linear-gradient(180deg, #030816 0%, #020204 58%, #000 100%) !important;
+  }
+  #menuScreen:before {
+    content:"";
+    position:absolute;
+    inset:0;
+    pointer-events:none;
+    background:
+      linear-gradient(rgba(0,82,255,.13) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,82,255,.13) 1px, transparent 1px);
+    background-size:38px 38px;
+    mask-image:linear-gradient(to bottom, rgba(0,0,0,.7), rgba(0,0,0,.28), transparent 92%);
+    opacity:.75;
+  }
+  #menuScreen:after {
+    content:"";
+    position:absolute;
+    left:-20%; right:-20%; bottom:-20%; height:44%;
+    pointer-events:none;
+    background:radial-gradient(ellipse at 50% 0%, rgba(0,82,255,.42), rgba(0,82,255,.12) 42%, transparent 72%);
+    filter:blur(2px);
+  }
+  .arcadeLobby {
+    position:relative;
+    z-index:2;
+    min-height:100%;
+    max-width:430px;
+    margin:0 auto;
+    display:flex;
+    flex-direction:column;
+    justify-content:space-between;
+    padding:calc(env(safe-area-inset-top) + 16px) 18px calc(env(safe-area-inset-bottom) + 18px);
+  }
+  .arcadeTop {
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+  }
+  .arcadeUser {
+    min-width:0;
+    max-width:calc(100% - 60px);
+    height:44px;
+    padding:0 15px;
+    border-radius:999px;
+    border:1px solid rgba(77,150,255,.34);
+    background:rgba(0,0,0,.36);
+    color:#dceaff;
+    font-size:13px;
+    font-weight:1000;
+    letter-spacing:.10em;
+    text-align:left;
+    box-shadow:0 0 22px rgba(0,82,255,.18), inset 0 0 18px rgba(255,255,255,.025);
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+    touch-action:manipulation;
+  }
+  .arcadeHelp {
+    width:44px;
+    height:44px;
+    border-radius:999px;
+    border:1px solid rgba(77,150,255,.30);
+    background:rgba(0,0,0,.34);
+    color:#7fb1ff;
+    font-size:20px;
+    font-weight:1000;
+    box-shadow:0 0 20px rgba(0,82,255,.16);
+    touch-action:manipulation;
+  }
+  .arcadeCenter {
+    flex:1;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    padding:18px 0 6px;
+  }
+  .arcadeLogo {
+    text-align:center;
+    transform:translateY(-8px);
+  }
+  .arcadeBase {
+    font-size:64px;
+    line-height:.84;
+    font-weight:1000;
+    letter-spacing:.10em;
+    color:#ffffff;
+    text-shadow:0 0 26px rgba(0,82,255,.95), 0 5px 0 rgba(0,82,255,.18);
+  }
+  .arcadeBoing {
+    margin-top:4px;
+    font-size:72px;
+    line-height:.84;
+    font-weight:1000;
+    letter-spacing:.04em;
+    color:#4d96ff;
+    text-shadow:0 0 34px rgba(0,82,255,1), 0 5px 0 rgba(255,255,255,.08);
+  }
+  .arcadeBattle {
+    margin-top:14px;
+    font-size:20px;
+    line-height:1;
+    font-weight:1000;
+    letter-spacing:.58em;
+    text-indent:.58em;
+    color:rgba(255,255,255,.86);
+    text-shadow:0 0 18px rgba(0,180,255,.65);
+  }
+  .arcadeOrbWrap {
+    position:relative;
+    width:260px;
+    height:210px;
+    margin-top:26px;
+  }
+  .arcadeOrbRing {
+    position:absolute;
+    left:50%; top:50%;
+    border-radius:50%;
+    border:1px solid rgba(77,150,255,.22);
+    box-shadow:0 0 30px rgba(0,82,255,.20);
+  }
+  .arcadeOrbRing.one {
+    width:230px; height:96px;
+    margin:-48px 0 0 -115px;
+    transform:rotate(-14deg);
+  }
+  .arcadeOrbRing.two {
+    width:170px; height:70px;
+    margin:-35px 0 0 -85px;
+    transform:rotate(18deg);
+    opacity:.48;
+  }
+  .arcadeBall {
+    position:absolute;
+    left:50%; top:50%;
+    width:96px; height:96px;
+    margin:-58px 0 0 -48px;
+    border-radius:999px;
+    background:radial-gradient(circle at 32% 22%, #fff, #dceaff 17%, #83b6ff 38%, #0052ff 64%, #03143b 100%);
+    box-shadow:0 0 54px rgba(0,82,255,.88), 0 24px 44px rgba(0,0,0,.65);
+    animation:arcadeFloat 2.5s ease-in-out infinite;
+  }
+  .arcadeBall:before {
+    content:"";
+    position:absolute;
+    left:13px; right:13px; top:39px;
+    height:12px;
+    border-radius:999px;
+    background:rgba(255,255,255,.92);
+    transform:rotate(-10deg);
+    box-shadow:0 0 17px rgba(0,82,255,.75);
+  }
+  .arcadeBall:after {
+    content:"";
+    position:absolute;
+    left:31px; top:37px;
+    width:7px; height:16px;
+    border-radius:999px;
+    background:#020817;
+    box-shadow:28px 0 0 #020817;
+  }
+  .arcadeGlow {
+    position:absolute;
+    left:50%; top:134px;
+    width:230px; height:54px;
+    margin-left:-115px;
+    border-radius:50%;
+    background:radial-gradient(ellipse at 50% 35%, rgba(0,150,255,.88), rgba(0,82,255,.23) 40%, transparent 72%);
+    filter:blur(.4px);
+  }
+  .arcadeActions {
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:12px;
+  }
+  .arcadePlay {
+    width:100%;
+    min-height:84px;
+    border:0;
+    clip-path:polygon(7% 0,93% 0,100% 50%,93% 100%,7% 100%,0 50%);
+    background:linear-gradient(180deg, #39a4ff 0%, #0052ff 58%, #062a78 100%);
+    color:white;
+    font-size:34px;
+    font-weight:1000;
+    letter-spacing:.22em;
+    text-indent:.22em;
+    box-shadow:0 0 46px rgba(0,82,255,.72), inset 0 2px 0 rgba(255,255,255,.28);
+    touch-action:manipulation;
+  }
+  .arcadeSettings {
+    min-height:42px;
+    padding:0 28px;
+    border-radius:999px;
+    border:1px solid rgba(77,150,255,.26);
+    background:rgba(0,0,0,.24);
+    color:rgba(220,234,255,.72);
+    font-size:11px;
+    font-weight:1000;
+    letter-spacing:.22em;
+    box-shadow:0 0 18px rgba(0,82,255,.12);
+    touch-action:manipulation;
+  }
+  .arcadeFooter {
+    margin-top:4px;
+    color:rgba(255,255,255,.34);
+    font-size:9px;
+    font-weight:1000;
+    letter-spacing:.28em;
+  }
+  .arcadeUser:active, .arcadeHelp:active, .arcadePlay:active, .arcadeSettings:active { transform:scale(.975); }
+  @keyframes arcadeFloat {
+    0%,100% { transform:translateY(0); }
+    50% { transform:translateY(-15px); }
+  }
+  @media (max-height:720px) {
+    .arcadeBase { font-size:54px; }
+    .arcadeBoing { font-size:62px; }
+    .arcadeBattle { font-size:16px; margin-top:11px; }
+    .arcadeOrbWrap { width:230px; height:170px; margin-top:18px; }
+    .arcadeBall { width:82px; height:82px; margin:-50px 0 0 -41px; }
+    .arcadeGlow { top:112px; }
+    .arcadePlay { min-height:72px; font-size:30px; }
+  }
+
 </style>
 <div id="app">
   <div id="noise"></div>
   <section id="menuScreen" class="screen active">
-    <div class="mobileLobbySimple">
-      <div class="finalTop">
-        <div class="finalProfile">
-          <div class="finalAvatar"></div>
-          <div class="finalNameWrap">
-            <div id="profileName" class="finalName">PLAYER</div>
-            <div class="finalNameSub">READY TO BOING</div>
-          </div>
-          <button id="editNameBtn" class="finalEdit">✎</button>
+    <div class="arcadeLobby">
+      <div class="arcadeTop">
+        <button id="editNameBtn" class="arcadeUser">@<span id="profileName">PLAYER</span></button>
+        <button id="howBtnTop" class="arcadeHelp">?</button>
+      </div>
+
+      <div class="arcadeCenter">
+        <div class="arcadeLogo">
+          <div class="arcadeBase">BASE</div>
+          <div class="arcadeBoing">BOING</div>
+          <div class="arcadeBattle">BATTLE</div>
         </div>
-        <button id="howBtnTop" class="finalHow">?</button>
+        <div class="arcadeOrbWrap">
+          <div class="arcadeOrbRing one"></div>
+          <div class="arcadeOrbRing two"></div>
+          <div class="arcadeBall"></div>
+          <div class="arcadeGlow"></div>
+        </div>
       </div>
 
-      <div class="mobileHeroCard">
-        <div class="mobileHeroRing"></div>
-        <div class="mobileHeroLogo">BASE<span>BOING</span><small>BATTLE</small></div>
-        <div class="mobileHeroBall"></div>
-        <div class="mobileHeroPlatform"></div>
-      </div>
-
-      <div class="finalUsernameEdit" id="nameEditPanel">
-        <input id="usernameInput" maxlength="10" placeholder="USERNAME" />
-        <button id="saveNameBtn">SAVE</button>
-        <div id="nameWarn"></div>
-      </div>
-
-      <div class="mobileMainActions">
-        <button id="playBtn" class="mobileMegaPlay">PLAY</button>
-        <button id="settingsBtn" class="mobileSettingsBtn">SETTINGS</button>
+      <div class="arcadeActions">
+        <button id="playBtn" class="arcadePlay">PLAY</button>
+        <button id="settingsBtn" class="arcadeSettings">SETTINGS</button>
+        <div class="arcadeFooter">BUILT ON BASE</div>
       </div>
     </div>
   </section>
@@ -880,7 +1110,9 @@ export default function MobilePage() {
     var input=$('usernameInput');
     var candidate=cleanName(input&&input.value) || cleanName(playerName);
     if(candidate && candidate!=='PLAYER'){ playerName=candidate; saveName(); return true; }
-    var warn=$('nameWarn'); if(warn) warn.textContent='ENTER USERNAME FIRST';
+    var next=window.prompt('ENTER USERNAME');
+    next=cleanName(next);
+    if(next){ playerName=next; try{ localStorage.setItem('bbb_mobile_username', playerName); }catch(e){} var profile=$('profileName'); if(profile) profile.textContent=playerName; return true; }
     show('menuScreen');
     return false;
   }
@@ -1363,7 +1595,7 @@ export default function MobilePage() {
   var nameInput=$('usernameInput'); if(nameInput){ nameInput.addEventListener('input',function(){ this.value=cleanName(this.value); }); }
   var roomInput=$('roomCodeInput'); if(roomInput){ roomInput.addEventListener('input',function(){ this.value=cleanName(this.value); }); }
   bindTap($('saveNameBtn'), saveName);
-  bindTap($('editNameBtn'), function(){ var input=$('usernameInput'); if(input){ input.focus(); } });
+  bindTap($('editNameBtn'), function(){ var current=(playerName==='PLAYER'?'':playerName); var next=window.prompt('USERNAME', current); if(next===null) return; next=cleanName(next); if(!next) return; playerName=next; try{ localStorage.setItem('bbb_mobile_username', playerName); }catch(e){} var profile=$('profileName'); if(profile) profile.textContent=playerName; });
   loadSound();
 
   document.querySelectorAll('.region').forEach(function(btn){ bindTap(btn,function(){ socketRegion=btn.getAttribute('data-region')||'EU'; document.querySelectorAll('.region').forEach(function(b){b.classList.remove('selected')}); btn.classList.add('selected'); }); });
