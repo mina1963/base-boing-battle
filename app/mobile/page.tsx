@@ -112,6 +112,30 @@ export default function MobilePage() {
   .statusStrip { display:flex; gap:8px; justify-content:center; margin-top:12px; }
   .statusChip { padding:7px 9px; border-radius:999px; background:rgba(0,82,255,.12); border:1px solid rgba(0,82,255,.22); color:rgba(255,255,255,.70); font-size:8px; letter-spacing:.16em; font-weight:1000; }
 
+  .nameInput {
+    width:100%; min-height:58px; border-radius:24px; outline:none;
+    border:1px solid rgba(255,255,255,.16); background:rgba(0,0,0,.46); color:white;
+    text-align:center; font-size:18px; font-weight:1000; letter-spacing:.18em; text-transform:uppercase;
+    box-shadow:inset 0 0 24px rgba(0,82,255,.14), 0 0 24px rgba(0,82,255,.10);
+  }
+  .nameInput::placeholder { color:rgba(255,255,255,.34); }
+  .nameWarning { display:none; margin-top:9px; text-align:center; color:#f87171; font-size:10px; font-weight:1000; letter-spacing:.16em; }
+  .nameWarning.active { display:block; }
+  .premiumRegionGrid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .region {
+    position:relative; min-height:70px; overflow:hidden; border-radius:24px;
+    background:linear-gradient(145deg, rgba(255,255,255,.08), rgba(255,255,255,.025));
+    box-shadow:inset 0 0 24px rgba(255,255,255,.03);
+  }
+  .region:before { content:""; position:absolute; inset:-40px; opacity:0; background:conic-gradient(from 120deg, transparent, rgba(34,211,238,.32), transparent); transition:opacity .22s ease; }
+  .region.selected:before { opacity:1; animation:spin 8s linear infinite; }
+  .region span { position:relative; z-index:1; display:block; font-size:17px; letter-spacing:.18em; }
+  .region small { position:relative; z-index:1; display:block; margin-top:5px; font-size:8px; letter-spacing:.14em; opacity:.60; }
+  .region.selected { border-color:#22d3ee; color:white; box-shadow:0 0 28px rgba(34,211,238,.32), inset 0 0 30px rgba(34,211,238,.10); background:linear-gradient(145deg, rgba(34,211,238,.18), rgba(0,82,255,.10)); }
+  .duelCard { margin-top:10px; display:grid; grid-template-columns:1fr auto 1fr; gap:8px; align-items:center; }
+  .duelName { border:1px solid rgba(255,255,255,.12); background:rgba(255,255,255,.055); border-radius:18px; padding:10px 6px; text-align:center; font-size:11px; font-weight:1000; letter-spacing:.13em; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .duelVs { color:#9dc0ff; font-size:11px; font-weight:1000; letter-spacing:.16em; }
+
 </style>
 <div id="app">
   <div id="splashScreen"><div id="splashCard"><div id="splashCardInner"><div class="splashOrb"></div><div class="splashTitle">BASE<br/>BOING<br/>BATTLE</div><div class="splashSub">MOBILE ARENA LOADING</div></div></div></div>
@@ -135,6 +159,12 @@ export default function MobilePage() {
       </div>
 
       <div class="card">
+        <div class="sectionLabel">PLAYER NAME</div>
+        <input id="usernameInput" class="nameInput" maxlength="10" placeholder="USERNAME" autocomplete="off" autocapitalize="characters" />
+        <div id="nameWarning" class="nameWarning">ENTER USERNAME FIRST</div>
+      </div>
+
+      <div class="card">
         <div class="sectionLabel">DIFFICULTY</div>
         <div class="row">
           <button class="difficulty" data-difficulty="easy">EASY</button>
@@ -152,9 +182,9 @@ export default function MobilePage() {
 
       <div class="card">
         <div class="sectionLabel">REGION</div>
-        <div class="row">
-          <button class="region selected" data-region="EU">EU</button>
-          <button class="region" data-region="US">US</button>
+        <div class="premiumRegionGrid">
+          <button class="region selected" data-region="EU"><span>EU</span><small>FRANKFURT</small></button>
+          <button class="region" data-region="US"><span>US</span><small>AMERICA</small></button>
         </div>
         <div style="height:10px"></div>
         <button id="onlineBtn" class="btn secondary">ONLINE 1V1</button>
@@ -194,6 +224,11 @@ export default function MobilePage() {
       </div>
       <div class="card">
         <div id="matchStatus">CONNECTING SOCKET...</div>
+        <div class="duelCard">
+          <div id="matchYou" class="duelName">YOU</div>
+          <div class="duelVs">VS</div>
+          <div id="matchRival" class="duelName">RIVAL</div>
+        </div>
       </div>
       <button id="cancelMatchBtn" class="btn red">CANCEL</button>
     </div>
@@ -223,7 +258,7 @@ export default function MobilePage() {
 <script>
 (function(){
   var W=400,H=700;
-  var arena='classic', difficulty='normal', socketRegion='EU', mode='ai';
+  var arena='classic', difficulty='normal', socketRegion='EU', mode='ai', playerName='YOU', rivalName='RIVAL';
   var canvas, ctx, raf=0;
   var ball, lines, trail, sparks, score, energy, started=false, paused=false, drawing=null, goalLocked=false;
   var frame=0, audioUnlocked=false, lastWallSound=0, lastOnlineScoreTotal=null, lastOnlineRoundKey=null, onlineCountdownTimer=null, onlineBattleTimer=null;
@@ -233,6 +268,32 @@ export default function MobilePage() {
   function flash(){ var f=$('goalFlash'); var gw=$('gameWrap'); if(f){ f.classList.add('active'); setTimeout(function(){f.classList.remove('active')},220); } if(gw){ gw.classList.add('shake'); setTimeout(function(){gw.classList.remove('shake')},330); } }
 
   function $(id){ return document.getElementById(id); }
+  function cleanName(v){ return String(v||'').replace(/[^a-zA-Z0-9_]/g,'').slice(0,10).toUpperCase(); }
+  function getPlayerName(){
+    var input=$('usernameInput');
+    var finalName=cleanName(input?input.value:playerName);
+    if(!finalName){
+      var warn=$('nameWarning'); if(warn) warn.classList.add('active');
+      setOverlay('ENTER NAME');
+      try{ navigator.vibrate&&navigator.vibrate(25); }catch(e){}
+      return null;
+    }
+    playerName=finalName;
+    if(input) input.value=finalName;
+    var warn=$('nameWarning'); if(warn) warn.classList.remove('active');
+    try{ localStorage.setItem('base_boing_mobile_username', finalName); }catch(e){}
+    return finalName;
+  }
+  function shortName(v){ v=cleanName(v)||'PLAYER'; return v.length>10?v.slice(0,10):v; }
+  function updateScoreHud(){
+    if(!$('scoreHud')||!score) return;
+    var left = mode==='online' ? shortName(rivalName) : 'AI';
+    var right = shortName(playerName||'YOU');
+    $('scoreHud').textContent = left+' '+score.ai+' ◇ '+score.player+' '+right;
+  }
+  function loadSavedName(){
+    try{ var saved=localStorage.getItem('base_boing_mobile_username'); if(saved){ playerName=cleanName(saved); var input=$('usernameInput'); if(input) input.value=playerName; } }catch(e){}
+  }
   function setMatchStatus(v){ var el=$('matchStatus'); if(el) el.textContent=v; }
   function show(id){
     ['menuScreen','howScreen','matchScreen','gameScreen'].forEach(function(s){ $(s).classList.remove('active'); });
@@ -356,6 +417,8 @@ export default function MobilePage() {
         isHost=(data.role==='host');
         roleKnown=true;
       }
+      rivalName=cleanName(data.opponentUsername || data.opponent_username || data.rivalUsername || data.rival_username || 'RIVAL');
+      var my=$('matchYou'), rv=$('matchRival'); if(my) my.textContent=shortName(playerName); if(rv) rv.textContent=shortName(rivalName);
 
       setMatchStatus((isHost?'HOST':'GUEST')+' • MATCH FOUND');
       setOverlay(isHost?'HOST READY':'GUEST READY');
@@ -375,6 +438,8 @@ export default function MobilePage() {
         isHost=data.isHost;
         roleKnown=true;
       }
+      rivalName=cleanName(data.opponentUsername || data.opponent_username || data.rivalUsername || data.rival_username || 'RIVAL');
+      var my=$('matchYou'), rv=$('matchRival'); if(my) my.textContent=shortName(playerName); if(rv) rv.textContent=shortName(rivalName);
 
       setMatchStatus((isHost?'HOST':'GUEST')+' • MATCH FOUND');
       setTimeout(function(){ startOnlineMatch(); if(data.state) applyOnlineState(data.state); },900);
@@ -388,10 +453,12 @@ export default function MobilePage() {
     socket.on('connect_error',function(){ setMatchStatus('SOCKET CONNECTION FAILED'); });
   }
   function startOnlineSearch(){
-    mode='online'; isHost=false; roleKnown=false; roomCode=null; show('matchScreen'); setMatchStatus('CONNECTING SOCKET...');
+    var readyName=getPlayerName();
+    if(!readyName) return;
+    mode='online'; isHost=false; roleKnown=false; roomCode=null; rivalName='RIVAL'; show('matchScreen'); setMatchStatus('CONNECTING SOCKET...');
+    var my=$('matchYou'), rv=$('matchRival'); if(my) my.textContent=readyName; if(rv) rv.textContent='RIVAL';
     ensureSocket(function(){
-      var name='MOBILE'+mobileId.slice(-4).toUpperCase();
-      try{ socket.emit('find-match',{ address:mobileId, username:name, region:socketRegion }); }catch(e){ setMatchStatus('SEARCH FAILED'); }
+      try{ socket.emit('find-match',{ address:mobileId, username:readyName, region:socketRegion }); }catch(e){ setMatchStatus('SEARCH FAILED'); }
     });
   }
   function cancelOnlineSearch(){
@@ -401,7 +468,7 @@ export default function MobilePage() {
   function startOnlineMatch(){
     canvas=$('gameCanvas'); ctx=canvas.getContext('2d');
     score={player:0,ai:0,msg:'',life:0}; lastOnlineScoreTotal=null; lastOnlineRoundKey=null; clearOnlineCountdown(); resetBall('down');
-    $('scoreHud').textContent=(isHost?'HOST':'GUEST')+' • RIVAL 0 ◇ 0 YOU';
+    updateScoreHud();
     $('resultPanel').classList.remove('active');
     show('gameScreen'); started=false; paused=true; setOverlay('WAITING');
     if(!raf) loop();
@@ -417,11 +484,11 @@ export default function MobilePage() {
     var prevAi=score.ai||0;
     score.player=isHost?hostScore:guestScore;
     score.ai=isHost?guestScore:hostScore;
-    $('scoreHud').textContent=(isHost?'HOST':'GUEST')+' • RIVAL '+score.ai+' ◇ '+score.player+' YOU';
+    updateScoreHud();
     var totalScore=score.player+score.ai;
     if(lastOnlineScoreTotal!==null && totalScore>lastOnlineScoreTotal){
-      if(score.player>prevPlayer) setOverlay('YOU SCORES');
-      else if(score.ai>prevAi) setOverlay('RIVAL SCORES');
+      if(score.player>prevPlayer) setOverlay(shortName(playerName)+' SCORES');
+      else if(score.ai>prevAi) setOverlay(shortName(rivalName)+' SCORES');
       flash(); playSound('goal');
     }
     lastOnlineScoreTotal=totalScore;
@@ -448,7 +515,7 @@ export default function MobilePage() {
       var youWin=(winner==='host'&&isHost)||(winner==='guest'&&!isHost);
       $('resultTitle').textContent=youWin?'YOU WIN':'RIVAL WINS';
       $('resultTitle').style.color=youWin?theme().main:'#ef4444';
-      $('resultScore').textContent='RIVAL '+score.ai+' ◇ '+score.player+' YOU';
+      $('resultScore').textContent=shortName(rivalName)+' '+score.ai+' ◇ '+score.player+' '+shortName(playerName);
       $('resultPanel').classList.add('active');
     }
   }
@@ -461,10 +528,12 @@ export default function MobilePage() {
   }
   function opponentLeft(){ started=false; paused=true; setOverlay('OPPONENT LEFT'); setTimeout(function(){ show('menuScreen'); },1200); }
   function newMatch(){
-    mode='ai'; isHost=false; roleKnown=false; roomCode=null;
+    var readyName=getPlayerName();
+    if(!readyName) return;
+    mode='ai'; isHost=false; roleKnown=false; roomCode=null; rivalName='AI';
     canvas=$('gameCanvas'); ctx=canvas.getContext('2d');
     score={player:0,ai:0,msg:'',life:0}; resetBall('down');
-    $('scoreHud').textContent='AI 0 ◇ 0 YOU';
+    updateScoreHud();
     $('resultPanel').classList.remove('active');
     show('gameScreen'); started=false; paused=true;
     countdown(3);
@@ -516,18 +585,18 @@ export default function MobilePage() {
     if(goalLocked) return;
     goalLocked=true; paused=true; started=false; flash(); playSound('goal');
     if(who==='player') score.player++; else score.ai++;
-    $('scoreHud').textContent='AI '+score.ai+' ◇ '+score.player+' YOU';
+    updateScoreHud();
     var text=$('overlayText');
     if(score.player>=7 || score.ai>=7){
       text.textContent='';
-      $('resultTitle').textContent=score.player>=7?'YOU WIN':'AI WINS';
+      $('resultTitle').textContent=score.player>=7?shortName(playerName)+' WINS':'AI WINS';
       $('resultTitle').style.color=score.player>=7?theme().main:'#ef4444';
       $('resultTitle').style.textShadow='0 0 26px '+(score.player>=7?theme().main:'#ef4444');
-      $('resultScore').textContent='AI '+score.ai+' ◇ '+score.player+' YOU';
+      $('resultScore').textContent='AI '+score.ai+' ◇ '+score.player+' '+shortName(playerName);
       $('resultPanel').classList.add('active');
       return;
     }
-    setOverlay(who==='player'?'YOU SCORES':'AI SCORES');
+    setOverlay(who==='player'?shortName(playerName)+' SCORES':'AI SCORES');
     setTimeout(function(){ resetBall(who==='player'?'down':'up'); countdown(3); },950);
   }
   function drawBg(){
@@ -643,6 +712,12 @@ export default function MobilePage() {
   }
   function loop(){ if(ctx) render(); raf=requestAnimationFrame(loop); }
 
+  loadSavedName();
+  var nameInput=$('usernameInput');
+  if(nameInput){
+    nameInput.addEventListener('input',function(){ nameInput.value=cleanName(nameInput.value); playerName=nameInput.value||'YOU'; var warn=$('nameWarning'); if(playerName&&warn) warn.classList.remove('active'); });
+    nameInput.addEventListener('blur',function(){ var n=cleanName(nameInput.value); if(n){ playerName=n; try{localStorage.setItem('base_boing_mobile_username', n)}catch(e){} } });
+  }
   setTimeout(function(){ var sp=$('splashScreen'); if(sp) sp.classList.add('hide'); }, 1200);
 
   document.querySelectorAll('.region').forEach(function(btn){ bindTap(btn,function(){ socketRegion=btn.getAttribute('data-region')||'EU'; document.querySelectorAll('.region').forEach(function(b){b.classList.remove('selected')}); btn.classList.add('selected'); }); });
