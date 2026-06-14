@@ -81,21 +81,41 @@ export default function MobilePage() {
   @keyframes popText { 0%{opacity:0;transform:scale(.55)} 45%{opacity:1;transform:scale(1.18)} 100%{opacity:1;transform:scale(1)} }
   #resultPanel { backdrop-filter:blur(10px); }
 
+  .premiumShell { position:relative; padding:16px; border-radius:34px; overflow:hidden; border:1px solid rgba(255,255,255,.14); background:linear-gradient(180deg, rgba(255,255,255,.09), rgba(255,255,255,.025)); box-shadow:0 0 54px rgba(0,82,255,.20); }
+  .premiumShell:before { content:""; position:absolute; inset:-80px; background:conic-gradient(from 180deg, transparent, rgba(0,82,255,.25), transparent, rgba(34,211,238,.16), transparent); animation:spin 10s linear infinite; opacity:.9; }
+  .premiumInner { position:relative; z-index:1; border-radius:26px; padding:18px 12px; background:rgba(0,0,0,.58); border:1px solid rgba(255,255,255,.08); }
+  .orb { width:92px; height:92px; margin:0 auto 12px; border-radius:999px; background:radial-gradient(circle at 35% 30%, #fff, #8db5ff 16%, #0052ff 42%, #04112f 72%, #000 100%); box-shadow:0 0 46px rgba(0,82,255,.62), inset 0 0 22px rgba(255,255,255,.18); position:relative; }
+  .orb:after { content:""; position:absolute; inset:-13px; border-radius:999px; border:1px solid rgba(34,211,238,.28); box-shadow:0 0 24px rgba(34,211,238,.22); }
+  .featureGrid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-top:12px; }
+  .feature { border:1px solid rgba(255,255,255,.11); background:rgba(255,255,255,.055); border-radius:16px; padding:9px 6px; text-align:center; }
+  .feature strong { display:block; font-size:11px; letter-spacing:.12em; }
+  .feature span { display:block; margin-top:4px; font-size:8px; letter-spacing:.12em; color:rgba(255,255,255,.52); font-weight:900; }
+  .sectionLabel { display:flex; align-items:center; gap:8px; justify-content:center; color:rgba(255,255,255,.72); font-size:10px; font-weight:1000; letter-spacing:.2em; margin-bottom:10px; }
+  .sectionLabel:before, .sectionLabel:after { content:""; height:1px; flex:1; background:linear-gradient(90deg, transparent, rgba(255,255,255,.18)); }
+  .sectionLabel:after { background:linear-gradient(90deg, rgba(255,255,255,.18), transparent); }
+
 </style>
 <div id="app">
   <div id="splashScreen"><div id="splashLogo">BASE<br/>BOING</div></div>
   <div id="noise"></div>
   <section id="menuScreen" class="screen active">
     <div class="center">
-      <div>
-        <div class="titleBadge">BUILT ON BASE</div>
-        <h1>BASE<br/>BOING<br/>BATTLE</h1>
-        <div class="sub">ONCHAIN ARCADE MODE</div>
+      <div class="premiumShell">
+        <div class="premiumInner">
+          <div class="titleBadge">BUILT ON BASE</div>
+          <div class="orb"></div>
+          <h1>BASE<br/>BOING<br/>BATTLE</h1>
+          <div class="sub">MOBILE ONCHAIN ARCADE</div>
+          <div class="featureGrid">
+            <div class="feature"><strong>DRAW</strong><span>LINES</span></div>
+            <div class="feature"><strong>DEFLECT</strong><span>BALL</span></div>
+            <div class="feature"><strong>SCORE</strong><span>FIRST 7</span></div>
+          </div>
+        </div>
       </div>
-      <div class="menuHero"><div class="menuHeroInner"><div style="font-size:24px;font-weight:1000;letter-spacing:.18em">1V1 PHYSICS</div><div class="sub" style="margin:8px 0 0">DRAW • DEFLECT • SCORE</div></div></div>
 
       <div class="card">
-        <div class="sub">DIFFICULTY</div>
+        <div class="sectionLabel">DIFFICULTY</div>
         <div class="row">
           <button class="difficulty" data-difficulty="easy">EASY</button>
           <button class="difficulty selected" data-difficulty="normal">NORMAL</button>
@@ -108,7 +128,7 @@ export default function MobilePage() {
       </div>
 
       <div class="card">
-        <div class="sub">REGION</div>
+        <div class="sectionLabel">REGION</div>
         <div class="row">
           <button class="region selected" data-region="EU">EU</button>
           <button class="region" data-region="US">US</button>
@@ -118,7 +138,7 @@ export default function MobilePage() {
       </div>
 
       <div class="card">
-        <div class="sub">SELECT ARENA</div>
+        <div class="sectionLabel">SELECT ARENA</div>
         <div class="grid">
           <button class="arena selected" data-arena="classic">CLASSIC<small>RETRO GRID</small></button>
           <button class="arena" data-arena="base">BASE<small>NEON STADIUM</small></button>
@@ -227,13 +247,13 @@ export default function MobilePage() {
       var oscillator=audioCtx.createOscillator();
       var gain=audioCtx.createGain();
       oscillator.connect(gain); gain.connect(audioCtx.destination);
-      if(type==='hit'){ oscillator.frequency.value=520; gain.gain.value=.045; }
-      if(type==='wall'){ oscillator.frequency.value=220; gain.gain.value=.035; }
-      if(type==='goal'){ oscillator.frequency.value=120; gain.gain.value=.07; }
+      if(type==='hit'){ oscillator.frequency.value=620; gain.gain.value=.085; try{navigator.vibrate&&navigator.vibrate(18)}catch(e){} }
+      if(type==='wall'){ oscillator.frequency.value=260; gain.gain.value=.06; try{navigator.vibrate&&navigator.vibrate(10)}catch(e){} }
+      if(type==='goal'){ oscillator.frequency.value=135; gain.gain.value=.12; try{navigator.vibrate&&navigator.vibrate([45,25,45])}catch(e){} }
       oscillator.type='square';
       oscillator.start();
-      gain.gain.exponentialRampToValueAtTime(.0001,audioCtx.currentTime+.16);
-      oscillator.stop(audioCtx.currentTime+.17);
+      gain.gain.exponentialRampToValueAtTime(.0001,audioCtx.currentTime+.24);
+      oscillator.stop(audioCtx.currentTime+.25);
       setTimeout(function(){ try{audioCtx.close()}catch(e){} },260);
     }catch(e){}
   }
@@ -309,7 +329,7 @@ export default function MobilePage() {
     socket.on('remote-line',function(line){ addRemoteLine(line); });
     socket.on('opponent-left',function(){ opponentLeft(); });
     socket.on('opponent-disconnected',function(){ opponentLeft(); });
-    socket.on('play-again-status',function(data){ if(data && data.hostReadyAgain && data.guestReadyAgain){ startOnlineMatch(); } });
+    socket.on('play-again-status',function(data){ if(data && data.hostReadyAgain && data.guestReadyAgain){ startOnlineMatch(); } else { setOverlay('WAITING RIVAL'); } });
     socket.on('connect_error',function(){ setMatchStatus('SOCKET CONNECTION FAILED'); });
   }
   function startOnlineSearch(){
@@ -562,7 +582,7 @@ export default function MobilePage() {
   bindTap($('backHowBtn'), function(){ show('menuScreen'); });
   bindTap($('menuBtn'), function(){ started=false; paused=true; $('overlayText').textContent=''; $('resultPanel').classList.remove('active'); if(mode==='online'){ try{ if(socket) socket.emit('leave-room',{ roomCode:roomCode }); }catch(e){} } mode='ai'; show('menuScreen'); });
   bindTap($('restartBtn'), function(){ if(mode==='online'){ setOverlay('ONLINE RESTART DISABLED'); } else newMatch(); });
-  bindTap($('playAgainBtn'), function(){ if(mode==='online' && socket && roomCode){ $('resultPanel').classList.remove('active'); setOverlay('WAITING RIVAL'); try{ socket.emit('play-again',{ roomCode:roomCode }); }catch(e){} } else newMatch(); });
+  bindTap($('playAgainBtn'), function(){ if(mode==='online' && socket && roomCode){ $('resultPanel').classList.remove('active'); setOverlay('WAITING RIVAL'); try{ socket.emit('play-again-ready',{ roomCode:roomCode, role:isHost?'host':'guest' }); }catch(e){} } else newMatch(); });
   bindTap($('resultMenuBtn'), function(){ $('resultPanel').classList.remove('active'); mode='ai'; show('menuScreen'); });
 
   setTimeout(function(){
