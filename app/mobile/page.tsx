@@ -40,7 +40,9 @@ export default function MobilePage() {
     background:linear-gradient(160deg, rgba(0,82,255,.22), rgba(255,255,255,.04));
     color:white; font-weight:1000; letter-spacing:.11em; font-size:12px; touch-action:manipulation;
   }
-  .difficulty { min-height:58px; }
+  .difficulty, .region { min-height:58px; }
+  .region { border:1px solid rgba(255,255,255,.13); border-radius:23px; background:rgba(255,255,255,.08); color:white; font-weight:1000; letter-spacing:.11em; font-size:12px; touch-action:manipulation; }
+  .region.selected { border-color:#22d3ee; box-shadow:0 0 24px rgba(34,211,238,.38); background:rgba(34,211,238,.16); }
   .arena small { display:block; margin-top:7px; opacity:.62; font-size:9px; letter-spacing:.18em; }
   .arena.selected, .difficulty.selected { border-color:#0052ff; box-shadow:0 0 24px rgba(0,82,255,.45); background:linear-gradient(160deg, rgba(0,82,255,.36), rgba(255,255,255,.06)); }
   .arena[data-arena="base"].selected { border-color:#ef4444; box-shadow:0 0 24px rgba(239,68,68,.42); }
@@ -60,7 +62,7 @@ export default function MobilePage() {
   }
   #resultPanel.active { display:block; }
   #resultTitle { font-size:30px; text-align:center; font-weight:1000; letter-spacing:.08em; margin-bottom:12px; }
-  #toast { position:absolute; left:18px; right:18px; bottom:calc(env(safe-area-inset-bottom) + 14px); text-align:center; color:rgba(255,255,255,.72); font-size:11px; font-weight:900; letter-spacing:.12em; pointer-events:none; }
+  #matchStatus { min-height:44px; display:flex; align-items:center; justify-content:center; text-align:center; color:rgba(255,255,255,.72); font-size:12px; font-weight:900; letter-spacing:.14em; line-height:1.5; }
 
   #splashScreen { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:#000; z-index:30; transition:opacity .35s ease; }
   #splashScreen.hide { opacity:0; pointer-events:none; }
@@ -106,6 +108,16 @@ export default function MobilePage() {
       </div>
 
       <div class="card">
+        <div class="sub">REGION</div>
+        <div class="row">
+          <button class="region selected" data-region="EU">EU</button>
+          <button class="region" data-region="US">US</button>
+        </div>
+        <div style="height:10px"></div>
+        <button id="onlineBtn" class="btn secondary">ONLINE 1V1</button>
+      </div>
+
+      <div class="card">
         <div class="sub">SELECT ARENA</div>
         <div class="grid">
           <button class="arena selected" data-arena="classic">CLASSIC<small>RETRO GRID</small></button>
@@ -130,6 +142,20 @@ export default function MobilePage() {
     </div>
   </section>
 
+  <section id="matchScreen" class="screen">
+    <div class="center">
+      <div>
+        <div class="titleBadge">ONLINE 1V1</div>
+        <h1>SEARCHING<br/>OPPONENT</h1>
+        <div class="sub">RANDOM MATCHMAKING</div>
+      </div>
+      <div class="card">
+        <div id="matchStatus">CONNECTING SOCKET...</div>
+      </div>
+      <button id="cancelMatchBtn" class="btn red">CANCEL</button>
+    </div>
+  </section>
+
   <section id="gameScreen" class="screen">
     <div id="gameWrap">
       <canvas id="gameCanvas" width="400" height="700"></canvas>
@@ -148,22 +174,25 @@ export default function MobilePage() {
         <div style="height:10px"></div>
         <button id="resultMenuBtn" class="btn secondary">MAIN MENU</button>
       </div>
-      <div id="toast">DRAW IN YOUR HALF</div>
     </div>
   </section>
 </div>
 <script>
 (function(){
   var W=400,H=700;
-  var arena='classic', difficulty='normal';
+  var arena='classic', difficulty='normal', socketRegion='EU', mode='ai';
   var canvas, ctx, raf=0;
   var ball, lines, trail, sparks, score, energy, started=false, paused=false, drawing=null, goalLocked=false;
   var frame=0, audioUnlocked=false, lastWallSound=0;
+  var socket=null, socketReady=false, isHost=false, roomCode=null, mobileId='mobile_'+Math.random().toString(16).slice(2,10), onlineTarget={x:200,y:350,vx:1.2,vy:1.8}, onlineStateAt=Date.now();
+  var SOCKET_EU='https://base-boing-battle-1.onrender.com';
+  var SOCKET_US='https://base-boing-battle-usa.onrender.com';
   function flash(){ var f=$('goalFlash'); var gw=$('gameWrap'); if(f){ f.classList.add('active'); setTimeout(function(){f.classList.remove('active')},220); } if(gw){ gw.classList.add('shake'); setTimeout(function(){gw.classList.remove('shake')},330); } }
 
   function $(id){ return document.getElementById(id); }
+  function setMatchStatus(v){ var el=$('matchStatus'); if(el) el.textContent=v; }
   function show(id){
-    ['menuScreen','howScreen','gameScreen'].forEach(function(s){ $(s).classList.remove('active'); });
+    ['menuScreen','howScreen','matchScreen','gameScreen'].forEach(function(s){ $(s).classList.remove('active'); });
     $(id).classList.add('active');
   }
   function bindTap(el, fn){
@@ -220,7 +249,101 @@ export default function MobilePage() {
     ball={x:200,y:dir==='up'?525:175,r:8,vx:dir==='up'?1.25:-1.25,vy:dir==='up'?-1.85:1.85};
     lines=[]; trail=[]; sparks=[]; energy=100; drawing=null;
   }
+  function ensureSocket(cb){
+    if(window.io){ connectSocket(cb); return; }
+    var script=document.createElement('script');
+    script.src='https://cdn.socket.io/4.8.1/socket.io.min.js';
+    script.onload=function(){ connectSocket(cb); };
+    script.onerror=function(){ setMatchStatus('SOCKET LOAD FAILED'); };
+    document.head.appendChild(script);
+  }
+  function connectSocket(cb){
+    var url=socketRegion==='US'?SOCKET_US:SOCKET_EU;
+    if(socket && socket.io && socket.io.uri===url){ if(cb) cb(); return; }
+    if(socket){ try{ socket.disconnect(); }catch(e){} }
+    socket=io(url,{transports:['websocket']});
+    socket.io.uri=url;
+    socket.on('connect',function(){ socketReady=true; setMatchStatus('CONNECTED • SEARCHING...'); if(cb) cb(); });
+    socket.on('disconnect',function(){ socketReady=false; });
+    socket.on('matchmaking-status',function(data){
+      if(data && data.status==='searching') setMatchStatus('SEARCHING OPPONENT...');
+      if(data && data.status==='cancelled'){ setMatchStatus('CANCELLED'); show('menuScreen'); }
+    });
+    socket.on('match-found',function(data){
+      data=data||{}; mode='online'; roomCode=data.roomCode||data.room_code||null; isHost=(data.role==='host');
+      setMatchStatus('MATCH FOUND • PREPARING ARENA');
+      setOverlay('MATCH FOUND');
+      setTimeout(function(){ startOnlineMatch(); },900);
+    });
+    socket.on('room-matched',function(data){
+      data=data||{}; mode='online'; roomCode=data.roomCode||data.room_code||roomCode; isHost=true;
+      setMatchStatus('MATCH FOUND • PREPARING ARENA');
+      setTimeout(function(){ startOnlineMatch(); if(data.state) applyOnlineState(data.state); },900);
+    });
+    socket.on('arena-selected',function(data){ if(data && data.arena){ arena=data.arena; } });
+    socket.on('game-state',function(state){ applyOnlineState(state); });
+    socket.on('remote-line',function(line){ addRemoteLine(line); });
+    socket.on('opponent-left',function(){ opponentLeft(); });
+    socket.on('opponent-disconnected',function(){ opponentLeft(); });
+    socket.on('play-again-status',function(data){ if(data && data.hostReadyAgain && data.guestReadyAgain){ startOnlineMatch(); } });
+    socket.on('connect_error',function(){ setMatchStatus('SOCKET CONNECTION FAILED'); });
+  }
+  function startOnlineSearch(){
+    mode='online'; show('matchScreen'); setMatchStatus('CONNECTING SOCKET...');
+    ensureSocket(function(){
+      var name='MOBILE'+mobileId.slice(-4).toUpperCase();
+      try{ socket.emit('find-match',{ address:mobileId, username:name, region:socketRegion }); }catch(e){ setMatchStatus('SEARCH FAILED'); }
+    });
+  }
+  function cancelOnlineSearch(){
+    try{ if(socket) socket.emit('cancel-matchmaking',{ address:mobileId }); }catch(e){}
+    mode='ai'; roomCode=null; show('menuScreen');
+  }
+  function startOnlineMatch(){
+    canvas=$('gameCanvas'); ctx=canvas.getContext('2d');
+    score={player:0,ai:0,msg:'',life:0}; resetBall('down');
+    $('scoreHud').textContent='RIVAL 0 ◇ 0 YOU';
+    $('resultPanel').classList.remove('active');
+    show('gameScreen'); started=false; paused=true; setOverlay('WAITING');
+    if(!raf) loop();
+  }
+  function applyOnlineState(state){
+    if(!state) return;
+    if(state.arena && (state.arena==='classic'||state.arena==='base'||state.arena==='space'||state.arena==='temple')) arena=state.arena;
+    var hostScore=Number(state.host_score!=null?state.host_score:(state.hostScore||0));
+    var guestScore=Number(state.guest_score!=null?state.guest_score:(state.guestScore||0));
+    if(!score) score={player:0,ai:0,msg:'',life:0};
+    score.player=isHost?hostScore:guestScore;
+    score.ai=isHost?guestScore:hostScore;
+    $('scoreHud').textContent='RIVAL '+score.ai+' ◇ '+score.player+' YOU';
+    var bx=Number(state.ball_x!=null?state.ball_x:(state.ball&&state.ball.x)||ball.x);
+    var by=Number(state.ball_y!=null?state.ball_y:(state.ball&&state.ball.y)||ball.y);
+    var bvx=Number(state.ball_vx!=null?state.ball_vx:(state.ball&&state.ball.vx)||ball.vx);
+    var bvy=Number(state.ball_vy!=null?state.ball_vy:(state.ball&&state.ball.vy)||ball.vy);
+    onlineTarget.x=bx; onlineTarget.y=isHost?by:H-by; onlineTarget.vx=bvx; onlineTarget.vy=isHost?bvy:-bvy; onlineStateAt=Date.now();
+    var phase=state.phase||'';
+    if(phase==='countdown'){ started=false; paused=true; if(state.round_start_at||state.roundStartAt){ setOverlay('READY'); } }
+    if(phase==='playing'){ started=true; paused=false; $('overlayText').textContent=''; }
+    var winner=state.winner || (hostScore>=7?'host':guestScore>=7?'guest':null);
+    if(winner){
+      started=false; paused=true;
+      var youWin=(winner==='host'&&isHost)||(winner==='guest'&&!isHost);
+      $('resultTitle').textContent=youWin?'YOU WIN':'RIVAL WINS';
+      $('resultTitle').style.color=youWin?theme().main:'#ef4444';
+      $('resultScore').textContent='RIVAL '+score.ai+' ◇ '+score.player+' YOU';
+      $('resultPanel').classList.add('active');
+    }
+  }
+  function addRemoteLine(line){
+    if(!line) return;
+    var owner=line.owner||'';
+    if((isHost && owner==='host')||(!isHost && owner==='guest')) return;
+    var x1=Number(line.x1), y1=Number(line.y1), x2=Number(line.x2), y2=Number(line.y2);
+    lines.push({x1:x1,y1:isHost?y1:H-y1,x2:x2,y2:isHost?y2:H-y2,life:50,owner:'ai'});
+  }
+  function opponentLeft(){ started=false; paused=true; setOverlay('OPPONENT LEFT'); setTimeout(function(){ show('menuScreen'); },1200); }
   function newMatch(){
+    mode='ai'; isHost=false; roomCode=null;
     canvas=$('gameCanvas'); ctx=canvas.getContext('2d');
     score={player:0,ai:0,msg:'',life:0}; resetBall('down');
     $('scoreHud').textContent='AI 0 ◇ 0 YOU';
@@ -253,14 +376,21 @@ export default function MobilePage() {
       return true;
     });
     lines.push({x1:start.x,y1:start.y,x2:start.x+Math.cos(a)*l,y2:start.y+Math.sin(a)*l,life:50,owner:owner});
-    energy=Math.max(0,energy-25);
+    if(owner==='player') energy=Math.max(0,energy-25);
   }
   function canvasDown(e){ if(!started||paused) return; var p=getPos(e); if(p.y<H/2) return; drawing=p; e.preventDefault(); }
   function canvasMove(e){
     if(!started||paused||!drawing) return;
     var p=getPos(e); if(p.y<H/2) return;
     var d=Math.hypot(p.x-drawing.x,p.y-drawing.y);
-    if(d>55 && energy>=25){ addLine(drawing,p,'player'); drawing=null; }
+    if(d>55 && energy>=25){
+      addLine(drawing,p,'player');
+      if(mode==='online' && socket && roomCode){
+        var end=p; var sx=drawing.x, sy=drawing.y, ex=end.x, ey=end.y;
+        socket.emit('draw-line',{ roomCode:roomCode, line:{ owner:isHost?'host':'guest', x1:sx, y1:isHost?sy:H-sy, x2:ex, y2:isHost?ey:H-ey } });
+      }
+      drawing=null;
+    }
     e.preventDefault();
   }
   function canvasUp(e){ drawing=null; if(e) e.preventDefault(); }
@@ -339,6 +469,15 @@ export default function MobilePage() {
     frame++;
     if(energy<100) energy=Math.min(100,energy+0.22);
     if(!started||paused) return;
+    if(mode==='online'){
+      var elapsed=Math.min(4,(Date.now()-onlineStateAt)/16.67);
+      var px=Math.max(22,Math.min(W-22,onlineTarget.x+onlineTarget.vx*elapsed));
+      var py=Math.max(22,Math.min(H-22,onlineTarget.y+onlineTarget.vy*elapsed));
+      var dxo=px-ball.x, dyo=py-ball.y, disto=Math.hypot(dxo,dyo);
+      if(disto>90){ ball.x=px; ball.y=py; } else { ball.x+=dxo*.32; ball.y+=dyo*.32; }
+      ball.vx=onlineTarget.vx; ball.vy=onlineTarget.vy;
+      return;
+    }
     aiThink();
 
     var steps=Math.max(1,Math.ceil(Math.hypot(ball.vx,ball.vy)/2));
@@ -388,15 +527,18 @@ export default function MobilePage() {
 
   setTimeout(function(){ var sp=$('splashScreen'); if(sp) sp.classList.add('hide'); }, 1200);
 
+  document.querySelectorAll('.region').forEach(function(btn){ bindTap(btn,function(){ socketRegion=btn.getAttribute('data-region')||'EU'; document.querySelectorAll('.region').forEach(function(b){b.classList.remove('selected')}); btn.classList.add('selected'); }); });
+  bindTap($('onlineBtn'), startOnlineSearch);
+  bindTap($('cancelMatchBtn'), cancelOnlineSearch);
   document.querySelectorAll('.arena').forEach(function(btn){ bindTap(btn,function(){ arena=btn.getAttribute('data-arena')||'classic'; document.querySelectorAll('.arena').forEach(function(b){b.classList.remove('selected')}); btn.classList.add('selected'); }); });
   document.querySelectorAll('.difficulty').forEach(function(btn){ bindTap(btn,function(){ difficulty=btn.getAttribute('data-difficulty')||'normal'; document.querySelectorAll('.difficulty').forEach(function(b){b.classList.remove('selected')}); btn.classList.add('selected'); }); });
   bindTap($('playBtn'), newMatch);
   bindTap($('howBtn'), function(){ show('howScreen'); });
   bindTap($('backHowBtn'), function(){ show('menuScreen'); });
-  bindTap($('menuBtn'), function(){ started=false; paused=true; $('overlayText').textContent=''; $('resultPanel').classList.remove('active'); show('menuScreen'); });
-  bindTap($('restartBtn'), newMatch);
-  bindTap($('playAgainBtn'), newMatch);
-  bindTap($('resultMenuBtn'), function(){ $('resultPanel').classList.remove('active'); show('menuScreen'); });
+  bindTap($('menuBtn'), function(){ started=false; paused=true; $('overlayText').textContent=''; $('resultPanel').classList.remove('active'); if(mode==='online'){ try{ if(socket) socket.emit('leave-room',{ roomCode:roomCode }); }catch(e){} } mode='ai'; show('menuScreen'); });
+  bindTap($('restartBtn'), function(){ if(mode==='online'){ setOverlay('ONLINE RESTART DISABLED'); } else newMatch(); });
+  bindTap($('playAgainBtn'), function(){ if(mode==='online' && socket && roomCode){ $('resultPanel').classList.remove('active'); setOverlay('WAITING RIVAL'); try{ socket.emit('play-again',{ roomCode:roomCode }); }catch(e){} } else newMatch(); });
+  bindTap($('resultMenuBtn'), function(){ $('resultPanel').classList.remove('active'); mode='ai'; show('menuScreen'); });
 
   setTimeout(function(){
     canvas=$('gameCanvas');
