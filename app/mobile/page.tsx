@@ -246,21 +246,46 @@ export default function MobilePage() {
   .settingsLine { position:relative; z-index:2; margin-top:0; height:42px; border-radius:16px; border:1px solid rgba(255,255,255,.11); background:rgba(0,0,0,.28); color:rgba(255,255,255,.62); font-size:10px; font-weight:1000; letter-spacing:.15em; }
   @media (max-height:740px){ .logoStage{min-height:270px}.brandLogo{top:48px;font-size:25px}.brandLogo span{font-size:35px}.brandLogo em{font-size:12px}.battleBall{width:68px;height:68px;bottom:58px}.energyPad{bottom:34px}.goldArc{top:22px;width:220px}.menuMode{min-height:52px}.usernameCompact{margin-top:7px} }
 
+
+
+  /* FINAL CLEAN MAIN MENU: username top + play modes + settings under play */
+  .gameMenu { padding-top:calc(env(safe-area-inset-top) + 16px); }
+  .gameTop { justify-content:center; }
+  .gameTop .roundIcon { display:none; }
+  .topPlayer { width:100%; min-height:58px; padding:8px 10px; border-color:rgba(218,179,91,.32); box-shadow:0 0 24px rgba(218,179,91,.10), inset 0 0 18px rgba(255,255,255,.035); }
+  .topPlayer .nameEditWrap { flex:1; min-width:0; display:grid; grid-template-columns:1fr 52px; gap:7px; align-items:center; }
+  .topPlayer #usernameInput { height:39px; border:0; border-bottom:1px solid rgba(255,255,255,.12); border-radius:0; background:transparent; color:white; text-align:left; padding:0 2px; font-size:17px; font-weight:1000; letter-spacing:.04em; outline:none; text-transform:uppercase; }
+  .topPlayer #usernameInput::placeholder { color:rgba(255,255,255,.42); }
+  .topPlayer #saveNameBtn { height:34px; border:0; border-radius:999px; background:rgba(218,179,91,.18); color:#f6d893; font-size:10px; font-weight:1000; letter-spacing:.12em; }
+  .topPlayer #nameWarn { grid-column:1 / -1; min-height:12px; color:#ff8585; font-size:8px; letter-spacing:.12em; font-weight:1000; }
+  .logoStage { min-height:430px; flex:.92; }
+  .modePanel { margin-top:0; border-color:rgba(218,179,91,.18); background:linear-gradient(180deg, rgba(255,255,255,.055), rgba(0,0,0,.36)); }
+  .menuMode { min-height:74px; }
+  .settingsPanelMain { position:relative; z-index:2; margin-top:14px; border-radius:28px; padding:13px; border:1px solid rgba(218,179,91,.28); background:linear-gradient(180deg, rgba(218,179,91,.08), rgba(255,255,255,.025)); box-shadow:0 0 28px rgba(218,179,91,.08); }
+  .settingsHeaderMain { display:flex; align-items:center; gap:14px; min-height:54px; color:#f3d28a; font-size:18px; font-weight:1000; letter-spacing:.12em; }
+  .settingsGear { width:42px; height:42px; border-radius:16px; display:flex; align-items:center; justify-content:center; background:rgba(218,179,91,.16); border:1px solid rgba(218,179,91,.25); font-size:22px; box-shadow:0 0 18px rgba(218,179,91,.12); }
+  .settingsControls { display:grid; gap:11px; margin-top:8px; }
+  .settingsMiniLabel { color:rgba(255,255,255,.48); font-size:9px; font-weight:1000; letter-spacing:.22em; margin:4px 0 0 2px; }
+  .mainRegionGrid, .soundGrid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .mainSound { min-height:54px; border-radius:18px; border:1px solid rgba(255,255,255,.12); background:rgba(255,255,255,.055); color:white; font-weight:1000; letter-spacing:.14em; }
+  .mainSound.on { border-color:#64d8ff; color:#c5f3ff; background:rgba(34,211,238,.13); box-shadow:0 0 18px rgba(34,211,238,.14); }
+  .usernameCompact, .settingsLine { display:none !important; }
+  @media (max-height:740px){ .logoStage{min-height:350px}.menuMode{min-height:62px}.settingsPanelMain{margin-top:10px}.settingsHeaderMain{min-height:42px}.mainSound{min-height:46px} }
+
 </style>
 <div id="app">
   <div id="noise"></div>
   <section id="menuScreen" class="screen active">
     <div class="gameMenu">
       <div class="gameTop">
-        <button id="settingsBtnTop" class="roundIcon">‹</button>
         <div class="topPlayer">
           <div class="miniBall"></div>
-          <div>
-            <div id="profileName" class="topName">PLAYER</div>
-            <div class="topSub">MOBILE ARENA</div>
+          <div class="nameEditWrap">
+            <input id="usernameInput" maxlength="10" placeholder="USERNAME" />
+            <button id="saveNameBtn">SAVE</button>
+            <div id="nameWarn"></div>
           </div>
         </div>
-        <button id="settingsBtn" class="roundIcon">⚙</button>
       </div>
 
       <div class="logoStage">
@@ -279,13 +304,25 @@ export default function MobilePage() {
         <button id="modeJoinBtn" class="menuMode teal"><div class="modeIcon">↪</div><div><strong>JOIN ROOM</strong><span>Join with room code</span></div><b>›</b></button>
       </div>
 
-      <div class="usernameCompact">
-        <input id="usernameInput" maxlength="10" placeholder="USERNAME" />
-        <button id="saveNameBtn">SAVE</button>
-        <div id="nameWarn"></div>
+      <div class="settingsPanelMain">
+        <div class="settingsHeaderMain"><span class="settingsGear">⚙</span><span>SETTINGS</span></div>
+        <div class="settingsControls">
+          <div>
+            <div class="settingsMiniLabel">REGION</div>
+            <div class="mainRegionGrid">
+              <button class="region selected" data-region="EU"><strong>EU</strong><span>FRANKFURT</span></button>
+              <button class="region" data-region="US"><strong>US</strong><span>VIRGINIA</span></button>
+            </div>
+          </div>
+          <div>
+            <div class="settingsMiniLabel">SOUND</div>
+            <div class="soundGrid">
+              <button id="soundOnBtn" class="mainSound on">ON</button>
+              <button id="soundOffBtn" class="mainSound">OFF</button>
+            </div>
+          </div>
+        </div>
       </div>
-
-      <button id="settingsBtnBottom" class="settingsLine">SETTINGS • REGION / SOUND</button>
     </div>
   </section>
 
@@ -526,7 +563,7 @@ export default function MobilePage() {
   }
 
   function unlockAudio(){ audioUnlocked=true; }
-  function syncSoundButton(){ var b=$('soundToggleBtn'); if(b){ b.textContent=soundEnabled?'ON':'OFF'; if(soundEnabled) b.classList.add('on'); else b.classList.remove('on'); } }
+  function syncSoundButton(){ var b=$('soundToggleBtn'); if(b){ b.textContent=soundEnabled?'ON':'OFF'; if(soundEnabled) b.classList.add('on'); else b.classList.remove('on'); } var on=$('soundOnBtn'), off=$('soundOffBtn'); if(on&&off){ if(soundEnabled){ on.classList.add('on'); off.classList.remove('on'); } else { off.classList.add('on'); on.classList.remove('on'); } } }
   function toggleSound(){ soundEnabled=!soundEnabled; try{ localStorage.setItem('bbb_mobile_sound', soundEnabled?'on':'off'); }catch(e){} syncSoundButton(); }
   function loadSound(){ var saved=''; try{ saved=localStorage.getItem('bbb_mobile_sound')||''; }catch(e){} soundEnabled = saved==='off' ? false : true; syncSoundButton(); }
   function playSound(type){
@@ -962,6 +999,8 @@ export default function MobilePage() {
   bindTap($('settingsBtnBottom'), function(){ show('settingsScreen'); });
   bindTap($('settingsBackBtn'), function(){ show('menuScreen'); });
   bindTap($('soundToggleBtn'), toggleSound);
+  bindTap($('soundOnBtn'), function(){ soundEnabled=true; try{localStorage.setItem('bbb_mobile_sound','1')}catch(e){} syncSoundButton(); });
+  bindTap($('soundOffBtn'), function(){ soundEnabled=false; try{localStorage.setItem('bbb_mobile_sound','0')}catch(e){} syncSoundButton(); });
   bindTap($('modeAiBtn'), function(){ chooseMode('ai'); });
   bindTap($('modeOnlineBtn'), function(){ chooseMode('online'); });
   bindTap($('modeCreateBtn'), function(){ chooseMode('create'); });
