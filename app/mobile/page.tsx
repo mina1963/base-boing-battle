@@ -203,86 +203,526 @@ export default function MobilePage() {
   .settingsHero:before { content:""; position:absolute; width:180px; height:82px; border-radius:50%; border:1px solid rgba(100,180,255,.22); transform:rotate(-12deg) scaleY(.46); }
   .settingsHero:after { content:""; width:62px; height:62px; border-radius:50%; background:radial-gradient(circle at 32% 22%, #fff, #d8e7ff 18%, #0052ff 58%, #031741 100%); box-shadow:0 0 36px rgba(0,82,255,.75); }
 
+
+  /* FINAL CLEAN PREMIUM MENU - image inspired, but game-native */
+  #menuScreen {
+    padding:16px 18px 20px !important;
+    overflow-y:auto;
+    background:
+      radial-gradient(circle at 50% -10%, rgba(255,255,255,.16), transparent 18%),
+      radial-gradient(circle at 50% 20%, rgba(0,82,255,.18), transparent 30%),
+      radial-gradient(circle at 50% 45%, rgba(251,191,36,.07), transparent 38%),
+      #020204 !important;
+  }
+  .lobby.finalMenu {
+    min-height:100%;
+    max-width:430px;
+    margin:0 auto;
+    display:flex;
+    flex-direction:column;
+    gap:16px;
+    padding-top:calc(env(safe-area-inset-top) + 8px);
+    padding-bottom:calc(env(safe-area-inset-bottom) + 16px);
+  }
+  .finalTop {
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+  }
+  .finalProfile {
+    flex:1;
+    min-height:58px;
+    border-radius:25px;
+    border:1px solid rgba(251,191,36,.34);
+    background:linear-gradient(180deg, rgba(255,255,255,.075), rgba(255,255,255,.025));
+    display:flex;
+    align-items:center;
+    gap:12px;
+    padding:9px 12px;
+    box-shadow:0 0 28px rgba(0,82,255,.12), inset 0 0 22px rgba(255,255,255,.025);
+  }
+  .finalAvatar {
+    width:42px;
+    height:42px;
+    border-radius:999px;
+    background:radial-gradient(circle at 32% 22%, #fff, #dceaff 18%, #8bbcff 38%, #0052ff 62%, #051944 100%);
+    box-shadow:0 0 22px rgba(0,82,255,.58);
+    position:relative;
+    flex:0 0 auto;
+  }
+  .finalAvatar:after {
+    content:"";
+    position:absolute;
+    left:6px;
+    right:6px;
+    top:18px;
+    height:6px;
+    border-radius:999px;
+    background:rgba(255,255,255,.88);
+    transform:rotate(-10deg);
+    box-shadow:0 0 12px rgba(0,82,255,.55);
+  }
+  .finalNameWrap {
+    min-width:0;
+    flex:1;
+  }
+  .finalName {
+    font-size:15px;
+    font-weight:1000;
+    letter-spacing:.08em;
+    color:#fff;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .finalNameSub {
+    margin-top:4px;
+    color:rgba(255,255,255,.46);
+    font-size:8px;
+    font-weight:1000;
+    letter-spacing:.18em;
+  }
+  .finalEdit {
+    width:34px;
+    height:34px;
+    border-radius:14px;
+    border:1px solid rgba(255,255,255,.12);
+    background:rgba(255,255,255,.06);
+    color:#f8d890;
+    font-size:15px;
+    font-weight:1000;
+  }
+  .finalHow {
+    width:54px;
+    height:54px;
+    border-radius:22px;
+    border:1px solid rgba(251,191,36,.30);
+    background:linear-gradient(180deg, rgba(255,255,255,.075), rgba(255,255,255,.02));
+    color:#f8d890;
+    font-size:22px;
+    font-weight:1000;
+    box-shadow:0 0 22px rgba(251,191,36,.10);
+  }
+  .finalStage {
+    position:relative;
+    min-height:500px;
+    border-radius:36px;
+    overflow:hidden;
+    border:1px solid rgba(255,255,255,.08);
+    background:
+      linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.012)),
+      radial-gradient(circle at 50% 13%, rgba(255,255,255,.18), transparent 13%),
+      radial-gradient(circle at 50% 43%, rgba(0,82,255,.24), transparent 34%),
+      #02040a;
+    box-shadow:0 0 54px rgba(0,82,255,.18), inset 0 0 80px rgba(0,0,0,.58);
+  }
+  .finalStage:before {
+    content:"";
+    position:absolute;
+    left:50%;
+    top:86px;
+    width:270px;
+    height:270px;
+    margin-left:-135px;
+    border-radius:999px;
+    border:1px solid rgba(251,191,36,.34);
+    box-shadow:0 0 44px rgba(251,191,36,.10);
+  }
+  .finalStage:after {
+    content:"";
+    position:absolute;
+    left:50%;
+    top:-10px;
+    width:78px;
+    height:260px;
+    transform:translateX(-50%);
+    background:linear-gradient(180deg, rgba(255,255,255,.42), rgba(255,255,255,.08), transparent);
+    filter:blur(10px);
+    opacity:.55;
+  }
+  .finalLogo {
+    position:absolute;
+    top:112px;
+    left:0;
+    right:0;
+    text-align:center;
+    z-index:2;
+    font-size:40px;
+    line-height:.86;
+    font-weight:1000;
+    letter-spacing:.12em;
+    color:#f6f8ff;
+    text-shadow:0 0 28px rgba(0,82,255,.82), 0 3px 0 rgba(255,255,255,.08);
+  }
+  .finalLogo span {
+    display:block;
+    font-size:53px;
+    color:#67a8ff;
+    letter-spacing:.07em;
+  }
+  .finalLogo small {
+    display:block;
+    margin-top:14px;
+    color:#f8d890;
+    font-size:13px;
+    letter-spacing:.62em;
+    text-indent:.62em;
+    text-shadow:0 0 16px rgba(251,191,36,.38);
+  }
+  .finalBot {
+    position:absolute;
+    left:50%;
+    top:295px;
+    width:92px;
+    height:92px;
+    transform:translateX(-50%);
+    border-radius:999px;
+    background:radial-gradient(circle at 32% 22%, #fff, #dceaff 17%, #8bbcff 38%, #0052ff 64%, #04153e 100%);
+    box-shadow:0 0 42px rgba(0,82,255,.74), 0 26px 44px rgba(0,0,0,.64);
+    z-index:2;
+    animation:floatBall 2.6s ease-in-out infinite;
+  }
+  .finalBot:before {
+    content:"";
+    position:absolute;
+    left:12px;
+    right:12px;
+    top:38px;
+    height:11px;
+    border-radius:999px;
+    background:rgba(255,255,255,.92);
+    transform:rotate(-10deg);
+    box-shadow:0 0 16px rgba(0,82,255,.7);
+  }
+  .finalBot:after {
+    content:"";
+    position:absolute;
+    left:29px;
+    top:36px;
+    width:7px;
+    height:15px;
+    border-radius:999px;
+    background:#020817;
+    box-shadow:27px 0 0 #020817;
+  }
+  .finalPlatform {
+    position:absolute;
+    left:50%;
+    top:385px;
+    width:220px;
+    height:52px;
+    transform:translateX(-50%);
+    border-radius:50%;
+    background:
+      radial-gradient(ellipse at 50% 35%, rgba(0,140,255,.9), rgba(0,82,255,.22) 38%, transparent 70%);
+    z-index:1;
+  }
+  .finalPlatform:after {
+    content:"";
+    position:absolute;
+    left:22px;
+    right:22px;
+    top:10px;
+    height:28px;
+    border-radius:50%;
+    border:2px solid rgba(251,191,36,.38);
+    box-shadow:0 0 24px rgba(0,82,255,.44), inset 0 0 18px rgba(0,82,255,.20);
+  }
+  .finalUsernameEdit {
+    display:grid;
+    grid-template-columns:1fr auto;
+    gap:8px;
+    border-radius:22px;
+    padding:10px;
+    border:1px solid rgba(255,255,255,.11);
+    background:rgba(0,0,0,.30);
+  }
+  #usernameInput {
+    width:100%;
+    height:46px;
+    border:1px solid rgba(255,255,255,.13);
+    border-radius:16px;
+    background:rgba(255,255,255,.07);
+    color:white;
+    text-align:center;
+    font-size:14px;
+    font-weight:1000;
+    letter-spacing:.12em;
+    outline:none;
+    text-transform:uppercase;
+  }
+  #saveNameBtn {
+    height:46px;
+    min-width:72px;
+    border:0;
+    border-radius:16px;
+    background:#f6d98b;
+    color:#020204;
+    font-size:11px;
+    font-weight:1000;
+    letter-spacing:.12em;
+  }
+  #nameWarn {
+    grid-column:1 / -1;
+    min-height:14px;
+    text-align:center;
+    color:#ff8b8b;
+    font-size:9px;
+    font-weight:1000;
+    letter-spacing:.12em;
+  }
+  .finalPanel {
+    border-radius:32px;
+    padding:16px;
+    border:1px solid rgba(251,191,36,.30);
+    background:linear-gradient(180deg, rgba(255,255,255,.075), rgba(255,255,255,.025));
+    box-shadow:0 0 32px rgba(251,191,36,.08), inset 0 0 38px rgba(255,255,255,.018);
+  }
+  .finalPanelTitle {
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    color:#f8d890;
+    font-size:24px;
+    font-weight:1000;
+    letter-spacing:.12em;
+    margin:0 4px 14px;
+  }
+  .finalPanelTitle button {
+    width:38px;
+    height:38px;
+    border-radius:16px;
+    border:1px solid rgba(251,191,36,.20);
+    background:rgba(255,255,255,.04);
+    color:#f8d890;
+    font-size:22px;
+  }
+  .finalModeGrid {
+    display:grid;
+    grid-template-columns:1fr;
+    gap:11px;
+  }
+  .finalModeBtn {
+    min-height:74px;
+    border-radius:22px;
+    border:1px solid rgba(255,255,255,.14);
+    background:linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.02));
+    color:#fff;
+    display:grid;
+    grid-template-columns:58px 1fr 24px;
+    align-items:center;
+    gap:10px;
+    padding:8px 16px 8px 10px;
+    text-align:left;
+    box-shadow:inset 0 0 22px rgba(255,255,255,.018);
+  }
+  .finalModeIcon {
+    width:42px;
+    height:42px;
+    border-radius:16px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:26px;
+    filter:drop-shadow(0 0 12px rgba(0,82,255,.45));
+  }
+  .finalModeBtn strong {
+    display:block;
+    font-size:18px;
+    font-weight:1000;
+    letter-spacing:.08em;
+  }
+  .finalModeBtn span {
+    display:block;
+    margin-top:6px;
+    font-size:10px;
+    letter-spacing:.04em;
+    color:rgba(255,255,255,.50);
+    font-weight:800;
+  }
+  .finalArrow {
+    color:#f8d890;
+    font-size:28px;
+    text-align:right;
+  }
+  .finalSettingsGrid {
+    display:grid;
+    gap:11px;
+  }
+  .finalSettingRow {
+    min-height:68px;
+    border-radius:22px;
+    border:1px solid rgba(255,255,255,.13);
+    background:linear-gradient(180deg, rgba(255,255,255,.065), rgba(255,255,255,.018));
+    display:grid;
+    grid-template-columns:56px 1fr auto;
+    align-items:center;
+    gap:10px;
+    padding:8px 12px;
+  }
+  .finalSettingIcon {
+    width:42px;
+    height:42px;
+    border-radius:16px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:24px;
+    color:#67a8ff;
+    filter:drop-shadow(0 0 12px rgba(0,82,255,.45));
+  }
+  .finalSettingLabel {
+    font-size:17px;
+    font-weight:1000;
+    letter-spacing:.10em;
+  }
+  .finalSegment {
+    display:flex;
+    width:124px;
+    height:38px;
+    border-radius:999px;
+    overflow:hidden;
+    border:1px solid rgba(255,255,255,.13);
+    background:rgba(255,255,255,.05);
+  }
+  .finalSegment .region,
+  .finalSegment .toggleBtn {
+    min-height:0 !important;
+    height:100%;
+    flex:1;
+    border:0 !important;
+    border-radius:0 !important;
+    background:transparent !important;
+    color:rgba(255,255,255,.62);
+    box-shadow:none !important;
+    font-size:12px;
+    letter-spacing:.08em;
+    padding:0;
+  }
+  .finalSegment .region strong,
+  .finalSegment .region span {
+    display:inline !important;
+    margin:0 !important;
+    font-size:12px !important;
+    letter-spacing:.08em !important;
+    color:inherit !important;
+  }
+  .finalSegment .region:before { display:none !important; }
+  .finalSegment .selected,
+  .finalSegment .toggleBtn.on {
+    background:linear-gradient(180deg, rgba(0,82,255,.82), rgba(0,82,255,.42)) !important;
+    color:white !important;
+    box-shadow:0 0 20px rgba(0,82,255,.38) !important;
+  }
+  .finalSoundOff {
+    min-height:0 !important;
+    height:100%;
+    flex:1;
+    border:0;
+    background:transparent;
+    color:rgba(255,255,255,.62);
+    font-size:12px;
+    font-weight:1000;
+    letter-spacing:.08em;
+  }
+
 </style>
 <div id="app">
   <div id="noise"></div>
   <section id="menuScreen" class="screen active">
-    <div class="lobby">
-      <div class="topBar">
-        <div class="profilePill">
-          <div class="avatarBall"></div>
-          <div>
-            <div id="profileName" class="profileName">PLAYER</div>
-            <div class="profileSub">READY TO BOING</div>
+    <div class="lobby finalMenu">
+      <div class="finalTop">
+        <div class="finalProfile">
+          <div class="finalAvatar"></div>
+          <div class="finalNameWrap">
+            <div id="profileName" class="finalName">PLAYER</div>
+            <div class="finalNameSub">READY TO BOING</div>
           </div>
+          <button id="editNameBtn" class="finalEdit">✎</button>
         </div>
-        <div class="coinPill"><span class="coinDot"></span><span>BASE</span></div>
-        <button id="howBtnTop" class="hamburger">⚙</button>
+        <button id="howBtnTop" class="finalHow">?</button>
       </div>
 
-      <div class="lobbyHero">
-        <div class="heroArc"></div>
-        <div class="heroLogo">BASE<span>BOING</span>BATTLE</div>
-        <div class="heroBall"></div>
-        <div class="heroPlatform"></div>
+      <div class="finalStage">
+        <div class="finalLogo">BASE<span>BOING</span><small>BATTLE</small></div>
+        <div class="finalBot"></div>
+        <div class="finalPlatform"></div>
       </div>
 
-      <button id="playBtn" class="bigPlay"><span class="playIcon">▶</span>PLAY</button>
-
-      <div class="usernameCard">
+      <div class="finalUsernameEdit" id="nameEditPanel">
         <input id="usernameInput" maxlength="10" placeholder="USERNAME" />
         <button id="saveNameBtn">SAVE</button>
-        <div id="nameWarn" style="grid-column:1 / -1"></div>
+        <div id="nameWarn"></div>
       </div>
 
-      <button id="settingsBtn" class="settingsBtn">SETTINGS</button>
+      <div class="finalPanel">
+        <div class="finalPanelTitle">
+          <span>PLAY</span>
+          <button id="playBtn">⌄</button>
+        </div>
+        <div class="finalModeGrid">
+          <button id="modeAiBtn" class="finalModeBtn">
+            <div class="finalModeIcon" style="color:#f8d890">⚔</div>
+            <div><strong>VS AI</strong><span>Play against AI</span></div>
+            <div class="finalArrow">›</div>
+          </button>
+          <button id="modeOnlineBtn" class="finalModeBtn">
+            <div class="finalModeIcon" style="color:#67a8ff">◎</div>
+            <div><strong>1V1 ONLINE</strong><span>Play against real players</span></div>
+            <div class="finalArrow">›</div>
+          </button>
+          <button id="modeCreateBtn" class="finalModeBtn">
+            <div class="finalModeIcon" style="color:#a970ff">♟</div>
+            <div><strong>CREATE ROOM</strong><span>Create a room and invite players</span></div>
+            <div class="finalArrow">›</div>
+          </button>
+          <button id="modeJoinBtn" class="finalModeBtn">
+            <div class="finalModeIcon" style="color:#2dd4bf">↪</div>
+            <div><strong>JOIN ROOM</strong><span>Join an existing room</span></div>
+            <div class="finalArrow">›</div>
+          </button>
+        </div>
+      </div>
+
+      <div class="finalPanel">
+        <div class="finalPanelTitle">
+          <span>SETTINGS</span>
+          <button id="settingsBtn">⌄</button>
+        </div>
+        <div class="finalSettingsGrid">
+          <div class="finalSettingRow">
+            <div class="finalSettingIcon">◎</div>
+            <div class="finalSettingLabel">REGION</div>
+            <div class="finalSegment">
+              <button class="region selected" data-region="EU"><strong>EU</strong></button>
+              <button class="region" data-region="US"><strong>US</strong></button>
+            </div>
+          </div>
+          <div class="finalSettingRow">
+            <div class="finalSettingIcon">◉</div>
+            <div class="finalSettingLabel">SOUND</div>
+            <div class="finalSegment">
+              <button id="soundToggleBtn" class="toggleBtn on">ON</button>
+              <button id="soundOffBtn" class="finalSoundOff">OFF</button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </section>
 
 
   <section id="settingsScreen" class="screen">
     <div class="center">
-      <div class="settingsHero"></div>
-      <div>
-        <div class="titleBadge">GAME SETTINGS</div>
-        <div class="flowTitle">SETTINGS</div>
-        <div class="sub">REGION • SOUND</div>
-      </div>
-
-      <div class="settingsCard">
-        <div class="sectionLabel">REGION</div>
-        <div class="regionMiniGrid">
-          <button class="region selected" data-region="EU"><strong>EU</strong><span>FRANKFURT</span></button>
-          <button class="region" data-region="US"><strong>US</strong><span>VIRGINIA</span></button>
-        </div>
-
-        <div class="settingRow">
-          <div>
-            <div class="settingTitle">SOUND</div>
-            <div class="settingSub">HIT / WALL / GOAL FX</div>
-          </div>
-          <button id="soundToggleBtn" class="toggleBtn on">ON</button>
-        </div>
-      </div>
-
+      <div class="flowTitle">SETTINGS</div>
       <button id="settingsBackBtn" class="flowBack">BACK</button>
     </div>
   </section>
 
   <section id="modeScreen" class="screen">
     <div class="center">
-      <div class="flowMiniHero"><div class="flowBall"></div></div>
-      <div>
-        <div class="titleBadge">SELECT MODE</div>
-        <div class="flowTitle">CHOOSE<br/>BATTLE</div>
-        <div class="sub">USERNAME REQUIRED</div>
-      </div>
-      <div class="modeGrid">
-        <button id="modeAiBtn" class="modeBtn primary"><strong>VS AI</strong><span>SOLO MOBILE MATCH</span></button>
-        <button id="modeOnlineBtn" class="modeBtn"><strong>ONLINE 1V1</strong><span>RANDOM PLAYER MATCH</span></button>
-        <button id="modeCreateBtn" class="modeBtn"><strong>CREATE ROOM</strong><span>PRIVATE ROOM CODE</span></button>
-        <button id="modeJoinBtn" class="modeBtn"><strong>JOIN ROOM</strong><span>ENTER FRIEND CODE</span></button>
-      </div>
+      <div class="flowTitle">PLAY</div>
       <button id="modeBackBtn" class="flowBack">BACK</button>
     </div>
   </section>
@@ -477,7 +917,11 @@ export default function MobilePage() {
   }
 
   function unlockAudio(){ audioUnlocked=true; }
-  function syncSoundButton(){ var b=$('soundToggleBtn'); if(b){ b.textContent=soundEnabled?'ON':'OFF'; if(soundEnabled) b.classList.add('on'); else b.classList.remove('on'); } }
+  function syncSoundButton(){
+    var b=$('soundToggleBtn'); var off=$('soundOffBtn');
+    if(b){ b.textContent='ON'; if(soundEnabled) b.classList.add('on'); else b.classList.remove('on'); }
+    if(off){ if(soundEnabled) off.classList.remove('on'); else off.classList.add('on'); }
+  }
   function toggleSound(){ soundEnabled=!soundEnabled; try{ localStorage.setItem('bbb_mobile_sound', soundEnabled?'on':'off'); }catch(e){} syncSoundButton(); }
   function loadSound(){ var saved=''; try{ saved=localStorage.getItem('bbb_mobile_sound')||''; }catch(e){} soundEnabled = saved==='off' ? false : true; syncSoundButton(); }
   function playSound(type){
@@ -901,16 +1345,18 @@ export default function MobilePage() {
   var nameInput=$('usernameInput'); if(nameInput){ nameInput.addEventListener('input',function(){ this.value=cleanName(this.value); }); }
   var roomInput=$('roomCodeInput'); if(roomInput){ roomInput.addEventListener('input',function(){ this.value=cleanName(this.value); }); }
   bindTap($('saveNameBtn'), saveName);
+  bindTap($('editNameBtn'), function(){ var input=$('usernameInput'); if(input){ input.focus(); } });
   loadSound();
 
   document.querySelectorAll('.region').forEach(function(btn){ bindTap(btn,function(){ socketRegion=btn.getAttribute('data-region')||'EU'; document.querySelectorAll('.region').forEach(function(b){b.classList.remove('selected')}); btn.classList.add('selected'); }); });
   bindTap($('cancelMatchBtn'), cancelOnlineSearch);
   document.querySelectorAll('.arena').forEach(function(btn){ bindTap(btn,function(){ arena=btn.getAttribute('data-arena')||'classic'; document.querySelectorAll('.arena').forEach(function(b){b.classList.remove('selected')}); btn.classList.add('selected'); }); });
   document.querySelectorAll('.difficulty').forEach(function(btn){ bindTap(btn,function(){ difficulty=btn.getAttribute('data-difficulty')||'normal'; document.querySelectorAll('.difficulty').forEach(function(b){b.classList.remove('selected')}); btn.classList.add('selected'); }); });
-  bindTap($('playBtn'), openModeScreen);
-  bindTap($('settingsBtn'), function(){ show('settingsScreen'); });
+  bindTap($('playBtn'), function(){});
+  bindTap($('settingsBtn'), function(){});
   bindTap($('settingsBackBtn'), function(){ show('menuScreen'); });
-  bindTap($('soundToggleBtn'), toggleSound);
+  bindTap($('soundToggleBtn'), function(){ soundEnabled=true; try{ localStorage.setItem('bbb_mobile_sound','on'); }catch(e){} syncSoundButton(); });
+  bindTap($('soundOffBtn'), function(){ soundEnabled=false; try{ localStorage.setItem('bbb_mobile_sound','off'); }catch(e){} syncSoundButton(); });
   bindTap($('modeAiBtn'), function(){ chooseMode('ai'); });
   bindTap($('modeOnlineBtn'), function(){ chooseMode('online'); });
   bindTap($('modeCreateBtn'), function(){ chooseMode('create'); });
