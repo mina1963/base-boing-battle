@@ -38,7 +38,7 @@ export default function MobilePage() {
   .arena, .difficulty {
     min-height:88px; border:1px solid rgba(255,255,255,.13); border-radius:23px;
     background:linear-gradient(160deg, rgba(0,82,255,.22), rgba(255,255,255,.04));
-    color:white; font-weight:1000; letter-spacing:.11em; font-size:12px; touch-action:manipulation;
+    color:white; font-weight:1000; letter-spacing:.11em; font-size:10px; touch-action:manipulation;
   }
   .difficulty, .region { min-height:58px; }
   .region { border:1px solid rgba(255,255,255,.13); border-radius:23px; background:rgba(255,255,255,.08); color:white; font-weight:1000; letter-spacing:.11em; font-size:12px; touch-action:manipulation; }
@@ -140,7 +140,7 @@ export default function MobilePage() {
   .bigPlay .playIcon { display:inline-block; margin-right:10px; transform:translateY(1px); }
   .quickModes { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
   .quickCard { min-height:58px; border-radius:18px; border:1px solid rgba(255,255,255,.13); background:linear-gradient(180deg,rgba(255,255,255,.09),rgba(255,255,255,.035)); color:white; font-weight:1000; font-size:12px; letter-spacing:.12em; display:flex; align-items:center; justify-content:center; gap:8px; box-shadow:0 0 20px rgba(0,82,255,.10); }
-  .quickIcon { font-size:18px; filter:drop-shadow(0 0 10px rgba(0,82,255,.7)); }
+  .quickIcon { font-size:15px; filter:drop-shadow(0 0 10px rgba(0,82,255,.7)); }
   .usernameCard { border-radius:22px; padding:10px; border:1px solid rgba(255,255,255,.12); background:rgba(0,0,0,.32); display:grid; grid-template-columns:1fr auto; gap:8px; align-items:center; }
   #usernameInput { width:100%; height:46px; border:1px solid rgba(255,255,255,.13); border-radius:16px; background:rgba(255,255,255,.08); color:white; text-align:center; font-size:14px; font-weight:1000; letter-spacing:.12em; outline:none; text-transform:uppercase; }
   #usernameInput::placeholder { color:rgba(255,255,255,.34); }
@@ -149,10 +149,10 @@ export default function MobilePage() {
   .premiumRegionWrap { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
   .region { position:relative; min-height:66px; overflow:hidden; border-radius:22px; background:linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.025)); }
   .region:before { content:""; position:absolute; inset:0; background:radial-gradient(circle at 50% 0%, rgba(34,211,238,.22), transparent 58%); opacity:.35; }
-  .region strong { position:relative; display:block; font-size:16px; letter-spacing:.16em; }
+  .region strong { position:relative; display:block; font-size:14px; letter-spacing:.16em; }
   .region span { position:relative; display:block; margin-top:5px; font-size:8px; color:rgba(255,255,255,.48); letter-spacing:.16em; }
   .region.selected { border-color:#64d8ff; background:linear-gradient(180deg, rgba(34,211,238,.22), rgba(0,82,255,.10)); box-shadow:0 0 28px rgba(34,211,238,.32), inset 0 0 18px rgba(255,255,255,.06); }
-  .bottomNav { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; padding:10px; border-radius:24px; border:1px solid rgba(255,255,255,.10); background:rgba(0,0,0,.36); box-shadow:0 0 26px rgba(0,82,255,.12); }
+  .bottomNav { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; padding:10px; border-radius:20px; border:1px solid rgba(255,255,255,.10); background:rgba(0,0,0,.36); box-shadow:0 0 26px rgba(0,82,255,.12); }
   .navItem { min-height:48px; border:0; border-radius:16px; background:transparent; color:rgba(255,255,255,.52); font-size:8px; letter-spacing:.10em; font-weight:1000; }
   .navItem b { display:block; font-size:18px; margin-bottom:4px; color:#6aa7ff; }
   .navItem.active { background:rgba(0,82,255,.12); color:#8ebaff; }
@@ -243,8 +243,8 @@ export default function MobilePage() {
     box-shadow:0 0 28px rgba(0,82,255,.12), inset 0 0 22px rgba(255,255,255,.025);
   }
   .finalAvatar {
-    width:42px;
-    height:42px;
+    width:30px;
+    height:30px;
     border-radius:999px;
     background:radial-gradient(circle at 32% 22%, #fff, #dceaff 18%, #8bbcff 38%, #0052ff 62%, #051944 100%);
     box-shadow:0 0 22px rgba(0,82,255,.58);
@@ -294,8 +294,8 @@ export default function MobilePage() {
     font-weight:1000;
   }
   .finalHow {
-    width:54px;
-    height:54px;
+    width:46px;
+    height:46px;
     border-radius:22px;
     border:1px solid rgba(251,191,36,.30);
     background:linear-gradient(180deg, rgba(255,255,255,.075), rgba(255,255,255,.02));
@@ -484,7 +484,7 @@ export default function MobilePage() {
     align-items:center;
     justify-content:space-between;
     color:#f8d890;
-    font-size:24px;
+    font-size:20px;
     font-weight:1000;
     letter-spacing:.12em;
     margin:0 4px 14px;
@@ -651,12 +651,13 @@ export default function MobilePage() {
   #menuScreen:after {
     content:"";
     position:absolute;
-    inset:-80px;
+    inset:0;
     pointer-events:none;
     background:
-      radial-gradient(circle at 50% 42%, transparent 0 34%, rgba(0,82,255,.10) 35%, transparent 48%),
-      linear-gradient(180deg, transparent, rgba(0,82,255,.11), transparent);
-    opacity:.9;
+      radial-gradient(circle at 50% 33%, rgba(0,82,255,.30), transparent 42%),
+      radial-gradient(circle at 50% 64%, rgba(0,174,255,.16), transparent 34%),
+      linear-gradient(180deg, transparent 0%, rgba(0,82,255,.10) 45%, transparent 100%);
+    opacity:1;
   }
   .arcadeLobby {
     position:relative;
@@ -664,7 +665,7 @@ export default function MobilePage() {
     min-height:100%;
     max-width:430px;
     margin:0 auto;
-    padding:calc(env(safe-area-inset-top) + 22px) 20px calc(env(safe-area-inset-bottom) + 18px);
+    padding:calc(env(safe-area-inset-top) + 14px) 18px calc(env(safe-area-inset-bottom) + 14px);
     display:flex;
     flex-direction:column;
   }
@@ -675,7 +676,7 @@ export default function MobilePage() {
     gap:10px;
   }
   .arcadeUser {
-    height:58px;
+    height:46px;
     flex:1;
     border-radius:24px;
     border:1px solid rgba(0,117,255,.78);
@@ -683,8 +684,8 @@ export default function MobilePage() {
     box-shadow:0 0 26px rgba(0,82,255,.24), inset 0 0 28px rgba(0,82,255,.07);
     display:flex;
     align-items:center;
-    gap:12px;
-    padding:8px 12px;
+    gap:9px;
+    padding:6px 10px;
   }
   .arcadeUserBall {
     width:42px;
@@ -721,9 +722,9 @@ export default function MobilePage() {
   .arcadeStatus {
     margin-top:4px;
     color:#36ff83;
-    font-size:10px;
+    font-size:8px;
     font-weight:1000;
-    letter-spacing:.18em;
+    letter-spacing:.16em;
   }
   .arcadeEdit {
     width:34px;
@@ -742,7 +743,7 @@ export default function MobilePage() {
     border:1px solid rgba(0,117,255,.78);
     background:linear-gradient(180deg, rgba(5,18,44,.92), rgba(0,3,12,.72));
     color:#7ad5ff;
-    font-size:25px;
+    font-size:22px;
     font-weight:1000;
     box-shadow:0 0 24px rgba(0,82,255,.20);
   }
@@ -753,21 +754,21 @@ export default function MobilePage() {
     display:flex;
     flex-direction:column;
     align-items:center;
-    justify-content:center;
-    padding-top:10px;
+    justify-content:flex-start;
+    padding-top:68px;
   }
   .arcadeBigB {
     position:absolute;
     left:50%;
-    top:7%;
+    top:4%;
     transform:translateX(-50%);
-    font-size:min(78vw,360px);
+    font-size:min(88vw,390px);
     line-height:.8;
     font-weight:1000;
     font-style:italic;
     color:transparent;
     -webkit-text-stroke:1px rgba(0,82,255,.24);
-    opacity:.64;
+    opacity:.42;
     text-shadow:0 0 42px rgba(0,82,255,.20);
     pointer-events:none;
   }
@@ -776,7 +777,7 @@ export default function MobilePage() {
     z-index:2;
     margin-top:8px;
     text-align:center;
-    font-size:min(18vw,82px);
+    font-size:min(23vw,98px);
     line-height:.82;
     font-weight:1000;
     font-style:italic;
@@ -792,7 +793,7 @@ export default function MobilePage() {
     display:block;
     margin-top:16px;
     color:#f5f8ff;
-    font-size:min(5.5vw,25px);
+    font-size:min(6.3vw,27px);
     font-style:normal;
     letter-spacing:.42em;
     text-indent:.42em;
@@ -802,15 +803,15 @@ export default function MobilePage() {
     position:relative;
     z-index:3;
     width:100%;
-    height:170px;
-    margin-top:42px;
+    height:190px;
+    margin-top:30px;
   }
   .arcadeFloatBall {
     position:absolute;
     left:50%;
     top:8px;
-    width:104px;
-    height:104px;
+    width:120px;
+    height:120px;
     transform:translateX(-50%);
     border-radius:50%;
     background:radial-gradient(circle at 30% 21%, #fff, #c9f6ff 13%, #4dd7ff 24%, #0052ff 60%, #04143c 100%);
@@ -820,9 +821,9 @@ export default function MobilePage() {
   .arcadeFloatBall:before {
     content:"";
     position:absolute;
-    left:22px;
-    right:22px;
-    top:48px;
+    left:26px;
+    right:26px;
+    top:56px;
     height:7px;
     border-radius:99px;
     background:#020817;
@@ -831,20 +832,20 @@ export default function MobilePage() {
   .arcadeFloatBall:after {
     content:"";
     position:absolute;
-    left:34px;
-    top:40px;
-    width:12px;
-    height:26px;
+    left:40px;
+    top:47px;
+    width:13px;
+    height:29px;
     border-radius:99px;
     background:#020817;
-    box-shadow:30px 0 0 #020817;
+    box-shadow:34px 0 0 #020817;
   }
   .arcadeRing {
     position:absolute;
     left:50%;
     bottom:18px;
-    width:235px;
-    height:58px;
+    width:255px;
+    height:62px;
     transform:translateX(-50%);
     border-radius:50%;
     border:3px solid rgba(0,179,255,.90);
@@ -855,8 +856,8 @@ export default function MobilePage() {
     position:absolute;
     left:50%;
     top:0;
-    width:150px;
-    height:160px;
+    width:190px;
+    height:190px;
     transform:translateX(-50%);
     background:linear-gradient(180deg, rgba(0,132,255,.22), rgba(0,132,255,.06), transparent);
     filter:blur(4px);
@@ -869,15 +870,15 @@ export default function MobilePage() {
     position:relative;
     z-index:5;
     display:grid;
-    gap:18px;
+    gap:12px;
     margin-top:auto;
   }
   .arcadePlay {
     width:100%;
-    min-height:92px;
+    min-height:98px;
     border:0;
     color:white;
-    font-size:44px;
+    font-size:52px;
     font-weight:1000;
     font-style:italic;
     letter-spacing:.14em;
@@ -942,17 +943,20 @@ export default function MobilePage() {
   .modeBtn.primary { background:linear-gradient(180deg,rgba(0,82,255,.38),rgba(0,82,255,.14)); border-color:rgba(91,155,255,.58); box-shadow:0 0 34px rgba(0,82,255,.30); }
 
   @media (max-height:740px) {
-    .arcadeLobby { padding-top:calc(env(safe-area-inset-top) + 12px); padding-bottom:calc(env(safe-area-inset-bottom) + 10px); }
-    .arcadeUser { height:52px; }
-    .arcadeLogo { font-size:min(17vw,70px); }
-    .arcadeLogo small { margin-top:12px; font-size:min(4.9vw,20px); }
-    .arcadeBallZone { height:130px; margin-top:24px; }
-    .arcadeFloatBall { width:82px; height:82px; }
-    .arcadeFloatBall:before { top:38px; left:18px; right:18px; }
-    .arcadeFloatBall:after { top:31px; left:27px; height:22px; box-shadow:24px 0 0 #020817; }
-    .arcadeRing { width:190px; height:46px; bottom:12px; }
-    .arcadePlay { min-height:76px; font-size:36px; }
-    .arcadeActions { gap:12px; }
+    .arcadeLobby { padding-top:calc(env(safe-area-inset-top) + 10px); padding-bottom:calc(env(safe-area-inset-bottom) + 8px); }
+    .arcadeUser { height:44px; }
+    .arcadeHow { width:44px; height:44px; }
+    .arcadeLogoWrap { padding-top:58px; }
+    .arcadeLogo { font-size:min(23vw,96px); }
+    .arcadeLogo small { margin-top:12px; font-size:min(6.1vw,25px); }
+    .arcadeBallZone { height:175px; margin-top:22px; }
+    .arcadeFloatBall { width:112px; height:112px; }
+    .arcadeFloatBall:before { top:52px; left:24px; right:24px; }
+    .arcadeFloatBall:after { top:43px; left:37px; height:27px; box-shadow:32px 0 0 #020817; }
+    .arcadeRing { width:245px; height:58px; bottom:12px; }
+    .arcadePlay { min-height:92px; font-size:48px; }
+    .arcadeActions { gap:10px; }
+    .arcadeBuilt { margin-top:-4px; }
   }
 
 </style>
