@@ -188,49 +188,135 @@ export default function MobilePage() {
   .flowBall { width:58px; height:58px; border-radius:50%; background:radial-gradient(circle at 32% 22%, #fff, #d8e7ff 18%, #0052ff 58%, #031741 100%); box-shadow:0 0 32px rgba(0,82,255,.72); }
   .roomInput { width:100%; height:58px; border:1px solid rgba(255,255,255,.14); border-radius:22px; background:rgba(255,255,255,.08); color:white; text-align:center; font-size:18px; font-weight:1000; letter-spacing:.22em; outline:none; text-transform:uppercase; }
 
+  /* SETTINGS PANEL */
+  .settingsBtn { position:relative; width:70%; min-height:48px; margin:-2px auto 0; border-radius:18px; border:1px solid rgba(255,255,255,.16); background:linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.035)); color:rgba(255,255,255,.86); font-size:12px; font-weight:1000; letter-spacing:.18em; box-shadow:0 0 18px rgba(0,82,255,.12); touch-action:manipulation; }
+  .settingsBtn:active { transform:scale(.975); }
+  .settingsCard { border-radius:30px; padding:16px; border:1px solid rgba(255,255,255,.13); background:linear-gradient(180deg, rgba(255,255,255,.085), rgba(255,255,255,.032)); box-shadow:0 0 34px rgba(0,82,255,.16); }
+  .settingRow { min-height:66px; display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px 4px; border-bottom:1px solid rgba(255,255,255,.08); }
+  .settingRow:last-child { border-bottom:0; }
+  .settingTitle { font-size:13px; font-weight:1000; letter-spacing:.14em; }
+  .settingSub { margin-top:5px; font-size:9px; color:rgba(255,255,255,.48); letter-spacing:.14em; font-weight:900; }
+  .toggleBtn { width:84px; height:42px; border-radius:999px; border:1px solid rgba(255,255,255,.14); background:rgba(255,255,255,.08); color:white; font-size:11px; font-weight:1000; letter-spacing:.12em; }
+  .toggleBtn.on { background:linear-gradient(180deg, rgba(0,82,255,.72), rgba(0,82,255,.34)); border-color:rgba(111,170,255,.45); box-shadow:0 0 22px rgba(0,82,255,.28); }
+  .regionMiniGrid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:14px; }
+  .settingsHero { min-height:132px; border-radius:30px; border:1px solid rgba(255,255,255,.12); background:radial-gradient(circle at 50% 28%, rgba(0,82,255,.26), rgba(255,255,255,.04)); display:flex; align-items:center; justify-content:center; overflow:hidden; position:relative; }
+  .settingsHero:before { content:""; position:absolute; width:180px; height:82px; border-radius:50%; border:1px solid rgba(100,180,255,.22); transform:rotate(-12deg) scaleY(.46); }
+  .settingsHero:after { content:""; width:62px; height:62px; border-radius:50%; background:radial-gradient(circle at 32% 22%, #fff, #d8e7ff 18%, #0052ff 58%, #031741 100%); box-shadow:0 0 36px rgba(0,82,255,.75); }
+
+
+  /* CLEAN GAME-LOBBY STYLE MENU */
+  #menuScreen { padding:0; background:#020204; overflow:hidden; }
+  .gameMenu { position:relative; min-height:100dvh; max-width:430px; margin:0 auto; padding:calc(env(safe-area-inset-top) + 14px) 18px calc(env(safe-area-inset-bottom) + 14px); display:flex; flex-direction:column; overflow:hidden; background:
+      radial-gradient(circle at 50% 20%, rgba(0,82,255,.18), transparent 34%),
+      radial-gradient(circle at 50% 62%, rgba(0,82,255,.12), transparent 34%),
+      linear-gradient(180deg,#050911 0%,#020204 72%,#000 100%); }
+  .gameMenu:before { content:""; position:absolute; inset:0; background:linear-gradient(115deg, transparent 8%, rgba(0,82,255,.08) 14%, transparent 24%, transparent 76%, rgba(0,82,255,.08) 86%, transparent 94%); pointer-events:none; }
+  .gameTop { position:relative; z-index:2; display:flex; align-items:center; justify-content:space-between; gap:10px; min-height:44px; }
+  .topPlayer { flex:1; display:flex; align-items:center; gap:10px; padding:6px 9px; border-radius:20px; border:1px solid rgba(255,255,255,.10); background:rgba(0,0,0,.34); }
+  .miniBall { width:34px; height:34px; border-radius:999px; background:radial-gradient(circle at 34% 24%,#fff,#bfd7ff 18%,#0052ff 52%,#03133b 100%); box-shadow:0 0 22px rgba(0,82,255,.50); position:relative; }
+  .miniBall:after { content:""; position:absolute; left:5px; right:5px; top:15px; height:5px; border-radius:99px; background:rgba(255,255,255,.82); transform:rotate(-12deg); }
+  .topName { font-size:12px; font-weight:1000; letter-spacing:.10em; }
+  .topSub { margin-top:2px; font-size:8px; font-weight:1000; letter-spacing:.16em; color:#78aaff; }
+  .roundIcon { width:40px; height:40px; border-radius:999px; border:1px solid rgba(255,255,255,.13); background:rgba(0,0,0,.38); color:#f5c96f; font-size:21px; font-weight:1000; box-shadow:0 0 18px rgba(0,82,255,.12); }
+  .logoStage { position:relative; z-index:1; flex:1; min-height:335px; display:flex; align-items:center; justify-content:center; flex-direction:column; margin-top:4px; }
+  .goldArc { position:absolute; top:38px; width:260px; height:142px; border-top:2px solid rgba(252,211,77,.72); border-radius:50%; filter:drop-shadow(0 0 14px rgba(252,211,77,.42)); opacity:.78; }
+  .brandLogo { position:absolute; top:78px; left:0; right:0; text-align:center; font-size:31px; line-height:.84; font-weight:1000; letter-spacing:.17em; color:#f7fbff; text-shadow:0 0 22px rgba(255,255,255,.36); }
+  .brandLogo span { display:block; margin-top:3px; font-size:43px; letter-spacing:.08em; color:#62a8ff; text-shadow:0 0 32px rgba(0,82,255,.95); }
+  .brandLogo em { display:block; margin-top:9px; font-style:normal; font-size:15px; letter-spacing:.50em; color:#f5c96f; text-shadow:0 0 16px rgba(252,211,77,.44); }
+  .battleBall { position:absolute; bottom:74px; left:50%; width:84px; height:84px; transform:translateX(-50%); border-radius:999px; background:radial-gradient(circle at 34% 24%,#fff,#dcecff 17%,#83b8ff 38%,#0052ff 64%,#04143e 100%); box-shadow:0 0 44px rgba(0,82,255,.68),0 18px 44px rgba(0,0,0,.72); animation:floatBall 2.6s ease-in-out infinite; }
+  .battleBall:before { content:""; position:absolute; left:10px; right:10px; top:36px; height:12px; border-radius:99px; background:rgba(255,255,255,.90); transform:rotate(-9deg); }
+  .battleBall:after { content:""; position:absolute; left:28px; top:34px; width:7px; height:14px; border-radius:999px; background:#020817; box-shadow:24px 0 0 #020817; }
+  .energyPad { position:absolute; bottom:44px; left:50%; transform:translateX(-50%); width:190px; height:44px; border-radius:50%; background:radial-gradient(ellipse, rgba(0,120,255,.74), rgba(0,82,255,.18) 50%, transparent 72%); box-shadow:0 0 30px rgba(0,82,255,.42); }
+  .playTitle { position:relative; z-index:2; text-align:center; margin-top:-12px; margin-bottom:8px; font-size:18px; color:#f5c96f; letter-spacing:.23em; font-weight:1000; text-shadow:0 0 18px rgba(252,211,77,.35); }
+  .modePanel { position:relative; z-index:2; display:flex; flex-direction:column; gap:10px; padding:12px; border-radius:24px; border:1px solid rgba(252,211,77,.14); background:rgba(3,8,18,.72); box-shadow:0 0 36px rgba(0,0,0,.55), inset 0 0 22px rgba(255,255,255,.03); }
+  .menuMode { width:100%; min-height:58px; border:1px solid rgba(255,255,255,.10); border-radius:16px; color:white; background:linear-gradient(90deg, rgba(255,255,255,.075), rgba(255,255,255,.025)); display:grid; grid-template-columns:46px 1fr 20px; align-items:center; gap:10px; text-align:left; padding:8px 11px; touch-action:manipulation; box-shadow:inset 0 1px 0 rgba(255,255,255,.06); }
+  .menuMode:active { transform:scale(.985); }
+  .modeIcon { width:38px; height:38px; border-radius:13px; display:flex; align-items:center; justify-content:center; font-size:19px; font-weight:1000; background:rgba(255,255,255,.08); }
+  .menuMode strong { display:block; font-size:13px; letter-spacing:.10em; }
+  .menuMode span { display:block; margin-top:4px; font-size:8px; color:rgba(255,255,255,.48); font-weight:900; letter-spacing:.07em; }
+  .menuMode b { font-size:24px; color:rgba(255,255,255,.58); }
+  .menuMode.gold .modeIcon { color:#ffd36a; box-shadow:0 0 20px rgba(252,211,77,.13); }
+  .menuMode.blue .modeIcon { color:#59a6ff; box-shadow:0 0 20px rgba(0,82,255,.20); }
+  .menuMode.purple .modeIcon { color:#b58cff; box-shadow:0 0 20px rgba(139,92,246,.18); }
+  .menuMode.teal .modeIcon { color:#5eead4; box-shadow:0 0 20px rgba(20,184,166,.18); }
+  .usernameCompact { position:relative; z-index:2; display:grid; grid-template-columns:1fr 72px; gap:8px; margin-top:10px; }
+  .usernameCompact #usernameInput { height:42px; border-radius:15px; border:1px solid rgba(255,255,255,.10); background:rgba(255,255,255,.065); color:white; text-align:center; font-size:13px; font-weight:1000; letter-spacing:.14em; outline:none; text-transform:uppercase; }
+  .usernameCompact #saveNameBtn { height:42px; border:0; border-radius:15px; background:rgba(255,255,255,.92); color:#020204; font-size:10px; font-weight:1000; letter-spacing:.13em; }
+  .usernameCompact #nameWarn { grid-column:1 / -1; min-height:14px; text-align:center; font-size:9px; letter-spacing:.12em; color:#ff8585; font-weight:1000; }
+  .settingsLine { position:relative; z-index:2; margin-top:0; height:42px; border-radius:16px; border:1px solid rgba(255,255,255,.11); background:rgba(0,0,0,.28); color:rgba(255,255,255,.62); font-size:10px; font-weight:1000; letter-spacing:.15em; }
+  @media (max-height:740px){ .logoStage{min-height:270px}.brandLogo{top:48px;font-size:25px}.brandLogo span{font-size:35px}.brandLogo em{font-size:12px}.battleBall{width:68px;height:68px;bottom:58px}.energyPad{bottom:34px}.goldArc{top:22px;width:220px}.menuMode{min-height:52px}.usernameCompact{margin-top:7px} }
+
 </style>
 <div id="app">
-  <div id="splashScreen"><div id="splashStage"><div class="splashArenaMini"><div class="splashLine one"></div><div class="splashLine two"></div><div class="splashBoingBall"></div></div><div class="splashBrand">BASE<br/><span>BOING</span><br/>BATTLE</div><div class="splashSub">MOBILE ARENA</div></div></div>
   <div id="noise"></div>
   <section id="menuScreen" class="screen active">
-    <div class="lobby">
-      <div class="topBar">
-        <div class="profilePill">
-          <div class="avatarBall"></div>
+    <div class="gameMenu">
+      <div class="gameTop">
+        <button id="settingsBtnTop" class="roundIcon">‹</button>
+        <div class="topPlayer">
+          <div class="miniBall"></div>
           <div>
-            <div id="profileName" class="profileName">PLAYER</div>
-            <div class="profileSub">READY TO BOING</div>
+            <div id="profileName" class="topName">PLAYER</div>
+            <div class="topSub">MOBILE ARENA</div>
           </div>
         </div>
-        <div class="coinPill"><span class="coinDot"></span><span>BASE</span></div>
-        <button id="howBtnTop" class="hamburger">≡</button>
+        <button id="settingsBtn" class="roundIcon">⚙</button>
       </div>
 
-      <div class="lobbyHero">
-        <div class="heroArc"></div>
-        <div class="heroLogo">BASE<span>BOING</span>BATTLE</div>
-        <div class="heroBall"></div>
-        <div class="heroPlatform"></div>
+      <div class="logoStage">
+        <div class="goldArc"></div>
+        <div class="brandLogo">BASE<span>BOING</span><em>BATTLE</em></div>
+        <div class="battleBall"></div>
+        <div class="energyPad"></div>
       </div>
 
-      <button id="playBtn" class="bigPlay"><span class="playIcon">▶</span>PLAY</button>
+      <div class="playTitle">PLAY</div>
 
-      <div class="usernameCard">
+      <div class="modePanel">
+        <button id="modeAiBtn" class="menuMode gold"><div class="modeIcon">⚔</div><div><strong>VS AI</strong><span>Play against AI</span></div><b>›</b></button>
+        <button id="modeOnlineBtn" class="menuMode blue"><div class="modeIcon">◎</div><div><strong>1V1 ONLINE</strong><span>Match random players</span></div><b>›</b></button>
+        <button id="modeCreateBtn" class="menuMode purple"><div class="modeIcon">♟</div><div><strong>CREATE ROOM</strong><span>Create a private room</span></div><b>›</b></button>
+        <button id="modeJoinBtn" class="menuMode teal"><div class="modeIcon">↪</div><div><strong>JOIN ROOM</strong><span>Join with room code</span></div><b>›</b></button>
+      </div>
+
+      <div class="usernameCompact">
         <input id="usernameInput" maxlength="10" placeholder="USERNAME" />
         <button id="saveNameBtn">SAVE</button>
-        <div id="nameWarn" style="grid-column:1 / -1"></div>
+        <div id="nameWarn"></div>
       </div>
 
-      <div class="card">
-        <div class="sectionLabel">REGION</div>
-        <div class="premiumRegionWrap">
-          <button class="region selected" data-region="EU"><strong>EU</strong><span>FRANKFURT</span></button>
-          <button class="region" data-region="US"><strong>US</strong><span>VIRGINIA</span></button>
-        </div>
-      </div>
+      <button id="settingsBtnBottom" class="settingsLine">SETTINGS • REGION / SOUND</button>
     </div>
   </section>
 
+  <section id="settingsScreen" class="screen">
+    <div class="center">
+      <div class="settingsHero"></div>
+      <div>
+        <div class="titleBadge">GAME SETTINGS</div>
+        <div class="flowTitle">SETTINGS</div>
+        <div class="sub">REGION • SOUND</div>
+      </div>
+
+      <div class="settingsCard">
+        <div class="sectionLabel">REGION</div>
+        <div class="regionMiniGrid">
+          <button class="region selected" data-region="EU"><strong>EU</strong><span>FRANKFURT</span></button>
+          <button class="region" data-region="US"><strong>US</strong><span>VIRGINIA</span></button>
+        </div>
+
+        <div class="settingRow">
+          <div>
+            <div class="settingTitle">SOUND</div>
+            <div class="settingSub">HIT / WALL / GOAL FX</div>
+          </div>
+          <button id="soundToggleBtn" class="toggleBtn on">ON</button>
+        </div>
+      </div>
+
+      <button id="settingsBackBtn" class="flowBack">BACK</button>
+    </div>
+  </section>
 
   <section id="modeScreen" class="screen">
     <div class="center">
@@ -353,7 +439,7 @@ export default function MobilePage() {
   var arena='classic', difficulty='normal', socketRegion='EU', mode='ai';
   var canvas, ctx, raf=0;
   var ball, lines, trail, sparks, score, energy, started=false, paused=false, drawing=null, goalLocked=false;
-  var frame=0, audioUnlocked=false, lastWallSound=0, lastOnlineScoreTotal=null, lastOnlineRoundKey=null, onlineCountdownTimer=null, onlineBattleTimer=null;
+  var frame=0, audioUnlocked=false, soundEnabled=true, lastWallSound=0, lastOnlineScoreTotal=null, lastOnlineRoundKey=null, onlineCountdownTimer=null, onlineBattleTimer=null;
   var socket=null, socketReady=false, isHost=false, roleKnown=false, roomCode=null, mobileId='mobile_'+Math.random().toString(16).slice(2,10), onlineTarget={x:200,y:350,vx:1.2,vy:1.8}, onlineStateAt=Date.now();
   var playerName='PLAYER', rivalName='RIVAL', pendingMode='ai';
   var SOCKET_EU='https://base-boing-battle-1.onrender.com';
@@ -398,7 +484,7 @@ export default function MobilePage() {
   }
   function setMatchStatus(v){ var el=$('matchStatus'); if(el) el.textContent=v; }
   function show(id){
-    ['menuScreen','modeScreen','arenaScreen','difficultyScreen','joinScreen','howScreen','matchScreen','gameScreen'].forEach(function(s){ $(s).classList.remove('active'); });
+    ['menuScreen','settingsScreen','modeScreen','arenaScreen','difficultyScreen','joinScreen','howScreen','matchScreen','gameScreen'].forEach(function(s){ $(s).classList.remove('active'); });
     $(id).classList.add('active');
   }
   function bindTap(el, fn){
@@ -440,8 +526,11 @@ export default function MobilePage() {
   }
 
   function unlockAudio(){ audioUnlocked=true; }
+  function syncSoundButton(){ var b=$('soundToggleBtn'); if(b){ b.textContent=soundEnabled?'ON':'OFF'; if(soundEnabled) b.classList.add('on'); else b.classList.remove('on'); } }
+  function toggleSound(){ soundEnabled=!soundEnabled; try{ localStorage.setItem('bbb_mobile_sound', soundEnabled?'on':'off'); }catch(e){} syncSoundButton(); }
+  function loadSound(){ var saved=''; try{ saved=localStorage.getItem('bbb_mobile_sound')||''; }catch(e){} soundEnabled = saved==='off' ? false : true; syncSoundButton(); }
   function playSound(type){
-    if(!audioUnlocked) return;
+    if(!audioUnlocked || !soundEnabled) return;
     try{
       var AudioContextClass=window.AudioContext||window.webkitAudioContext;
       if(!AudioContextClass) return;
@@ -861,13 +950,18 @@ export default function MobilePage() {
   var nameInput=$('usernameInput'); if(nameInput){ nameInput.addEventListener('input',function(){ this.value=cleanName(this.value); }); }
   var roomInput=$('roomCodeInput'); if(roomInput){ roomInput.addEventListener('input',function(){ this.value=cleanName(this.value); }); }
   bindTap($('saveNameBtn'), saveName);
-  setTimeout(function(){ var sp=$('splashScreen'); if(sp) sp.classList.add('hide'); }, 1200);
+  loadSound();
 
   document.querySelectorAll('.region').forEach(function(btn){ bindTap(btn,function(){ socketRegion=btn.getAttribute('data-region')||'EU'; document.querySelectorAll('.region').forEach(function(b){b.classList.remove('selected')}); btn.classList.add('selected'); }); });
   bindTap($('cancelMatchBtn'), cancelOnlineSearch);
   document.querySelectorAll('.arena').forEach(function(btn){ bindTap(btn,function(){ arena=btn.getAttribute('data-arena')||'classic'; document.querySelectorAll('.arena').forEach(function(b){b.classList.remove('selected')}); btn.classList.add('selected'); }); });
   document.querySelectorAll('.difficulty').forEach(function(btn){ bindTap(btn,function(){ difficulty=btn.getAttribute('data-difficulty')||'normal'; document.querySelectorAll('.difficulty').forEach(function(b){b.classList.remove('selected')}); btn.classList.add('selected'); }); });
   bindTap($('playBtn'), openModeScreen);
+  bindTap($('settingsBtn'), function(){ show('settingsScreen'); });
+  bindTap($('settingsBtnTop'), function(){ show('settingsScreen'); });
+  bindTap($('settingsBtnBottom'), function(){ show('settingsScreen'); });
+  bindTap($('settingsBackBtn'), function(){ show('menuScreen'); });
+  bindTap($('soundToggleBtn'), toggleSound);
   bindTap($('modeAiBtn'), function(){ chooseMode('ai'); });
   bindTap($('modeOnlineBtn'), function(){ chooseMode('online'); });
   bindTap($('modeCreateBtn'), function(){ chooseMode('create'); });
@@ -880,7 +974,7 @@ export default function MobilePage() {
   bindTap($('joinRoomBtn'), joinRoom);
   bindTap($('joinBackBtn'), function(){ show('modeScreen'); });
   bindTap($('howBtn'), function(){ show('howScreen'); });
-  bindTap($('howBtnTop'), function(){ show('howScreen'); });
+  bindTap($('howBtnTop'), function(){ show('settingsScreen'); });
   bindTap($('backHowBtn'), function(){ show('menuScreen'); });
   bindTap($('menuBtn'), function(){ started=false; paused=true; $('overlayText').textContent=''; $('resultPanel').classList.remove('active'); if(mode==='online'){ try{ if(socket) socket.emit('leave-room',{ roomCode:roomCode }); }catch(e){} } mode='ai'; show('menuScreen'); });
   bindTap($('restartBtn'), function(){ if(mode==='online'){ setOverlay('ONLINE RESTART DISABLED'); } else newMatch(); });
