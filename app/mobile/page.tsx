@@ -184,7 +184,7 @@ export default function MobilePage() {
   var canvas, ctx, raf=0;
   var ball, lines, trail, sparks, score, energy, started=false, paused=false, drawing=null, goalLocked=false;
   var frame=0, audioUnlocked=false, lastWallSound=0;
-  var socket=null, socketReady=false, isHost=false, roomCode=null, mobileId='mobile_'+Math.random().toString(16).slice(2,10), onlineTarget={x:200,y:350,vx:1.2,vy:1.8}, onlineStateAt=Date.now();
+  var socket=null, socketReady=false, isHost=false, roleKnown=false, roomCode=null, mobileId='mobile_'+Math.random().toString(16).slice(2,10), onlineTarget={x:200,y:350,vx:1.2,vy:1.8}, onlineStateAt=Date.now();
   var SOCKET_EU='https://base-boing-battle-1.onrender.com';
   var SOCKET_US='https://base-boing-battle-usa.onrender.com';
   function flash(){ var f=$('goalFlash'); var gw=$('gameWrap'); if(f){ f.classList.add('active'); setTimeout(function(){f.classList.remove('active')},220); } if(gw){ gw.classList.add('shake'); setTimeout(function(){gw.classList.remove('shake')},330); } }
@@ -270,14 +270,38 @@ export default function MobilePage() {
       if(data && data.status==='cancelled'){ setMatchStatus('CANCELLED'); show('menuScreen'); }
     });
     socket.on('match-found',function(data){
-      data=data||{}; mode='online'; roomCode=data.roomCode||data.room_code||null; isHost=(data.role==='host');
-      setMatchStatus('MATCH FOUND • PREPARING ARENA');
-      setOverlay('MATCH FOUND');
+      data=data||{};
+      mode='online';
+      roomCode=data.roomCode||data.room_code||roomCode;
+
+      // IMPORTANT: never let both mobile clients become host.
+      // The server sends role: "host" or "guest". Host uses server coordinates,
+      // guest renders a mirrored field so each player still plays from the bottom.
+      if(data.role==='host' || data.role==='guest'){
+        isHost=(data.role==='host');
+        roleKnown=true;
+      }
+
+      setMatchStatus((isHost?'HOST':'GUEST')+' • MATCH FOUND');
+      setOverlay(isHost?'HOST READY':'GUEST READY');
       setTimeout(function(){ startOnlineMatch(); },900);
     });
     socket.on('room-matched',function(data){
-      data=data||{}; mode='online'; roomCode=data.roomCode||data.room_code||roomCode; isHost=true;
-      setMatchStatus('MATCH FOUND • PREPARING ARENA');
+      data=data||{};
+      mode='online';
+      roomCode=data.roomCode||data.room_code||roomCode;
+
+      // Older/manual room event. Do not force isHost=true here; that was causing
+      // both mobile devices to behave like the same side.
+      if(data.role==='host' || data.role==='guest'){
+        isHost=(data.role==='host');
+        roleKnown=true;
+      } else if(typeof data.isHost==='boolean'){
+        isHost=data.isHost;
+        roleKnown=true;
+      }
+
+      setMatchStatus((isHost?'HOST':'GUEST')+' • MATCH FOUND');
       setTimeout(function(){ startOnlineMatch(); if(data.state) applyOnlineState(data.state); },900);
     });
     socket.on('arena-selected',function(data){ if(data && data.arena){ arena=data.arena; } });
@@ -289,7 +313,7 @@ export default function MobilePage() {
     socket.on('connect_error',function(){ setMatchStatus('SOCKET CONNECTION FAILED'); });
   }
   function startOnlineSearch(){
-    mode='online'; show('matchScreen'); setMatchStatus('CONNECTING SOCKET...');
+    mode='online'; isHost=false; roleKnown=false; roomCode=null; show('matchScreen'); setMatchStatus('CONNECTING SOCKET...');
     ensureSocket(function(){
       var name='MOBILE'+mobileId.slice(-4).toUpperCase();
       try{ socket.emit('find-match',{ address:mobileId, username:name, region:socketRegion }); }catch(e){ setMatchStatus('SEARCH FAILED'); }
@@ -302,20 +326,21 @@ export default function MobilePage() {
   function startOnlineMatch(){
     canvas=$('gameCanvas'); ctx=canvas.getContext('2d');
     score={player:0,ai:0,msg:'',life:0}; resetBall('down');
-    $('scoreHud').textContent='RIVAL 0 ◇ 0 YOU';
+    $('scoreHud').textContent=(isHost?'HOST':'GUEST')+' • RIVAL 0 ◇ 0 YOU';
     $('resultPanel').classList.remove('active');
     show('gameScreen'); started=false; paused=true; setOverlay('WAITING');
     if(!raf) loop();
   }
   function applyOnlineState(state){
     if(!state) return;
+    if(!ball){ resetBall('down'); }
     if(state.arena && (state.arena==='classic'||state.arena==='base'||state.arena==='space'||state.arena==='temple')) arena=state.arena;
     var hostScore=Number(state.host_score!=null?state.host_score:(state.hostScore||0));
     var guestScore=Number(state.guest_score!=null?state.guest_score:(state.guestScore||0));
     if(!score) score={player:0,ai:0,msg:'',life:0};
     score.player=isHost?hostScore:guestScore;
     score.ai=isHost?guestScore:hostScore;
-    $('scoreHud').textContent='RIVAL '+score.ai+' ◇ '+score.player+' YOU';
+    $('scoreHud').textContent=(isHost?'HOST':'GUEST')+' • RIVAL '+score.ai+' ◇ '+score.player+' YOU';
     var bx=Number(state.ball_x!=null?state.ball_x:(state.ball&&state.ball.x)||ball.x);
     var by=Number(state.ball_y!=null?state.ball_y:(state.ball&&state.ball.y)||ball.y);
     var bvx=Number(state.ball_vx!=null?state.ball_vx:(state.ball&&state.ball.vx)||ball.vx);
@@ -343,7 +368,7 @@ export default function MobilePage() {
   }
   function opponentLeft(){ started=false; paused=true; setOverlay('OPPONENT LEFT'); setTimeout(function(){ show('menuScreen'); },1200); }
   function newMatch(){
-    mode='ai'; isHost=false; roomCode=null;
+    mode='ai'; isHost=false; roleKnown=false; roomCode=null;
     canvas=$('gameCanvas'); ctx=canvas.getContext('2d');
     score={player:0,ai:0,msg:'',life:0}; resetBall('down');
     $('scoreHud').textContent='AI 0 ◇ 0 YOU';
