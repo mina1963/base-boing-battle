@@ -136,25 +136,95 @@ export default function MobilePage() {
   .duelName { border:1px solid rgba(255,255,255,.12); background:rgba(255,255,255,.055); border-radius:18px; padding:10px 6px; text-align:center; font-size:11px; font-weight:1000; letter-spacing:.13em; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .duelVs { color:#9dc0ff; font-size:11px; font-weight:1000; letter-spacing:.16em; }
 
+
+  /* CLEAN PREMIUM INTRO / MENU VISUAL */
+  .cleanSplashFrame {
+    position:relative; width:min(86vw,380px); min-height:430px; border-radius:44px; overflow:hidden;
+    border:1px solid rgba(255,255,255,.14);
+    background:
+      radial-gradient(circle at 50% 22%, rgba(0,82,255,.34), transparent 32%),
+      linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.025));
+    box-shadow:0 0 90px rgba(0,82,255,.38), inset 0 0 60px rgba(255,255,255,.025);
+  }
+  .cleanSplashFrame:before {
+    content:""; position:absolute; inset:18px; border-radius:34px;
+    border:1px solid rgba(255,255,255,.08); box-shadow:inset 0 0 35px rgba(0,82,255,.12);
+  }
+  .cleanSplashInner { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:28px; }
+  .brandMark { position:relative; width:146px; height:146px; margin-bottom:22px; }
+  .brandMark .field {
+    position:absolute; inset:12px 34px; border-radius:24px;
+    border:2px solid rgba(255,255,255,.24);
+    background:linear-gradient(180deg, rgba(0,82,255,.20), rgba(0,0,0,.34));
+    box-shadow:0 0 38px rgba(0,82,255,.32), inset 0 0 24px rgba(0,82,255,.20);
+  }
+  .brandMark .field:before { content:""; position:absolute; left:0; right:0; top:50%; height:1px; background:rgba(255,255,255,.22); }
+  .brandMark .field:after { content:"BASE"; position:absolute; left:0; right:0; top:50%; transform:translateY(-50%); text-align:center; color:rgba(255,255,255,.26); font-size:13px; font-weight:1000; letter-spacing:.20em; }
+  .brandMark .ball { position:absolute; width:22px; height:22px; border-radius:999px; left:62px; top:62px; background:white; box-shadow:0 0 22px rgba(0,82,255,.95); }
+  .brandMark .lineA, .brandMark .lineB { position:absolute; height:5px; width:82px; border-radius:999px; background:#0052ff; box-shadow:0 0 20px rgba(0,82,255,.75); transform:rotate(-21deg); left:31px; top:43px; }
+  .brandMark .lineB { background:#ef4444; box-shadow:0 0 20px rgba(239,68,68,.65); transform:rotate(21deg); top:98px; }
+  .cleanSplashTitle { text-align:center; font-size:34px; line-height:.91; font-weight:1000; letter-spacing:.105em; text-shadow:0 0 32px rgba(0,82,255,.95); }
+  .cleanSplashSub { margin-top:16px; color:rgba(255,255,255,.58); font-size:10px; letter-spacing:.28em; font-weight:1000; }
+
+  .cleanHero {
+    position:relative; border-radius:34px; padding:16px; overflow:hidden;
+    border:1px solid rgba(255,255,255,.14);
+    background:linear-gradient(180deg, rgba(255,255,255,.075), rgba(255,255,255,.025));
+    box-shadow:0 0 52px rgba(0,82,255,.18);
+  }
+  .cleanHero:before { content:""; position:absolute; inset:0; background:radial-gradient(circle at 50% 0%, rgba(0,82,255,.28), transparent 44%); pointer-events:none; }
+  .cleanHeroInner { position:relative; z-index:1; border-radius:26px; padding:17px 12px 14px; background:rgba(0,0,0,.50); border:1px solid rgba(255,255,255,.075); }
+  .heroTopline { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
+  .heroBadge { padding:7px 10px; border-radius:999px; background:rgba(0,82,255,.14); border:1px solid rgba(0,82,255,.28); color:#a9c5ff; font-size:9px; letter-spacing:.20em; font-weight:1000; }
+  .heroLive { padding:7px 10px; border-radius:999px; background:rgba(34,211,238,.10); border:1px solid rgba(34,211,238,.22); color:#bdf5ff; font-size:9px; letter-spacing:.18em; font-weight:1000; }
+  .heroTitle { font-size:31px; line-height:.92; letter-spacing:.08em; text-align:left; font-weight:1000; text-shadow:0 0 24px rgba(0,82,255,.75); }
+  .heroSubtitle { margin-top:8px; color:rgba(255,255,255,.56); font-size:10px; letter-spacing:.22em; font-weight:1000; }
+  .courtVisual {
+    position:relative; margin-top:16px; height:154px; border-radius:26px; overflow:hidden;
+    border:1px solid rgba(255,255,255,.12);
+    background:
+      linear-gradient(rgba(255,255,255,.045) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,.045) 1px, transparent 1px),
+      radial-gradient(circle at 50% 50%, rgba(0,82,255,.20), rgba(0,0,0,.12) 55%, rgba(0,0,0,.55));
+    background-size:28px 28px,28px 28px,100% 100%;
+    box-shadow:inset 0 0 36px rgba(0,82,255,.16);
+  }
+  .courtVisual:before { content:""; position:absolute; left:14px; right:14px; top:14px; bottom:14px; border:1px solid rgba(255,255,255,.18); border-radius:18px; }
+  .courtVisual:after { content:""; position:absolute; left:14px; right:14px; top:50%; height:1px; background:rgba(255,255,255,.15); }
+  .cvBase { position:absolute; left:0; right:0; top:50%; transform:translateY(-50%); text-align:center; color:rgba(255,255,255,.14); font-size:38px; font-weight:1000; letter-spacing:.16em; }
+  .cvBall { position:absolute; width:18px; height:18px; border-radius:999px; left:calc(50% - 9px); top:calc(50% - 9px); background:white; box-shadow:0 0 22px rgba(0,82,255,.95); }
+  .cvLine1, .cvLine2 { position:absolute; height:7px; border-radius:999px; width:118px; transform:rotate(-16deg); left:34px; bottom:34px; background:#0052ff; box-shadow:0 0 20px rgba(0,82,255,.75); }
+  .cvLine2 { transform:rotate(16deg); right:34px; left:auto; top:34px; bottom:auto; background:#ef4444; box-shadow:0 0 20px rgba(239,68,68,.62); }
+  .heroStats { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-top:10px; }
+  .heroStat { border:1px solid rgba(255,255,255,.10); border-radius:16px; padding:9px 5px; background:rgba(255,255,255,.045); text-align:center; }
+  .heroStat strong { display:block; font-size:11px; letter-spacing:.14em; }
+  .heroStat span { display:block; margin-top:4px; color:rgba(255,255,255,.48); font-size:8px; font-weight:1000; letter-spacing:.14em; }
+
 </style>
 <div id="app">
-  <div id="splashScreen"><div id="splashCard"><div id="splashCardInner"><div class="splashOrb"></div><div class="splashTitle">BASE<br/>BOING<br/>BATTLE</div><div class="splashSub">MOBILE ARENA LOADING</div></div></div></div>
+  <div id="splashScreen"><div class="cleanSplashFrame"><div class="cleanSplashInner"><div class="brandMark"><div class="field"></div><div class="lineA"></div><div class="lineB"></div><div class="ball"></div></div><div class="cleanSplashTitle">BASE<br/>BOING<br/>BATTLE</div><div class="cleanSplashSub">MOBILE ARENA</div></div></div></div>
   <div id="noise"></div>
   <section id="menuScreen" class="screen active">
     <div class="center">
-      <div class="premiumShell">
-        <div class="premiumInner">
-          <div class="titleBadge">BUILT ON BASE</div>
-          <div class="orb"></div>
-          <h1>BASE<br/>BOING<br/>BATTLE</h1>
-          <div class="sub">MOBILE ONCHAIN ARCADE</div>
-          <div class="menuOrbit"></div>
-          <div class="featureGrid">
-            <div class="feature"><strong>DRAW</strong><span>LINES</span></div>
-            <div class="feature"><strong>DEFLECT</strong><span>BALL</span></div>
-            <div class="feature"><strong>SCORE</strong><span>FIRST 7</span></div>
+      <div class="cleanHero">
+        <div class="cleanHeroInner">
+          <div class="heroTopline">
+            <div class="heroBadge">BUILT ON BASE</div>
+            <div class="heroLive">MOBILE</div>
           </div>
-          <div class="statusStrip"><div class="statusChip">AI</div><div class="statusChip">ONLINE</div><div class="statusChip">MOBILE</div></div>
+          <div class="heroTitle">BASE<br/>BOING<br/>BATTLE</div>
+          <div class="heroSubtitle">DRAW LINES • DEFLECT • SCORE</div>
+          <div class="courtVisual">
+            <div class="cvBase">BASE</div>
+            <div class="cvLine1"></div>
+            <div class="cvLine2"></div>
+            <div class="cvBall"></div>
+          </div>
+          <div class="heroStats">
+            <div class="heroStat"><strong>AI</strong><span>SOLO</span></div>
+            <div class="heroStat"><strong>1V1</strong><span>ONLINE</span></div>
+            <div class="heroStat"><strong>7</strong><span>WINS</span></div>
+          </div>
         </div>
       </div>
 
