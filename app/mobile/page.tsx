@@ -404,17 +404,33 @@ export default function MobilePage() {
   function bindTap(el, fn){
     if(!el) return;
     var last=0;
+    var touched=false;
+
     function run(e){
       unlockAudio();
       var now=Date.now();
-      if(now-last<120) return;
+      if(now-last<260) return;
       last=now;
       if(e){ e.preventDefault(); e.stopPropagation(); }
       fn(e);
     }
-    el.addEventListener('touchstart', run, {passive:false});
-    el.addEventListener('pointerdown', run, {passive:false});
-    el.addEventListener('click', run, false);
+
+    // Android ghost-click fix:
+    // Do not change screens on touchstart/pointerdown. Wait for touchend,
+    // otherwise the released finger can hit a button on the newly opened screen.
+    el.addEventListener('touchend', function(e){
+      touched=true;
+      run(e);
+      setTimeout(function(){ touched=false; }, 420);
+    }, {passive:false});
+
+    el.addEventListener('click', function(e){
+      if(touched){
+        if(e){ e.preventDefault(); e.stopPropagation(); }
+        return;
+      }
+      run(e);
+    }, false);
   }
   function theme(){
     if(arena==='base') return {main:'#ef4444', glow:'rgba(239,68,68,.95)', label:'BASE', bg:'#031d5a'};
