@@ -38,7 +38,7 @@ export default function MobilePage() {
   .arena, .difficulty {
     min-height:88px; border:1px solid rgba(255,255,255,.13); border-radius:23px;
     background:linear-gradient(160deg, rgba(0,82,255,.22), rgba(255,255,255,.04));
-    color:white; font-weight:1000; letter-spacing:.11em; font-size:10px; touch-action:manipulation;
+    color:white; font-weight:1000; letter-spacing:.11em; font-size:12px; touch-action:manipulation;
   }
   .difficulty, .region { min-height:58px; }
   .region { border:1px solid rgba(255,255,255,.13); border-radius:23px; background:rgba(255,255,255,.08); color:white; font-weight:1000; letter-spacing:.11em; font-size:12px; touch-action:manipulation; }
@@ -140,7 +140,7 @@ export default function MobilePage() {
   .bigPlay .playIcon { display:inline-block; margin-right:10px; transform:translateY(1px); }
   .quickModes { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
   .quickCard { min-height:58px; border-radius:18px; border:1px solid rgba(255,255,255,.13); background:linear-gradient(180deg,rgba(255,255,255,.09),rgba(255,255,255,.035)); color:white; font-weight:1000; font-size:12px; letter-spacing:.12em; display:flex; align-items:center; justify-content:center; gap:8px; box-shadow:0 0 20px rgba(0,82,255,.10); }
-  .quickIcon { font-size:15px; filter:drop-shadow(0 0 10px rgba(0,82,255,.7)); }
+  .quickIcon { font-size:18px; filter:drop-shadow(0 0 10px rgba(0,82,255,.7)); }
   .usernameCard { border-radius:22px; padding:10px; border:1px solid rgba(255,255,255,.12); background:rgba(0,0,0,.32); display:grid; grid-template-columns:1fr auto; gap:8px; align-items:center; }
   #usernameInput { width:100%; height:46px; border:1px solid rgba(255,255,255,.13); border-radius:16px; background:rgba(255,255,255,.08); color:white; text-align:center; font-size:14px; font-weight:1000; letter-spacing:.12em; outline:none; text-transform:uppercase; }
   #usernameInput::placeholder { color:rgba(255,255,255,.34); }
@@ -149,10 +149,10 @@ export default function MobilePage() {
   .premiumRegionWrap { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
   .region { position:relative; min-height:66px; overflow:hidden; border-radius:22px; background:linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.025)); }
   .region:before { content:""; position:absolute; inset:0; background:radial-gradient(circle at 50% 0%, rgba(34,211,238,.22), transparent 58%); opacity:.35; }
-  .region strong { position:relative; display:block; font-size:14px; letter-spacing:.16em; }
+  .region strong { position:relative; display:block; font-size:16px; letter-spacing:.16em; }
   .region span { position:relative; display:block; margin-top:5px; font-size:8px; color:rgba(255,255,255,.48); letter-spacing:.16em; }
   .region.selected { border-color:#64d8ff; background:linear-gradient(180deg, rgba(34,211,238,.22), rgba(0,82,255,.10)); box-shadow:0 0 28px rgba(34,211,238,.32), inset 0 0 18px rgba(255,255,255,.06); }
-  .bottomNav { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; padding:10px; border-radius:20px; border:1px solid rgba(255,255,255,.10); background:rgba(0,0,0,.36); box-shadow:0 0 26px rgba(0,82,255,.12); }
+  .bottomNav { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; padding:10px; border-radius:24px; border:1px solid rgba(255,255,255,.10); background:rgba(0,0,0,.36); box-shadow:0 0 26px rgba(0,82,255,.12); }
   .navItem { min-height:48px; border:0; border-radius:16px; background:transparent; color:rgba(255,255,255,.52); font-size:8px; letter-spacing:.10em; font-weight:1000; }
   .navItem b { display:block; font-size:18px; margin-bottom:4px; color:#6aa7ff; }
   .navItem.active { background:rgba(0,82,255,.12); color:#8ebaff; }
@@ -243,8 +243,8 @@ export default function MobilePage() {
     box-shadow:0 0 28px rgba(0,82,255,.12), inset 0 0 22px rgba(255,255,255,.025);
   }
   .finalAvatar {
-    width:30px;
-    height:30px;
+    width:42px;
+    height:42px;
     border-radius:999px;
     background:radial-gradient(circle at 32% 22%, #fff, #dceaff 18%, #8bbcff 38%, #0052ff 62%, #051944 100%);
     box-shadow:0 0 22px rgba(0,82,255,.58);
@@ -294,8 +294,8 @@ export default function MobilePage() {
     font-weight:1000;
   }
   .finalHow {
-    width:46px;
-    height:46px;
+    width:54px;
+    height:54px;
     border-radius:22px;
     border:1px solid rgba(251,191,36,.30);
     background:linear-gradient(180deg, rgba(255,255,255,.075), rgba(255,255,255,.02));
@@ -484,7 +484,7 @@ export default function MobilePage() {
     align-items:center;
     justify-content:space-between;
     color:#f8d890;
-    font-size:20px;
+    font-size:24px;
     font-weight:1000;
     letter-spacing:.12em;
     margin:0 4px 14px;
@@ -628,371 +628,195 @@ export default function MobilePage() {
   }
 
 
-  /* FULL SCREEN ARCADE LOBBY - BASE BLUE / BLACK */
-  #menuScreen {
-    padding:0 !important;
-    overflow:hidden !important;
-    background:
-      radial-gradient(circle at 50% 34%, rgba(0,82,255,.26), transparent 36%),
-      radial-gradient(circle at 50% 74%, rgba(0,153,255,.18), transparent 34%),
-      #01030a !important;
+  /* IMAGE INSPIRED SEPARATE MOBILE FLOW */
+  .mobileLobbySimple {
+    min-height:100%; max-width:430px; margin:0 auto; display:flex; flex-direction:column; gap:14px;
+    padding:calc(env(safe-area-inset-top) + 8px) 0 calc(env(safe-area-inset-bottom) + 14px);
   }
-  #menuScreen:before {
-    content:"";
-    position:absolute;
-    inset:0;
-    pointer-events:none;
-    background:
-      linear-gradient(rgba(0,82,255,.12) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(0,82,255,.12) 1px, transparent 1px);
-    background-size:36px 36px;
-    opacity:.36;
+  .mobileHeroCard {
+    position:relative; min-height:455px; border-radius:36px; overflow:hidden; border:1px solid rgba(255,255,255,.10);
+    background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.012)), radial-gradient(circle at 50% 16%,rgba(255,255,255,.17),transparent 12%), radial-gradient(circle at 50% 46%,rgba(0,82,255,.25),transparent 35%), #02040a;
+    box-shadow:0 0 54px rgba(0,82,255,.20), inset 0 0 80px rgba(0,0,0,.62);
   }
-  #menuScreen:after {
-    content:"";
-    position:absolute;
-    inset:0;
-    pointer-events:none;
-    background:
-      radial-gradient(circle at 50% 33%, rgba(0,82,255,.30), transparent 42%),
-      radial-gradient(circle at 50% 64%, rgba(0,174,255,.16), transparent 34%),
-      linear-gradient(180deg, transparent 0%, rgba(0,82,255,.10) 45%, transparent 100%);
-    opacity:1;
-  }
-  .arcadeLobby {
-    position:relative;
-    z-index:2;
-    min-height:100%;
-    max-width:430px;
-    margin:0 auto;
-    padding:calc(env(safe-area-inset-top) + 14px) 18px calc(env(safe-area-inset-bottom) + 14px);
-    display:flex;
-    flex-direction:column;
-  }
-  .arcadeTop {
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    gap:10px;
-  }
-  .arcadeUser {
-    height:46px;
-    flex:1;
-    border-radius:24px;
-    border:1px solid rgba(0,117,255,.78);
-    background:linear-gradient(180deg, rgba(5,18,44,.92), rgba(0,3,12,.72));
-    box-shadow:0 0 26px rgba(0,82,255,.24), inset 0 0 28px rgba(0,82,255,.07);
-    display:flex;
-    align-items:center;
-    gap:9px;
-    padding:6px 10px;
-  }
-  .arcadeUserBall {
-    width:42px;
-    height:42px;
-    border-radius:50%;
-    background:radial-gradient(circle at 32% 25%, #fff, #8bc7ff 18%, #0052ff 54%, #031239 100%);
-    box-shadow:0 0 24px rgba(0,117,255,.85);
-    position:relative;
-    flex:0 0 auto;
-  }
-  .arcadeUserBall:before {
-    content:"B";
-    position:absolute;
-    inset:0;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    font-size:24px;
-    font-weight:1000;
-    color:white;
-    font-style:italic;
-    text-shadow:0 0 12px rgba(255,255,255,.8);
-  }
-  .arcadeUserText { min-width:0; flex:1; }
-  .arcadeName {
-    color:#fff;
-    font-size:18px;
-    font-weight:1000;
-    letter-spacing:.035em;
-    white-space:nowrap;
-    overflow:hidden;
-    text-overflow:ellipsis;
-  }
-  .arcadeStatus {
-    margin-top:4px;
-    color:#36ff83;
-    font-size:8px;
-    font-weight:1000;
-    letter-spacing:.16em;
-  }
-  .arcadeEdit {
-    width:34px;
-    height:34px;
-    border-radius:14px;
-    border:1px solid rgba(74,168,255,.34);
-    background:rgba(0,82,255,.08);
-    color:#49c8ff;
-    font-size:15px;
-    font-weight:1000;
-  }
-  .arcadeHow {
-    width:54px;
-    height:54px;
-    border-radius:22px;
-    border:1px solid rgba(0,117,255,.78);
-    background:linear-gradient(180deg, rgba(5,18,44,.92), rgba(0,3,12,.72));
-    color:#7ad5ff;
-    font-size:22px;
-    font-weight:1000;
-    box-shadow:0 0 24px rgba(0,82,255,.20);
-  }
-  .arcadeLogoWrap {
-    position:relative;
-    flex:1;
-    min-height:0;
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    justify-content:flex-start;
-    padding-top:68px;
-  }
-  .arcadeBigB {
-    position:absolute;
-    left:50%;
-    top:4%;
-    transform:translateX(-50%);
-    font-size:min(88vw,390px);
-    line-height:.8;
-    font-weight:1000;
-    font-style:italic;
-    color:transparent;
-    -webkit-text-stroke:1px rgba(0,82,255,.24);
-    opacity:.42;
-    text-shadow:0 0 42px rgba(0,82,255,.20);
-    pointer-events:none;
-  }
-  .arcadeLogo {
-    position:relative;
-    z-index:2;
-    margin-top:8px;
-    text-align:center;
-    font-size:min(23vw,98px);
-    line-height:.82;
-    font-weight:1000;
-    font-style:italic;
-    letter-spacing:.035em;
-    color:#1590ff;
-    text-shadow:
-      0 0 6px rgba(255,255,255,.75),
-      0 0 22px rgba(0,132,255,.98),
-      0 8px 0 rgba(0,30,100,.55);
-    filter:drop-shadow(0 0 18px rgba(0,82,255,.75));
-  }
-  .arcadeLogo small {
-    display:block;
-    margin-top:16px;
-    color:#f5f8ff;
-    font-size:min(6.3vw,27px);
-    font-style:normal;
-    letter-spacing:.42em;
-    text-indent:.42em;
-    text-shadow:0 0 20px rgba(255,255,255,.62), 0 0 26px rgba(0,82,255,.75);
-  }
-  .arcadeBallZone {
-    position:relative;
-    z-index:3;
-    width:100%;
-    height:190px;
-    margin-top:30px;
-  }
-  .arcadeFloatBall {
-    position:absolute;
-    left:50%;
-    top:8px;
-    width:120px;
-    height:120px;
-    transform:translateX(-50%);
-    border-radius:50%;
-    background:radial-gradient(circle at 30% 21%, #fff, #c9f6ff 13%, #4dd7ff 24%, #0052ff 60%, #04143c 100%);
-    box-shadow:0 0 56px rgba(0,153,255,.90), 0 0 120px rgba(0,82,255,.42);
-    animation:arcadeFloat 2.7s ease-in-out infinite;
-  }
-  .arcadeFloatBall:before {
-    content:"";
-    position:absolute;
-    left:26px;
-    right:26px;
-    top:56px;
-    height:7px;
-    border-radius:99px;
-    background:#020817;
-    transform:rotate(-8deg);
-  }
-  .arcadeFloatBall:after {
-    content:"";
-    position:absolute;
-    left:40px;
-    top:47px;
-    width:13px;
-    height:29px;
-    border-radius:99px;
-    background:#020817;
-    box-shadow:34px 0 0 #020817;
-  }
-  .arcadeRing {
-    position:absolute;
-    left:50%;
-    bottom:18px;
-    width:255px;
-    height:62px;
-    transform:translateX(-50%);
-    border-radius:50%;
-    border:3px solid rgba(0,179,255,.90);
-    box-shadow:0 0 28px rgba(0,153,255,.95), inset 0 0 28px rgba(0,82,255,.45);
-    background:radial-gradient(ellipse at center, rgba(0,174,255,.40), rgba(0,82,255,.10) 45%, transparent 70%);
-  }
-  .arcadeBeam {
-    position:absolute;
-    left:50%;
-    top:0;
-    width:190px;
-    height:190px;
-    transform:translateX(-50%);
-    background:linear-gradient(180deg, rgba(0,132,255,.22), rgba(0,132,255,.06), transparent);
-    filter:blur(4px);
-  }
-  @keyframes arcadeFloat {
-    0%,100% { transform:translateX(-50%) translateY(0); }
-    50% { transform:translateX(-50%) translateY(-16px); }
-  }
-  .arcadeActions {
-    position:relative;
-    z-index:5;
-    display:grid;
-    gap:12px;
-    margin-top:auto;
-  }
-  .arcadePlay {
-    width:100%;
-    min-height:98px;
-    border:0;
-    color:white;
-    font-size:52px;
-    font-weight:1000;
-    font-style:italic;
-    letter-spacing:.14em;
-    text-indent:.14em;
-    background:linear-gradient(180deg, rgba(12,52,128,.96), rgba(0,15,52,.96));
-    border:2px solid rgba(94,220,255,.98);
-    box-shadow:
-      0 0 34px rgba(0,153,255,.92),
-      inset 0 0 38px rgba(0,82,255,.36),
-      inset 0 2px 0 rgba(255,255,255,.22);
-    clip-path:polygon(7% 0,93% 0,100% 28%,100% 72%,93% 100%,7% 100%,0 72%,0 28%);
-    touch-action:manipulation;
-  }
-  .arcadePlay:before,
-  .arcadePlay:after {
-    content:">>";
-    font-size:24px;
-    color:#2bdcff;
-    text-shadow:0 0 18px rgba(43,220,255,.96);
-    margin:0 22px 0 0;
-  }
-  .arcadePlay:after { margin:0 0 0 22px; }
-  .arcadeSettings {
-    width:max-content;
-    min-height:34px;
-    margin:0 auto;
-    padding:0 22px;
-    border:0;
-    background:transparent;
-    color:#41d9ff;
-    font-size:16px;
-    font-weight:1000;
-    letter-spacing:.22em;
-    text-shadow:0 0 18px rgba(65,217,255,.76);
-    touch-action:manipulation;
-  }
-  .arcadeSettings:before { content:"⚙"; margin-right:10px; letter-spacing:0; }
-  .arcadeBuilt {
-    text-align:center;
-    color:#006cff;
-    font-size:12px;
-    font-weight:1000;
-    letter-spacing:.24em;
-    margin-top:0;
-    opacity:.86;
-    text-shadow:0 0 16px rgba(0,82,255,.6);
-  }
-  .arcadePlay:active, .arcadeSettings:active, .arcadeHow:active, .arcadeEdit:active, .modeBtn:active, .toggleBtn:active, .flowBack:active { transform:scale(.975); }
-
+  .mobileHeroCard:before { content:""; position:absolute; inset:0; background:linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px),linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px); background-size:34px 34px; opacity:.5; }
+  .mobileHeroRing { position:absolute; left:50%; top:78px; width:255px; height:255px; margin-left:-127px; border-radius:999px; border:1px solid rgba(251,191,36,.35); box-shadow:0 0 46px rgba(251,191,36,.12), inset 0 0 38px rgba(0,82,255,.10); }
+  .mobileHeroLogo { position:absolute; top:110px; left:0; right:0; text-align:center; z-index:2; font-size:40px; line-height:.86; font-weight:1000; letter-spacing:.12em; color:#f6f8ff; text-shadow:0 0 28px rgba(0,82,255,.85),0 3px 0 rgba(255,255,255,.08); }
+  .mobileHeroLogo span { display:block; font-size:53px; color:#67a8ff; letter-spacing:.07em; }
+  .mobileHeroLogo small { display:block; margin-top:14px; color:#f8d890; font-size:13px; letter-spacing:.62em; text-indent:.62em; text-shadow:0 0 16px rgba(251,191,36,.38); }
+  .mobileHeroBall { position:absolute; left:50%; top:292px; width:92px; height:92px; transform:translateX(-50%); border-radius:999px; background:radial-gradient(circle at 32% 22%,#fff,#dceaff 17%,#8bbcff 38%,#0052ff 64%,#04153e 100%); box-shadow:0 0 42px rgba(0,82,255,.74),0 26px 44px rgba(0,0,0,.64); z-index:2; animation:floatBall 2.6s ease-in-out infinite; }
+  .mobileHeroBall:before { content:""; position:absolute; left:12px; right:12px; top:38px; height:11px; border-radius:999px; background:rgba(255,255,255,.92); transform:rotate(-10deg); box-shadow:0 0 16px rgba(0,82,255,.7); }
+  .mobileHeroBall:after { content:""; position:absolute; left:29px; top:36px; width:7px; height:15px; border-radius:999px; background:#020817; box-shadow:27px 0 0 #020817; }
+  .mobileHeroPlatform { position:absolute; left:50%; top:380px; width:220px; height:52px; transform:translateX(-50%); border-radius:50%; background:radial-gradient(ellipse at 50% 35%,rgba(0,140,255,.9),rgba(0,82,255,.22) 38%,transparent 70%); }
+  .mobileHeroPlatform:after { content:""; position:absolute; left:22px; right:22px; top:10px; height:28px; border-radius:50%; border:2px solid rgba(251,191,36,.38); box-shadow:0 0 24px rgba(0,82,255,.44), inset 0 0 18px rgba(0,82,255,.20); }
+  .mobileMainActions { display:grid; gap:12px; }
+  .mobileMegaPlay { min-height:76px; border:0; border-radius:24px; background:linear-gradient(180deg,#2a95ff,#0052ff 58%,#05276f); color:white; font-size:31px; font-weight:1000; letter-spacing:.20em; box-shadow:0 0 38px rgba(0,82,255,.62), inset 0 2px 0 rgba(255,255,255,.28); clip-path:polygon(7% 0,93% 0,100% 50%,93% 100%,7% 100%,0 50%); touch-action:manipulation; }
+  .mobileSettingsBtn { min-height:58px; border-radius:22px; border:1px solid rgba(251,191,36,.30); background:linear-gradient(180deg,rgba(255,255,255,.075),rgba(255,255,255,.025)); color:#f8d890; font-size:15px; font-weight:1000; letter-spacing:.18em; box-shadow:0 0 24px rgba(251,191,36,.08); touch-action:manipulation; }
+  .mobileMegaPlay:active, .mobileSettingsBtn:active, .modeBtn:active, .toggleBtn:active, .flowBack:active { transform:scale(.975); }
   .mobileSubPage { min-height:100%; max-width:430px; margin:0 auto; display:flex; flex-direction:column; justify-content:center; gap:14px; padding:calc(env(safe-area-inset-top) + 14px) 0 calc(env(safe-area-inset-bottom) + 14px); }
-  .mobileSubHero { min-height:132px; border-radius:30px; border:1px solid rgba(0,117,255,.55); background:radial-gradient(circle at 50% 28%,rgba(0,82,255,.28),rgba(255,255,255,.035)); display:flex; align-items:center; justify-content:center; overflow:hidden; position:relative; box-shadow:0 0 34px rgba(0,82,255,.16); }
-  .mobileSubHero:before { content:""; position:absolute; width:180px; height:82px; border-radius:50%; border:1px solid rgba(100,180,255,.24); transform:rotate(-12deg) scaleY(.46); }
+  .mobileSubHero { min-height:132px; border-radius:30px; border:1px solid rgba(255,255,255,.12); background:radial-gradient(circle at 50% 28%,rgba(0,82,255,.26),rgba(255,255,255,.04)); display:flex; align-items:center; justify-content:center; overflow:hidden; position:relative; box-shadow:0 0 34px rgba(0,82,255,.14); }
+  .mobileSubHero:before { content:""; position:absolute; width:180px; height:82px; border-radius:50%; border:1px solid rgba(100,180,255,.22); transform:rotate(-12deg) scaleY(.46); }
   .mobileSubBall { width:62px; height:62px; border-radius:50%; background:radial-gradient(circle at 32% 22%,#fff,#d8e7ff 18%,#0052ff 58%,#031741 100%); box-shadow:0 0 36px rgba(0,82,255,.75); z-index:1; }
-  .mobileOptionPanel { border-radius:28px; padding:14px; border:1px solid rgba(0,117,255,.38); background:linear-gradient(180deg,rgba(255,255,255,.075),rgba(255,255,255,.026)); box-shadow:0 0 30px rgba(0,82,255,.14); }
-  .mobileOptionTitle { color:#41d9ff; font-size:14px; font-weight:1000; letter-spacing:.18em; margin:0 0 12px 2px; }
+  .mobileOptionPanel { border-radius:28px; padding:14px; border:1px solid rgba(255,255,255,.13); background:linear-gradient(180deg,rgba(255,255,255,.085),rgba(255,255,255,.032)); box-shadow:0 0 30px rgba(0,82,255,.14); }
+  .mobileOptionTitle { color:#f8d890; font-size:14px; font-weight:1000; letter-spacing:.18em; margin:0 0 12px 2px; }
   .mobileTwoGrid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
   .mobileTwoGrid .toggleBtn { width:100%; min-height:58px; border-radius:22px; }
   .modeGrid { display:grid; grid-template-columns:1fr; gap:12px; }
-  .modeBtn { min-height:76px; border-radius:28px; border:1px solid rgba(0,117,255,.34); background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.028)); color:white; text-align:left; padding:0 18px; font-weight:1000; letter-spacing:.12em; box-shadow:0 0 26px rgba(0,82,255,.12); touch-action:manipulation; }
+  .modeBtn { min-height:76px; border-radius:28px; border:1px solid rgba(255,255,255,.13); background:linear-gradient(180deg,rgba(255,255,255,.09),rgba(255,255,255,.035)); color:white; text-align:left; padding:0 18px; font-weight:1000; letter-spacing:.12em; box-shadow:0 0 26px rgba(0,82,255,.10); touch-action:manipulation; }
   .modeBtn strong { display:block; font-size:17px; }
   .modeBtn span { display:block; margin-top:6px; font-size:9px; color:rgba(255,255,255,.52); letter-spacing:.16em; }
-  .modeBtn.primary { background:linear-gradient(180deg,rgba(0,82,255,.38),rgba(0,82,255,.14)); border-color:rgba(91,155,255,.58); box-shadow:0 0 34px rgba(0,82,255,.30); }
+  .modeBtn.primary { background:linear-gradient(180deg,rgba(0,82,255,.34),rgba(0,82,255,.12)); border-color:rgba(91,155,255,.42); box-shadow:0 0 34px rgba(0,82,255,.28); }
 
-  @media (max-height:740px) {
-    .arcadeLobby { padding-top:calc(env(safe-area-inset-top) + 10px); padding-bottom:calc(env(safe-area-inset-bottom) + 8px); }
-    .arcadeUser { height:44px; }
-    .arcadeHow { width:44px; height:44px; }
-    .arcadeLogoWrap { padding-top:58px; }
-    .arcadeLogo { font-size:min(23vw,96px); }
-    .arcadeLogo small { margin-top:12px; font-size:min(6.1vw,25px); }
-    .arcadeBallZone { height:175px; margin-top:22px; }
-    .arcadeFloatBall { width:112px; height:112px; }
-    .arcadeFloatBall:before { top:52px; left:24px; right:24px; }
-    .arcadeFloatBall:after { top:43px; left:37px; height:27px; box-shadow:32px 0 0 #020817; }
-    .arcadeRing { width:245px; height:58px; bottom:12px; }
-    .arcadePlay { min-height:92px; font-size:48px; }
-    .arcadeActions { gap:10px; }
-    .arcadeBuilt { margin-top:-4px; }
+
+  /* ULTRA LUX BASE ARCADE LOBBY */
+  #menuScreen{
+    padding:0 !important;
+    overflow:hidden !important;
+    background:
+      radial-gradient(circle at 50% 28%, rgba(0,82,255,.42), transparent 36%),
+      radial-gradient(circle at 50% 72%, rgba(0,180,255,.18), transparent 28%),
+      linear-gradient(180deg,#020612 0%,#02030a 58%,#000207 100%) !important;
   }
+  #menuScreen:before{
+    content:""; position:absolute; inset:0; pointer-events:none; opacity:.42;
+    background:
+      linear-gradient(rgba(0,118,255,.16) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,118,255,.16) 1px, transparent 1px);
+    background-size:34px 34px;
+    mask-image:linear-gradient(to bottom, rgba(0,0,0,.85), rgba(0,0,0,.45) 62%, rgba(0,0,0,.85));
+  }
+  #menuScreen:after{
+    content:""; position:absolute; inset:0; pointer-events:none;
+    background:
+      radial-gradient(circle at 50% 42%, transparent 0 38%, rgba(0,0,0,.16) 52%, rgba(0,0,0,.55) 100%),
+      linear-gradient(90deg, rgba(0,0,0,.62), transparent 22%, transparent 78%, rgba(0,0,0,.62));
+  }
+  .luxLobby{
+    position:relative; z-index:2; width:100%; height:100dvh; max-width:430px; margin:0 auto; overflow:hidden;
+    display:flex; flex-direction:column; justify-content:space-between;
+    padding:calc(env(safe-area-inset-top) + 12px) 18px calc(env(safe-area-inset-bottom) + 16px);
+  }
+  .luxTop{ display:flex; align-items:center; gap:10px; height:54px; }
+  .luxUser{
+    flex:1; height:48px; border-radius:22px; border:1px solid rgba(0,132,255,.72);
+    background:linear-gradient(180deg, rgba(0,22,56,.88), rgba(0,8,28,.66)); color:white;
+    display:flex; align-items:center; gap:10px; padding:6px 10px;
+    box-shadow:0 0 22px rgba(0,82,255,.34), inset 0 0 24px rgba(0,82,255,.13);
+    touch-action:manipulation;
+  }
+  .luxBaseBadge{
+    width:34px; height:34px; border-radius:999px; display:flex; align-items:center; justify-content:center;
+    font-weight:1000; font-style:italic; font-size:21px; color:white;
+    background:radial-gradient(circle at 28% 20%, #fff, #79c4ff 16%, #0052ff 54%, #03133e 100%);
+    box-shadow:0 0 22px rgba(0,122,255,.9), inset 0 0 8px rgba(255,255,255,.28);
+  }
+  .luxUserText{ display:flex; flex-direction:column; align-items:flex-start; min-width:0; line-height:1; }
+  .luxUserText strong{ max-width:170px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:16px; letter-spacing:.04em; font-weight:1000; }
+  .luxUserText em{ margin-top:6px; font-style:normal; color:#29ff8b; font-size:9px; letter-spacing:.22em; font-weight:1000; text-shadow:0 0 10px rgba(41,255,139,.55); }
+  .luxEdit{ margin-left:auto; width:26px; height:26px; border-radius:999px; display:flex; align-items:center; justify-content:center; border:1px solid rgba(91,190,255,.35); color:#58d7ff; font-size:13px; background:rgba(255,255,255,.04); }
+  .luxHelp{
+    width:48px; height:48px; border-radius:20px; border:1px solid rgba(0,132,255,.72);
+    background:linear-gradient(180deg, rgba(0,22,56,.82), rgba(0,8,28,.64)); color:#7fe3ff; font-size:23px; font-weight:1000;
+    box-shadow:0 0 20px rgba(0,82,255,.28); touch-action:manipulation;
+  }
+  .luxStage{ position:relative; flex:1; min-height:0; display:flex; flex-direction:column; align-items:center; justify-content:center; padding-bottom:10px; }
+  .luxGhostB{
+    position:absolute; top:1%; left:50%; transform:translateX(-50%) skewX(-9deg);
+    font-size:min(70vw,330px); line-height:.8; font-weight:1000; color:transparent; -webkit-text-stroke:1px rgba(0,108,255,.18);
+    text-shadow:0 0 42px rgba(0,82,255,.13); opacity:.95; pointer-events:none;
+  }
+  .luxTitle{ position:relative; z-index:2; text-align:center; margin-top:-8px; }
+  .luxTitleBase{
+    font-size:76px; line-height:.8; font-style:italic; font-weight:1000; letter-spacing:.02em;
+    background:linear-gradient(180deg,#8fe4ff 0%,#1da0ff 34%,#0052ff 68%,#002a86 100%);
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+    -webkit-text-stroke:1px rgba(170,235,255,.42);
+    text-shadow:0 0 10px rgba(0,154,255,.95), 0 0 34px rgba(0,82,255,.85), 0 8px 0 rgba(0,0,0,.38);
+  }
+  .luxTitleSub{
+    margin-top:10px; color:#f4f8ff; font-size:21px; letter-spacing:.44em; text-indent:.44em; font-weight:1000;
+    text-shadow:0 0 16px rgba(120,190,255,.9);
+  }
+  .luxPortal{ position:relative; width:100%; height:240px; margin-top:20px; display:flex; align-items:center; justify-content:center; }
+  .luxBeam{
+    position:absolute; width:162px; height:185px; bottom:28px; border-radius:42% 42% 8% 8%;
+    background:linear-gradient(180deg, rgba(80,210,255,.28), rgba(0,82,255,.08) 60%, transparent);
+    filter:blur(.2px); opacity:.95; box-shadow:0 0 38px rgba(0,160,255,.26);
+  }
+  .luxBall{
+    position:absolute; bottom:86px; width:118px; height:118px; border-radius:999px;
+    background:radial-gradient(circle at 28% 18%, #fff 0 9%, #baf2ff 18%, #31c4ff 36%, #0067ff 64%, #03184c 100%);
+    box-shadow:0 0 34px rgba(0,180,255,.95), 0 0 72px rgba(0,82,255,.72), inset -14px -20px 34px rgba(0,0,0,.25);
+    animation:luxFloat 2.8s ease-in-out infinite;
+  }
+  .luxBall:before{ content:""; position:absolute; left:24px; right:24px; top:54px; height:9px; border-radius:999px; background:#020817; transform:rotate(-8deg); }
+  .luxBall:after{ content:""; position:absolute; left:42px; top:45px; width:13px; height:28px; border-radius:999px; background:#020817; box-shadow:34px 0 0 #020817; }
+  .luxRing{
+    position:absolute; bottom:48px; width:238px; height:58px; border-radius:50%; border:3px solid rgba(0,216,255,.82);
+    box-shadow:0 0 18px rgba(0,220,255,.95), inset 0 0 18px rgba(0,82,255,.62);
+    background:radial-gradient(ellipse at 50% 50%, rgba(0,154,255,.35), transparent 62%);
+  }
+  @keyframes luxFloat{ 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-16px); } }
+  .luxActions{ position:relative; z-index:3; display:flex; flex-direction:column; align-items:center; gap:13px; }
+  .luxPlay{
+    width:100%; height:88px; border:0; color:white; font-size:36px; font-style:italic; font-weight:1000; letter-spacing:.20em;
+    background:linear-gradient(180deg, rgba(15,126,255,.95), rgba(0,48,142,.95));
+    clip-path:polygon(8% 0,92% 0,100% 50%,92% 100%,8% 100%,0 50%);
+    box-shadow:0 0 0 2px rgba(90,228,255,.92), 0 0 34px rgba(0,154,255,.95), inset 0 0 36px rgba(255,255,255,.10);
+    text-shadow:0 0 18px rgba(255,255,255,.9); touch-action:manipulation;
+  }
+  .luxPlay span{ color:#39eaff; font-style:normal; font-size:26px; letter-spacing:.08em; text-shadow:0 0 16px rgba(57,234,255,.95); }
+  .luxSettings{
+    height:32px; border:0; background:transparent; color:#4de8ff; font-size:13px; letter-spacing:.32em; font-weight:1000;
+    text-shadow:0 0 12px rgba(77,232,255,.8); touch-action:manipulation;
+  }
+  .luxBuilt{ margin-top:3px; color:#005cff; font-size:11px; letter-spacing:.30em; font-weight:1000; text-shadow:0 0 14px rgba(0,82,255,.74); }
+  .luxBuilt b{ color:#2da8ff; }
+  .luxHiddenInput{ position:absolute; left:-9999px; top:-9999px; width:1px; height:1px; opacity:0; }
+  .luxWarn{ position:absolute; bottom:112px; left:0; right:0; text-align:center; color:#ff6b6b; font-size:10px; font-weight:1000; letter-spacing:.14em; }
+  @media (max-height:700px){
+    .luxTitleBase{font-size:66px}.luxTitleSub{font-size:18px}.luxPortal{height:205px;margin-top:10px}.luxBall{width:104px;height:104px;bottom:75px}.luxRing{bottom:40px}.luxPlay{height:78px;font-size:32px}.luxLobby{padding-left:16px;padding-right:16px}
+  }
+  @media (min-width:520px){ .luxLobby{max-width:430px;} }
 
 </style>
 <div id="app">
   <div id="noise"></div>
   <section id="menuScreen" class="screen active">
-    <div class="arcadeLobby">
-      <div class="arcadeTop">
-        <div class="arcadeUser">
-          <div class="arcadeUserBall"></div>
-          <div class="arcadeUserText">
-            <div id="profileName" class="arcadeName">@PLAYER</div>
-            <div class="arcadeStatus">ONLINE</div>
-          </div>
-          <button id="editNameBtn" class="arcadeEdit">✎</button>
+    <div class="luxLobby">
+      <div class="luxTop">
+        <button id="editNameBtn" class="luxUser">
+          <span class="luxBaseBadge">B</span>
+          <span class="luxUserText">
+            <strong id="profileName">PLAYER</strong>
+            <em>ONLINE</em>
+          </span>
+          <span class="luxEdit">✎</span>
+        </button>
+        <button id="howBtnTop" class="luxHelp">?</button>
+      </div>
+
+      <div class="luxStage">
+        <div class="luxGhostB">B</div>
+        <div class="luxTitle">
+          <div class="luxTitleBase">BASE</div>
+          <div class="luxTitleSub">BOING BATTLE</div>
         </div>
-        <button id="howBtnTop" class="arcadeHow">?</button>
-      </div>
 
-      <div class="arcadeLogoWrap">
-        <div class="arcadeBigB">B</div>
-        <div class="arcadeLogo">BASE<small>BOING BATTLE</small></div>
-        <div class="arcadeBallZone">
-          <div class="arcadeBeam"></div>
-          <div class="arcadeFloatBall"></div>
-          <div class="arcadeRing"></div>
+        <div class="luxPortal">
+          <div class="luxBeam"></div>
+          <div class="luxBall"></div>
+          <div class="luxRing"></div>
         </div>
       </div>
 
-      <input id="usernameInput" maxlength="10" style="position:absolute;left:-9999px;top:-9999px;opacity:0" />
-
-      <div class="arcadeActions">
-        <button id="playBtn" class="arcadePlay">PLAY</button>
-        <button id="settingsBtn" class="arcadeSettings">SETTINGS</button>
-        <div class="arcadeBuilt">BUILT ON BASE</div>
+      <div class="luxActions">
+        <button id="playBtn" class="luxPlay"><span>››</span> PLAY <span>‹‹</span></button>
+        <button id="settingsBtn" class="luxSettings">⚙ SETTINGS</button>
+        <div class="luxBuilt">BUILT ON <b>BASE</b></div>
       </div>
+
+      <input id="usernameInput" maxlength="10" class="luxHiddenInput" />
+      <div id="nameWarn" class="luxWarn"></div>
     </div>
   </section>
 
@@ -1153,7 +977,7 @@ export default function MobilePage() {
     var saved=''; try{ saved=localStorage.getItem('bbb_mobile_username')||''; }catch(e){}
     playerName=cleanName(saved)||'PLAYER';
     var input=$('usernameInput'); if(input) input.value=playerName==='PLAYER'?'':playerName;
-    var profile=$('profileName'); if(profile) profile.textContent='@'+playerName;
+    var profile=$('profileName'); if(profile) profile.textContent=playerName;
   }
   function saveName(){
     var input=$('usernameInput');
@@ -1163,7 +987,7 @@ export default function MobilePage() {
     playerName=finalName;
     try{ localStorage.setItem('bbb_mobile_username', playerName); }catch(e){}
     if(input) input.value=playerName;
-    var profile=$('profileName'); if(profile) profile.textContent='@'+playerName;
+    var profile=$('profileName'); if(profile) profile.textContent=playerName;
     if(warn) warn.textContent='SAVED';
     setTimeout(function(){ if(warn && warn.textContent==='SAVED') warn.textContent=''; },900);
     return true;
@@ -1655,7 +1479,7 @@ export default function MobilePage() {
   var nameInput=$('usernameInput'); if(nameInput){ nameInput.addEventListener('input',function(){ this.value=cleanName(this.value); }); }
   var roomInput=$('roomCodeInput'); if(roomInput){ roomInput.addEventListener('input',function(){ this.value=cleanName(this.value); }); }
   bindTap($('saveNameBtn'), saveName);
-  bindTap($('editNameBtn'), function(){ var current=(playerName==='PLAYER'?'':playerName); var next=prompt('USERNAME', current); if(next===null) return; var input=$('usernameInput'); if(input){ input.value=cleanName(next); } saveName(); });
+  bindTap($('editNameBtn'), function(){ var current=(playerName==='PLAYER'?'':playerName); var v=prompt('USERNAME', current); if(v===null) return; var name=cleanName(v); var input=$('usernameInput'); if(input) input.value=name; saveName(); });
   loadSound();
 
   document.querySelectorAll('.region').forEach(function(btn){ bindTap(btn,function(){ socketRegion=btn.getAttribute('data-region')||'EU'; document.querySelectorAll('.region').forEach(function(b){b.classList.remove('selected')}); btn.classList.add('selected'); }); });
