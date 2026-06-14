@@ -627,11 +627,50 @@ export default function MobilePage() {
     letter-spacing:.08em;
   }
 
+
+  /* IMAGE INSPIRED SEPARATE MOBILE FLOW */
+  .mobileLobbySimple {
+    min-height:100%; max-width:430px; margin:0 auto; display:flex; flex-direction:column; gap:14px;
+    padding:calc(env(safe-area-inset-top) + 8px) 0 calc(env(safe-area-inset-bottom) + 14px);
+  }
+  .mobileHeroCard {
+    position:relative; min-height:455px; border-radius:36px; overflow:hidden; border:1px solid rgba(255,255,255,.10);
+    background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.012)), radial-gradient(circle at 50% 16%,rgba(255,255,255,.17),transparent 12%), radial-gradient(circle at 50% 46%,rgba(0,82,255,.25),transparent 35%), #02040a;
+    box-shadow:0 0 54px rgba(0,82,255,.20), inset 0 0 80px rgba(0,0,0,.62);
+  }
+  .mobileHeroCard:before { content:""; position:absolute; inset:0; background:linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px),linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px); background-size:34px 34px; opacity:.5; }
+  .mobileHeroRing { position:absolute; left:50%; top:78px; width:255px; height:255px; margin-left:-127px; border-radius:999px; border:1px solid rgba(251,191,36,.35); box-shadow:0 0 46px rgba(251,191,36,.12), inset 0 0 38px rgba(0,82,255,.10); }
+  .mobileHeroLogo { position:absolute; top:110px; left:0; right:0; text-align:center; z-index:2; font-size:40px; line-height:.86; font-weight:1000; letter-spacing:.12em; color:#f6f8ff; text-shadow:0 0 28px rgba(0,82,255,.85),0 3px 0 rgba(255,255,255,.08); }
+  .mobileHeroLogo span { display:block; font-size:53px; color:#67a8ff; letter-spacing:.07em; }
+  .mobileHeroLogo small { display:block; margin-top:14px; color:#f8d890; font-size:13px; letter-spacing:.62em; text-indent:.62em; text-shadow:0 0 16px rgba(251,191,36,.38); }
+  .mobileHeroBall { position:absolute; left:50%; top:292px; width:92px; height:92px; transform:translateX(-50%); border-radius:999px; background:radial-gradient(circle at 32% 22%,#fff,#dceaff 17%,#8bbcff 38%,#0052ff 64%,#04153e 100%); box-shadow:0 0 42px rgba(0,82,255,.74),0 26px 44px rgba(0,0,0,.64); z-index:2; animation:floatBall 2.6s ease-in-out infinite; }
+  .mobileHeroBall:before { content:""; position:absolute; left:12px; right:12px; top:38px; height:11px; border-radius:999px; background:rgba(255,255,255,.92); transform:rotate(-10deg); box-shadow:0 0 16px rgba(0,82,255,.7); }
+  .mobileHeroBall:after { content:""; position:absolute; left:29px; top:36px; width:7px; height:15px; border-radius:999px; background:#020817; box-shadow:27px 0 0 #020817; }
+  .mobileHeroPlatform { position:absolute; left:50%; top:380px; width:220px; height:52px; transform:translateX(-50%); border-radius:50%; background:radial-gradient(ellipse at 50% 35%,rgba(0,140,255,.9),rgba(0,82,255,.22) 38%,transparent 70%); }
+  .mobileHeroPlatform:after { content:""; position:absolute; left:22px; right:22px; top:10px; height:28px; border-radius:50%; border:2px solid rgba(251,191,36,.38); box-shadow:0 0 24px rgba(0,82,255,.44), inset 0 0 18px rgba(0,82,255,.20); }
+  .mobileMainActions { display:grid; gap:12px; }
+  .mobileMegaPlay { min-height:76px; border:0; border-radius:24px; background:linear-gradient(180deg,#2a95ff,#0052ff 58%,#05276f); color:white; font-size:31px; font-weight:1000; letter-spacing:.20em; box-shadow:0 0 38px rgba(0,82,255,.62), inset 0 2px 0 rgba(255,255,255,.28); clip-path:polygon(7% 0,93% 0,100% 50%,93% 100%,7% 100%,0 50%); touch-action:manipulation; }
+  .mobileSettingsBtn { min-height:58px; border-radius:22px; border:1px solid rgba(251,191,36,.30); background:linear-gradient(180deg,rgba(255,255,255,.075),rgba(255,255,255,.025)); color:#f8d890; font-size:15px; font-weight:1000; letter-spacing:.18em; box-shadow:0 0 24px rgba(251,191,36,.08); touch-action:manipulation; }
+  .mobileMegaPlay:active, .mobileSettingsBtn:active, .modeBtn:active, .toggleBtn:active, .flowBack:active { transform:scale(.975); }
+  .mobileSubPage { min-height:100%; max-width:430px; margin:0 auto; display:flex; flex-direction:column; justify-content:center; gap:14px; padding:calc(env(safe-area-inset-top) + 14px) 0 calc(env(safe-area-inset-bottom) + 14px); }
+  .mobileSubHero { min-height:132px; border-radius:30px; border:1px solid rgba(255,255,255,.12); background:radial-gradient(circle at 50% 28%,rgba(0,82,255,.26),rgba(255,255,255,.04)); display:flex; align-items:center; justify-content:center; overflow:hidden; position:relative; box-shadow:0 0 34px rgba(0,82,255,.14); }
+  .mobileSubHero:before { content:""; position:absolute; width:180px; height:82px; border-radius:50%; border:1px solid rgba(100,180,255,.22); transform:rotate(-12deg) scaleY(.46); }
+  .mobileSubBall { width:62px; height:62px; border-radius:50%; background:radial-gradient(circle at 32% 22%,#fff,#d8e7ff 18%,#0052ff 58%,#031741 100%); box-shadow:0 0 36px rgba(0,82,255,.75); z-index:1; }
+  .mobileOptionPanel { border-radius:28px; padding:14px; border:1px solid rgba(255,255,255,.13); background:linear-gradient(180deg,rgba(255,255,255,.085),rgba(255,255,255,.032)); box-shadow:0 0 30px rgba(0,82,255,.14); }
+  .mobileOptionTitle { color:#f8d890; font-size:14px; font-weight:1000; letter-spacing:.18em; margin:0 0 12px 2px; }
+  .mobileTwoGrid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .mobileTwoGrid .toggleBtn { width:100%; min-height:58px; border-radius:22px; }
+  .modeGrid { display:grid; grid-template-columns:1fr; gap:12px; }
+  .modeBtn { min-height:76px; border-radius:28px; border:1px solid rgba(255,255,255,.13); background:linear-gradient(180deg,rgba(255,255,255,.09),rgba(255,255,255,.035)); color:white; text-align:left; padding:0 18px; font-weight:1000; letter-spacing:.12em; box-shadow:0 0 26px rgba(0,82,255,.10); touch-action:manipulation; }
+  .modeBtn strong { display:block; font-size:17px; }
+  .modeBtn span { display:block; margin-top:6px; font-size:9px; color:rgba(255,255,255,.52); letter-spacing:.16em; }
+  .modeBtn.primary { background:linear-gradient(180deg,rgba(0,82,255,.34),rgba(0,82,255,.12)); border-color:rgba(91,155,255,.42); box-shadow:0 0 34px rgba(0,82,255,.28); }
+
 </style>
 <div id="app">
   <div id="noise"></div>
   <section id="menuScreen" class="screen active">
-    <div class="lobby finalMenu">
+    <div class="mobileLobbySimple">
       <div class="finalTop">
         <div class="finalProfile">
           <div class="finalAvatar"></div>
@@ -644,10 +683,11 @@ export default function MobilePage() {
         <button id="howBtnTop" class="finalHow">?</button>
       </div>
 
-      <div class="finalStage">
-        <div class="finalLogo">BASE<span>BOING</span><small>BATTLE</small></div>
-        <div class="finalBot"></div>
-        <div class="finalPlatform"></div>
+      <div class="mobileHeroCard">
+        <div class="mobileHeroRing"></div>
+        <div class="mobileHeroLogo">BASE<span>BOING</span><small>BATTLE</small></div>
+        <div class="mobileHeroBall"></div>
+        <div class="mobileHeroPlatform"></div>
       </div>
 
       <div class="finalUsernameEdit" id="nameEditPanel">
@@ -656,73 +696,51 @@ export default function MobilePage() {
         <div id="nameWarn"></div>
       </div>
 
-      <div class="finalPanel">
-        <div class="finalPanelTitle">
-          <span>PLAY</span>
-          <button id="playBtn">⌄</button>
-        </div>
-        <div class="finalModeGrid">
-          <button id="modeAiBtn" class="finalModeBtn">
-            <div class="finalModeIcon" style="color:#f8d890">⚔</div>
-            <div><strong>VS AI</strong><span>Play against AI</span></div>
-            <div class="finalArrow">›</div>
-          </button>
-          <button id="modeOnlineBtn" class="finalModeBtn">
-            <div class="finalModeIcon" style="color:#67a8ff">◎</div>
-            <div><strong>1V1 ONLINE</strong><span>Play against real players</span></div>
-            <div class="finalArrow">›</div>
-          </button>
-          <button id="modeCreateBtn" class="finalModeBtn">
-            <div class="finalModeIcon" style="color:#a970ff">♟</div>
-            <div><strong>CREATE ROOM</strong><span>Create a room and invite players</span></div>
-            <div class="finalArrow">›</div>
-          </button>
-          <button id="modeJoinBtn" class="finalModeBtn">
-            <div class="finalModeIcon" style="color:#2dd4bf">↪</div>
-            <div><strong>JOIN ROOM</strong><span>Join an existing room</span></div>
-            <div class="finalArrow">›</div>
-          </button>
-        </div>
-      </div>
-
-      <div class="finalPanel">
-        <div class="finalPanelTitle">
-          <span>SETTINGS</span>
-          <button id="settingsBtn">⌄</button>
-        </div>
-        <div class="finalSettingsGrid">
-          <div class="finalSettingRow">
-            <div class="finalSettingIcon">◎</div>
-            <div class="finalSettingLabel">REGION</div>
-            <div class="finalSegment">
-              <button class="region selected" data-region="EU"><strong>EU</strong></button>
-              <button class="region" data-region="US"><strong>US</strong></button>
-            </div>
-          </div>
-          <div class="finalSettingRow">
-            <div class="finalSettingIcon">◉</div>
-            <div class="finalSettingLabel">SOUND</div>
-            <div class="finalSegment">
-              <button id="soundToggleBtn" class="toggleBtn on">ON</button>
-              <button id="soundOffBtn" class="finalSoundOff">OFF</button>
-            </div>
-          </div>
-        </div>
+      <div class="mobileMainActions">
+        <button id="playBtn" class="mobileMegaPlay">PLAY</button>
+        <button id="settingsBtn" class="mobileSettingsBtn">SETTINGS</button>
       </div>
     </div>
   </section>
 
 
   <section id="settingsScreen" class="screen">
-    <div class="center">
+    <div class="mobileSubPage">
       <div class="flowTitle">SETTINGS</div>
+      <div class="mobileSubHero"><div class="mobileSubBall"></div></div>
+
+      <div class="mobileOptionPanel">
+        <div class="mobileOptionTitle">REGION</div>
+        <div class="mobileTwoGrid">
+          <button class="region selected" data-region="EU"><strong>EU</strong><span>FRANKFURT</span></button>
+          <button class="region" data-region="US"><strong>US</strong><span>VIRGINIA</span></button>
+        </div>
+      </div>
+
+      <div class="mobileOptionPanel">
+        <div class="mobileOptionTitle">SOUND</div>
+        <div class="mobileTwoGrid">
+          <button id="soundToggleBtn" class="toggleBtn on">ON</button>
+          <button id="soundOffBtn" class="toggleBtn">OFF</button>
+        </div>
+      </div>
+
       <button id="settingsBackBtn" class="flowBack">BACK</button>
     </div>
   </section>
 
   <section id="modeScreen" class="screen">
-    <div class="center">
+    <div class="mobileSubPage">
       <div class="flowTitle">PLAY</div>
+      <div class="mobileSubHero"><div class="mobileSubBall"></div></div>
+
+      <div class="modeGrid">
+        <button id="modeAiBtn" class="modeBtn primary"><strong>VS AI</strong><span>CHOOSE ARENA + DIFFICULTY</span></button>
+        <button id="modeOnlineBtn" class="modeBtn"><strong>1V1 ONLINE</strong><span>RANDOM MATCHMAKING</span></button>
+        <button id="modeCreateBtn" class="modeBtn"><strong>CREATE ROOM</strong><span>PRIVATE ROOM WITH CODE</span></button>
+        <button id="modeJoinBtn" class="modeBtn"><strong>JOIN ROOM</strong><span>ENTER FRIEND ROOM CODE</span></button>
+      </div>
+
       <button id="modeBackBtn" class="flowBack">BACK</button>
     </div>
   </section>
@@ -1352,8 +1370,8 @@ export default function MobilePage() {
   bindTap($('cancelMatchBtn'), cancelOnlineSearch);
   document.querySelectorAll('.arena').forEach(function(btn){ bindTap(btn,function(){ arena=btn.getAttribute('data-arena')||'classic'; document.querySelectorAll('.arena').forEach(function(b){b.classList.remove('selected')}); btn.classList.add('selected'); }); });
   document.querySelectorAll('.difficulty').forEach(function(btn){ bindTap(btn,function(){ difficulty=btn.getAttribute('data-difficulty')||'normal'; document.querySelectorAll('.difficulty').forEach(function(b){b.classList.remove('selected')}); btn.classList.add('selected'); }); });
-  bindTap($('playBtn'), function(){});
-  bindTap($('settingsBtn'), function(){});
+  bindTap($('playBtn'), openModeScreen);
+  bindTap($('settingsBtn'), function(){ show('settingsScreen'); });
   bindTap($('settingsBackBtn'), function(){ show('menuScreen'); });
   bindTap($('soundToggleBtn'), function(){ soundEnabled=true; try{ localStorage.setItem('bbb_mobile_sound','on'); }catch(e){} syncSoundButton(); });
   bindTap($('soundOffBtn'), function(){ soundEnabled=false; try{ localStorage.setItem('bbb_mobile_sound','off'); }catch(e){} syncSoundButton(); });
@@ -1369,7 +1387,7 @@ export default function MobilePage() {
   bindTap($('joinRoomBtn'), joinRoom);
   bindTap($('joinBackBtn'), function(){ show('modeScreen'); });
   bindTap($('howBtn'), function(){ show('howScreen'); });
-  bindTap($('howBtnTop'), function(){ show('settingsScreen'); });
+  bindTap($('howBtnTop'), function(){ show('howScreen'); });
   bindTap($('backHowBtn'), function(){ show('menuScreen'); });
   bindTap($('menuBtn'), function(){ started=false; paused=true; $('overlayText').textContent=''; $('resultPanel').classList.remove('active'); if(mode==='online'){ try{ if(socket) socket.emit('leave-room',{ roomCode:roomCode }); }catch(e){} } mode='ai'; show('menuScreen'); });
   bindTap($('restartBtn'), function(){ if(mode==='online'){ setOverlay('ONLINE RESTART DISABLED'); } else newMatch(); });
