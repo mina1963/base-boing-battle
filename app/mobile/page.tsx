@@ -61,15 +61,32 @@ export default function MobilePage() {
   #resultPanel.active { display:block; }
   #resultTitle { font-size:30px; text-align:center; font-weight:1000; letter-spacing:.08em; margin-bottom:12px; }
   #toast { position:absolute; left:18px; right:18px; bottom:calc(env(safe-area-inset-bottom) + 14px); text-align:center; color:rgba(255,255,255,.72); font-size:11px; font-weight:900; letter-spacing:.12em; pointer-events:none; }
+
+  #splashScreen { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:#000; z-index:30; transition:opacity .35s ease; }
+  #splashScreen.hide { opacity:0; pointer-events:none; }
+  #splashLogo { width:min(76vw,360px); aspect-ratio:1/1; border-radius:42px; display:flex; align-items:center; justify-content:center; font-size:42px; font-weight:1000; letter-spacing:.08em; background:radial-gradient(circle at 50% 40%, rgba(0,82,255,.55), rgba(0,0,0,.15) 54%, #020204 100%); border:1px solid rgba(255,255,255,.12); box-shadow:0 0 70px rgba(0,82,255,.45); text-align:center; }
+  .titleBadge { margin:0 auto 10px; width:max-content; padding:9px 13px; border-radius:999px; background:rgba(0,82,255,.16); border:1px solid rgba(0,82,255,.30); color:#9dc0ff; font-size:10px; letter-spacing:.22em; font-weight:1000; }
+  .menuHero { position:relative; min-height:96px; border-radius:30px; overflow:hidden; border:1px solid rgba(255,255,255,.12); background:linear-gradient(135deg, rgba(0,82,255,.20), rgba(255,255,255,.04)); }
+  .menuHero:before { content:""; position:absolute; inset:-80px; background:conic-gradient(from 0deg, transparent, rgba(0,82,255,.30), transparent, rgba(34,211,238,.18), transparent); animation:spin 8s linear infinite; }
+  .menuHeroInner { position:absolute; inset:1px; border-radius:29px; background:rgba(0,0,0,.55); display:flex; align-items:center; justify-content:center; flex-direction:column; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  @keyframes shake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-9px)} 40%{transform:translateX(9px)} 60%{transform:translateX(-6px)} 80%{transform:translateX(6px)} }
+  #gameWrap.shake { animation:shake .32s ease-in-out; }
+  #goalFlash { position:absolute; inset:0; pointer-events:none; opacity:0; transition:opacity .22s ease; background:rgba(0,82,255,.24); }
+  #goalFlash.active { opacity:1; }
+  #roundHint { position:absolute; left:0; right:0; top:calc(env(safe-area-inset-top) + 82px); text-align:center; pointer-events:none; color:rgba(255,255,255,.55); font-size:10px; font-weight:1000; letter-spacing:.2em; }
 </style>
 <div id="app">
+  <div id="splashScreen"><div id="splashLogo">BASE<br/>BOING</div></div>
   <div id="noise"></div>
   <section id="menuScreen" class="screen active">
     <div class="center">
       <div>
+        <div class="titleBadge">BUILT ON BASE</div>
         <h1>BASE<br/>BOING<br/>BATTLE</h1>
-        <div class="sub">MOBILE ARCADE MODE</div>
+        <div class="sub">ONCHAIN ARCADE MODE</div>
       </div>
+      <div class="menuHero"><div class="menuHeroInner"><div style="font-size:24px;font-weight:1000;letter-spacing:.18em">1V1 PHYSICS</div><div class="sub" style="margin:8px 0 0">DRAW • DEFLECT • SCORE</div></div></div>
 
       <div class="card">
         <div class="sub">DIFFICULTY</div>
@@ -112,6 +129,8 @@ export default function MobilePage() {
   <section id="gameScreen" class="screen">
     <div id="gameWrap">
       <canvas id="gameCanvas" width="400" height="700"></canvas>
+      <div id="goalFlash"></div>
+      <div id="roundHint">FIRST TO 7</div>
       <div id="hudTop">
         <button id="menuBtn" class="pill">MENU</button>
         <div id="scoreHud" class="pill">AI 0 ◇ 0 YOU</div>
@@ -120,6 +139,7 @@ export default function MobilePage() {
       <div id="overlayText"></div>
       <div id="resultPanel">
         <div id="resultTitle">YOU WIN</div>
+        <div id="resultScore" class="sub">AI 0 ◇ 0 YOU</div>
         <button id="playAgainBtn" class="btn">PLAY AGAIN</button>
         <div style="height:10px"></div>
         <button id="resultMenuBtn" class="btn secondary">MAIN MENU</button>
@@ -135,6 +155,7 @@ export default function MobilePage() {
   var canvas, ctx, raf=0;
   var ball, lines, trail, sparks, score, energy, started=false, paused=false, drawing=null, goalLocked=false;
   var frame=0;
+  function flash(){ var f=$('goalFlash'); var gw=$('gameWrap'); if(f){ f.classList.add('active'); setTimeout(function(){f.classList.remove('active')},220); } if(gw){ gw.classList.add('shake'); setTimeout(function(){gw.classList.remove('shake')},330); } }
 
   function $(id){ return document.getElementById(id); }
   function show(id){
@@ -212,13 +233,14 @@ export default function MobilePage() {
   function canvasUp(e){ drawing=null; if(e) e.preventDefault(); }
   function goal(who){
     if(goalLocked) return;
-    goalLocked=true; paused=true; started=false;
+    goalLocked=true; paused=true; started=false; flash();
     if(who==='player') score.player++; else score.ai++;
     $('scoreHud').textContent='AI '+score.ai+' ◇ '+score.player+' YOU';
     var text=$('overlayText');
     if(score.player>=7 || score.ai>=7){
       text.textContent='';
       $('resultTitle').textContent=score.player>=7?'YOU WIN':'AI WINS';
+      $('resultScore').textContent='AI '+score.ai+' ◇ '+score.player+' YOU';
       $('resultPanel').classList.add('active');
       return;
     }
@@ -281,6 +303,10 @@ export default function MobilePage() {
   }
   function render(){
     drawBg(); physics();
+    if(score && (score.player===6 || score.ai===6)){
+      ctx.save(); ctx.textAlign='center'; ctx.font=(score.player===6&&score.ai===6)?'bold 28px monospace':'bold 24px monospace'; ctx.fillStyle=theme().main; ctx.shadowColor=theme().main; ctx.shadowBlur=24;
+      ctx.fillText((score.player===6&&score.ai===6)?'FINAL CLASH':(arena==='space'?'ORBIT POINT':arena==='temple'?'CHAIN POINT':arena==='base'?'BASE POINT':'MATCH POINT'), W/2, H/2-95); ctx.restore();
+    }
     trail.push({x:ball.x,y:ball.y}); if(trail.length>20) trail.shift();
     lines=lines.map(function(l){l.life--;return l}).filter(function(l){return l.life>0});
     sparks=sparks.map(function(s){s.x+=s.vx; s.y+=s.vy; s.vx*=.95; s.vy*=.95; s.life--; return s;}).filter(function(s){return s.life>0;});
@@ -296,7 +322,11 @@ export default function MobilePage() {
   }
   function loop(){ if(ctx) render(); raf=requestAnimationFrame(loop); }
 
-  document.querySelectorAll('.arena').forEach(function(btn){ bindTap(btn,function(){ arena=btn.getAttribute('data-arena')||'classic'; document.querySelectorAll('.arena').forEach(function(b){b.classList.remove('selected')}); btn.classList.add('selected'); }); });
+  setTimeout(function(){ var sp=$('splashScreen'); if(sp) sp.classList.add('hide'); }, 1200);
+
+  document.querySelectorAll('.arena').forEach(function(btn){ bindTap(btn,function(){ arena=btn.getAttribute('data-arena')||'classic'; setTimeout(function(){ var sp=$('splashScreen'); if(sp) sp.classList.add('hide'); }, 1200);
+
+  document.querySelectorAll('.arena').forEach(function(b){b.classList.remove('selected')}); btn.classList.add('selected'); }); });
   document.querySelectorAll('.difficulty').forEach(function(btn){ bindTap(btn,function(){ difficulty=btn.getAttribute('data-difficulty')||'normal'; document.querySelectorAll('.difficulty').forEach(function(b){b.classList.remove('selected')}); btn.classList.add('selected'); }); });
   bindTap($('playBtn'), newMatch);
   bindTap($('howBtn'), function(){ show('howScreen'); });
