@@ -1708,9 +1708,131 @@ export default function MobilePage() {
     pointer-events:auto !important;
   }
 
+
+  /* === PATCH: online leave warning + in-game username modal + VS AI polish === */
+  .artClickPlay,
+  .bigPlay,
+  .mobileMegaPlay,
+  #playBtn {
+    filter:drop-shadow(0 0 18px rgba(0,220,255,.88)) drop-shadow(0 0 42px rgba(0,82,255,.86)) !important;
+    box-shadow:0 0 34px rgba(0,174,255,.95), 0 0 78px rgba(0,82,255,.78), 0 0 128px rgba(34,211,238,.40), inset 0 2px 0 rgba(255,255,255,.34) !important;
+  }
+  @keyframes artPlayPulse {
+    0%,100% { filter:drop-shadow(0 0 16px rgba(0,200,255,.55)) drop-shadow(0 0 34px rgba(0,82,255,.55)); transform:scale(1); }
+    50% { filter:drop-shadow(0 0 30px rgba(0,240,255,.98)) drop-shadow(0 0 72px rgba(0,82,255,.92)); transform:scale(1.03); }
+  }
+  #difficultyScreen .premiumDiffOrb:after { display:none !important; }
+  #difficultyScreen .premiumDiffOrb {
+    height:118px !important;
+    background:radial-gradient(circle at 50% 50%, rgba(0,82,255,.30), rgba(0,12,36,.88) 54%, rgba(0,0,0,.62) 100%) !important;
+  }
+  #difficultyScreen .premiumDiffBtn,
+  #difficultyScreen .artModeBtn,
+  #difficultyScreen .mobileOptionPanel {
+    background:#06152e !important;
+    opacity:1 !important;
+    backdrop-filter:none !important;
+    box-shadow:0 0 24px rgba(0,82,255,.28), inset 0 0 22px rgba(0,132,255,.08) !important;
+  }
+  #difficultyScreen .premiumDiffBtn.selected {
+    background:#07347a !important;
+    box-shadow:0 0 36px rgba(0,174,255,.42), inset 0 0 26px rgba(98,220,255,.14) !important;
+  }
+  #usernameModal {
+    position:absolute;
+    inset:0;
+    z-index:80;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    padding:22px;
+    background:rgba(0,0,0,.68);
+    backdrop-filter:blur(10px);
+  }
+  #usernameModal.active { display:flex; }
+  .usernameModalCard {
+    width:min(100%,390px);
+    border-radius:34px;
+    padding:22px;
+    border:1px solid rgba(94,231,255,.48);
+    background:linear-gradient(180deg, rgba(3,24,64,.96), rgba(0,5,18,.96));
+    box-shadow:0 0 54px rgba(0,132,255,.42), inset 0 0 32px rgba(255,255,255,.045);
+  }
+  .usernameModalTitle {
+    text-align:center;
+    font-size:31px;
+    line-height:.95;
+    font-weight:1000;
+    letter-spacing:.10em;
+    color:#fff;
+    text-shadow:0 0 24px rgba(0,200,255,.86);
+    margin-bottom:10px;
+  }
+  .usernameModalSub {
+    text-align:center;
+    color:rgba(159,235,255,.70);
+    font-size:10px;
+    font-weight:1000;
+    letter-spacing:.22em;
+    margin-bottom:16px;
+  }
+  .usernameModalForm {
+    display:grid;
+    grid-template-columns:1fr;
+    gap:12px;
+  }
+  #usernameInput {
+    height:66px !important;
+    border-radius:24px !important;
+    font-size:22px !important;
+    letter-spacing:.16em !important;
+    background:rgba(255,255,255,.09) !important;
+    border:1px solid rgba(94,231,255,.34) !important;
+    box-shadow:inset 0 0 22px rgba(0,132,255,.10) !important;
+  }
+  #saveNameBtn, #usernameCancelBtn {
+    height:60px !important;
+    border-radius:22px !important;
+    font-size:14px !important;
+    font-weight:1000 !important;
+    letter-spacing:.18em !important;
+    touch-action:manipulation;
+  }
+  #saveNameBtn {
+    width:100% !important;
+    background:linear-gradient(180deg,#7ee9ff,#0052ff 68%,#04236b) !important;
+    color:white !important;
+    box-shadow:0 0 30px rgba(0,174,255,.48) !important;
+  }
+  #usernameCancelBtn {
+    width:100%;
+    border:1px solid rgba(255,255,255,.14);
+    background:rgba(255,255,255,.07);
+    color:rgba(255,255,255,.78);
+  }
+  #nameWarn {
+    min-height:20px !important;
+    font-size:11px !important;
+    letter-spacing:.15em !important;
+    margin-top:0 !important;
+  }
+
 </style>
 <div id="app">
   <div id="noise"></div>
+
+  <div id="usernameModal" aria-hidden="true">
+    <div class="usernameModalCard">
+      <div class="usernameModalTitle">USERNAME</div>
+      <div class="usernameModalSub">CHOOSE YOUR PLAYER NAME</div>
+      <div class="usernameModalForm">
+        <input id="usernameInput" maxlength="10" placeholder="PLAYER" />
+        <button id="saveNameBtn">SAVE</button>
+        <button id="usernameCancelBtn">CANCEL</button>
+        <div id="nameWarn"></div>
+      </div>
+    </div>
+  </div>
   <section id="menuScreen" class="screen active artworkMenu">
     <div class="artLobby">
       <div class="artHeaderMask"></div>
@@ -1726,7 +1848,6 @@ export default function MobilePage() {
         <button id="howBtnTop" class="artHow">?</button>
       </div>
 
-      <input id="usernameInput" class="artHiddenInput" maxlength="10" />
       <button id="playBtn" class="artClickPlay" aria-label="Play"></button>
       <button id="settingsBtn" class="artClickSettings" aria-label="Settings"></button>
     </div>
@@ -1899,25 +2020,37 @@ export default function MobilePage() {
     var input=$('usernameInput'); if(input) input.value=playerName==='PLAYER'?'':playerName;
     var profile=$('profileName'); if(profile) profile.textContent='@'+playerName;
   }
+  function openUsernameModal(message){
+    var modal=$('usernameModal');
+    var input=$('usernameInput');
+    var warn=$('nameWarn');
+    if(input) input.value=playerName==='PLAYER'?'':playerName;
+    if(warn) warn.textContent=message||'';
+    if(modal){ modal.classList.add('active'); modal.setAttribute('aria-hidden','false'); }
+    setTimeout(function(){ try{ if(input) input.focus(); }catch(e){} },80);
+  }
+  function closeUsernameModal(){
+    var modal=$('usernameModal');
+    if(modal){ modal.classList.remove('active'); modal.setAttribute('aria-hidden','true'); }
+  }
   function saveName(){
     var input=$('usernameInput');
     var finalName=cleanName(input&&input.value);
     var warn=$('nameWarn');
-    if(!finalName){ if(warn) warn.textContent='ENTER USERNAME FIRST'; return false; }
+    if(!finalName){ if(warn) warn.textContent='ENTER USERNAME FIRST'; openUsernameModal('ENTER USERNAME FIRST'); return false; }
     playerName=finalName;
     try{ localStorage.setItem('bbb_mobile_username', playerName); }catch(e){}
     if(input) input.value=playerName;
     var profile=$('profileName'); if(profile) profile.textContent='@'+playerName;
     if(warn) warn.textContent='SAVED';
-    setTimeout(function(){ if(warn && warn.textContent==='SAVED') warn.textContent=''; },900);
+    setTimeout(function(){ if(warn && warn.textContent==='SAVED') warn.textContent=''; closeUsernameModal(); },420);
     return true;
   }
   function requireName(){
     var input=$('usernameInput');
     var candidate=cleanName(input&&input.value) || cleanName(playerName);
     if(candidate && candidate!=='PLAYER'){ playerName=candidate; saveName(); return true; }
-    var warn=$('nameWarn'); if(warn) warn.textContent='ENTER USERNAME FIRST';
-    show('menuScreen');
+    openUsernameModal('ENTER USERNAME FIRST');
     return false;
   }
   function displayName(name){ return cleanName(name)||'PLAYER'; }
@@ -2370,6 +2503,7 @@ export default function MobilePage() {
     paused=true;
     clearOnlineCountdown();
     setOverlay('OPPONENT LEFT');
+    setMatchStatus('OPPONENT LEFT THE GAME');
     if($('resultPanel')){
       $('resultTitle').textContent='OPPONENT LEFT';
       $('resultTitle').style.color='#ef4444';
@@ -2377,6 +2511,19 @@ export default function MobilePage() {
       if($('resultScore')) $('resultScore').textContent='MATCH ENDED';
       $('resultPanel').classList.add('active');
     }
+  }
+  function leaveOnlineRoom(){
+    if(mode==='online' && socket && roomCode){
+      var payload={ roomCode:roomCode, room_code:roomCode, code:roomCode, role:isHost?'host':'guest', username:displayName(playerName) };
+      try{ socket.emit('leave-room',payload); }catch(e){}
+      try{ socket.emit('player-left',payload); }catch(e){}
+      try{ socket.emit('opponent-left',payload); }catch(e){}
+    }
+    started=false;
+    paused=true;
+    clearOnlineCountdown();
+    roomCode=null;
+    mode='ai';
   }
   function newMatch(){
     if(!requireName()) return;
@@ -2566,8 +2713,9 @@ export default function MobilePage() {
   var nameInput=$('usernameInput'); if(nameInput){ nameInput.addEventListener('input',function(){ this.value=cleanName(this.value); }); }
   var roomInput=$('roomCodeInput'); if(roomInput){ roomInput.addEventListener('input',function(){ this.value=cleanName(this.value); }); }
   bindTap($('saveNameBtn'), saveName);
-  bindTap($('editNameBtn'), function(){ var current=playerName==='PLAYER'?'':playerName; var next=prompt('USERNAME', current); if(next!==null){ var input=$('usernameInput'); if(input){ input.value=next; } saveName(); } });
-  bindTap($('profileTapArea'), function(){ var current=playerName==='PLAYER'?'':playerName; var next=prompt('USERNAME', current); if(next!==null){ var input=$('usernameInput'); if(input){ input.value=next; } saveName(); } });
+  bindTap($('usernameCancelBtn'), closeUsernameModal);
+  bindTap($('editNameBtn'), function(){ openUsernameModal(); });
+  bindTap($('profileTapArea'), function(){ openUsernameModal(); });
   loadSound();
 
   document.querySelectorAll('.region').forEach(function(btn){ bindTap(btn,function(){ socketRegion=btn.getAttribute('data-region')||'EU'; document.querySelectorAll('.region').forEach(function(b){b.classList.remove('selected')}); btn.classList.add('selected'); }); });
@@ -2594,10 +2742,15 @@ export default function MobilePage() {
   bindTap($('howBtn'), function(){ show('howScreen'); });
   bindTap($('howBtnTop'), function(){ show('howScreen'); });
   bindTap($('backHowBtn'), function(){ show('menuScreen'); });
-  bindTap($('menuBtn'), function(){ started=false; paused=true; $('overlayText').textContent=''; $('resultPanel').classList.remove('active'); if(mode==='online'){ try{ if(socket) socket.emit('leave-room',{ roomCode:roomCode }); }catch(e){} } mode='ai'; show('menuScreen'); });
+  bindTap($('menuBtn'), function(){ $('overlayText').textContent=''; $('resultPanel').classList.remove('active'); leaveOnlineRoom(); show('menuScreen'); });
   bindTap($('restartBtn'), function(){ if(mode==='online'){ setOverlay('ONLINE RESTART DISABLED'); } else newMatch(); });
   bindTap($('playAgainBtn'), function(){ if(mode==='online' && socket && roomCode){ $('resultPanel').classList.remove('active'); setOverlay('WAITING RIVAL'); try{ socket.emit('play-again-ready',{ roomCode:roomCode, role:isHost?'host':'guest', nextMatchNo:onlineMatchNo+1 }); }catch(e){} } else newMatch(); });
-  bindTap($('resultMenuBtn'), function(){ $('resultPanel').classList.remove('active'); if(mode==='online'){ try{ if(socket) socket.emit('leave-room',{ roomCode:roomCode }); }catch(e){} } mode='ai'; show('menuScreen'); });
+  bindTap($('resultMenuBtn'), function(){ $('resultPanel').classList.remove('active'); leaveOnlineRoom(); show('menuScreen'); });
+  window.addEventListener('beforeunload', function(){
+    if(mode==='online' && socket && roomCode){
+      try{ socket.emit('leave-room',{ roomCode:roomCode, room_code:roomCode, code:roomCode, role:isHost?'host':'guest', username:displayName(playerName) }); }catch(e){}
+    }
+  });
 
   setTimeout(function(){
     canvas=$('gameCanvas');
