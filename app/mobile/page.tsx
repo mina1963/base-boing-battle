@@ -76,7 +76,7 @@ export default function MobilePage() {
   #gameWrap.shake { animation:shake .32s ease-in-out; }
   #goalFlash { position:absolute; inset:0; pointer-events:none; opacity:0; transition:opacity .22s ease; background:rgba(0,82,255,.24); }
   #goalFlash.active { opacity:1; }
-  #roundHint { position:absolute; left:0; right:0; top:calc(env(safe-area-inset-top) + 82px); text-align:center; pointer-events:none; color:rgba(255,255,255,.55); font-size:10px; font-weight:1000; letter-spacing:.2em; }
+  #roundHint { position:absolute; left:0; right:0; top:calc(env(safe-area-inset-top) + 118px); text-align:center; pointer-events:none; color:rgba(255,255,255,.55); font-size:10px; font-weight:1000; letter-spacing:.2em; }
   #overlayText.pop { animation: popText .42s ease-out; }
   @keyframes popText { 0%{opacity:0;transform:scale(.55)} 45%{opacity:1;transform:scale(1.18)} 100%{opacity:1;transform:scale(1)} }
   #resultPanel { backdrop-filter:blur(10px); }
@@ -2598,7 +2598,32 @@ export default function MobilePage() {
     socket.on('room-code',handleRoomCreated);
     socket.on('create-room-success',handleRoomCreated);
     socket.on('arena-selected',function(data){ if(data && data.arena){ arena=data.arena; } });
-    socket.on('game-state',function(state){ applyOnlineState(state); });
+    socket.on('game-state',function(state){
+      try{
+        if(state && mode==='online' && roomCode){
+          var phase=state.phase||'';
+          var hasCountdown=phase==='countdown' || phase==='playing' || !!state.roundStartAt || !!state.round_start_at;
+
+          if(hasCountdown){
+            if(onlineMatchStartTimer){
+              try{ clearTimeout(onlineMatchStartTimer); }catch(e){}
+              onlineMatchStartTimer=null;
+            }
+
+            onlineLaunchStarted=true;
+            onlineLaunchRoom=String(roomCode);
+            pendingMode='onlineMatched';
+            setMatchStatus('');
+
+            if(!$('gameScreen').classList.contains('active')){
+              startOnlineMatch();
+            }
+          }
+        }
+      }catch(e){}
+
+      applyOnlineState(state);
+    });
     socket.on('remote-line',function(line){ addRemoteLine(line); });
     socket.on('opponent-left',function(){ opponentLeft(); });
     socket.on('opponent-disconnected',function(){ opponentLeft(); });
