@@ -572,60 +572,60 @@ io.on("connection", (socket) => {
     startArenaVote(room);
   });
 
-socket.on("find-match", ({ address, username }) => {
-  console.log("FIND MATCH:", socket.id);
+  socket.on("find-match", ({ address, username }) => {
+    console.log("FIND MATCH:", socket.id);
 
-  if (socketRooms.has(socket.id)) {
-    cleanupRoomForSocket(socket);
-  }
+    if (socketRooms.has(socket.id)) {
+      cleanupRoomForSocket(socket);
+    }
 
-  waitingPlayers = waitingPlayers.filter(
-    (p) => p.socketId !== socket.id
-  );
+    waitingPlayers = waitingPlayers.filter(
+      (p) => p.socketId !== socket.id
+    );
 
-  waitingPlayers = waitingPlayers.filter((p) =>
-    io.sockets.sockets.get(p.socketId)
-  );
+    waitingPlayers = waitingPlayers.filter((p) =>
+      io.sockets.sockets.get(p.socketId)
+    );
 
-  const player = {
-    socketId: socket.id,
-    address,
-    username: cleanUsername(username, "PLAYER"),
-    joinedAt: Date.now(),
-  };
+    const player = {
+      socketId: socket.id,
+      address,
+      username: cleanUsername(username, "PLAYER"),
+      joinedAt: Date.now(),
+    };
 
-  waitingPlayers.push(player);
+    waitingPlayers.push(player);
 
-  while (waitingPlayers.length >= 2) {
-    const host = waitingPlayers.shift();
-    const guest = waitingPlayers.shift();
+    while (waitingPlayers.length >= 2) {
+      const host = waitingPlayers.shift();
+      const guest = waitingPlayers.shift();
 
-    if (!host || !guest) break;
+      if (!host || !guest) break;
 
-    const hostSocket = io.sockets.sockets.get(host.socketId);
-    const guestSocket = io.sockets.sockets.get(guest.socketId);
+      const hostSocket = io.sockets.sockets.get(host.socketId);
+      const guestSocket = io.sockets.sockets.get(guest.socketId);
 
-    if (!hostSocket || !guestSocket) continue;
-    if (host.socketId === guest.socketId) continue;
+      if (!hostSocket || !guestSocket) continue;
+      if (host.socketId === guest.socketId) continue;
 
-    createMatchedRoom({
-      host: {
-        ...host,
-        username: cleanUsername(host.username, "PLAYER 1"),
-      },
-      guest: {
-        ...guest,
-        username: cleanUsername(guest.username, "PLAYER 2"),
-      },
+      createMatchedRoom({
+        host: {
+          ...host,
+          username: cleanUsername(host.username, "PLAYER 1"),
+        },
+        guest: {
+          ...guest,
+          username: cleanUsername(guest.username, "PLAYER 2"),
+        },
+      });
+
+      return;
+    }
+
+    socket.emit("matchmaking-status", {
+      status: "searching",
     });
-
-    return;
-  }
-
-  socket.emit("matchmaking-status", {
-    status: "searching",
   });
-});
 
   socket.on("vote-arena", ({ roomCode, arena }) => {
     const room = rooms.get(roomCode);
@@ -634,15 +634,15 @@ socket.on("find-match", ({ address, username }) => {
     handleArenaVote(room, socket.id, arena);
   });
 
-socket.on("cancel-matchmaking", () => {
-  waitingPlayers = waitingPlayers.filter(
-    (p) => p.socketId !== socket.id
-  );
+  socket.on("cancel-matchmaking", () => {
+    waitingPlayers = waitingPlayers.filter(
+      (p) => p.socketId !== socket.id
+    );
 
-  socket.emit("matchmaking-status", {
-    status: "cancelled",
+    socket.emit("matchmaking-status", {
+      status: "cancelled",
+    });
   });
-});
 
   socket.on("host-state", ({ roomCode }) => {
     const room = rooms.get(roomCode);
@@ -712,32 +712,46 @@ socket.on("cancel-matchmaking", () => {
       guestReadyAgain: room.guestReadyAgain,
     });
 
-if (room.hostReadyAgain && room.guestReadyAgain) {
-  room.hostReadyAgain = false;
-  room.guestReadyAgain = false;
+    if (room.hostReadyAgain && room.guestReadyAgain) {
+      room.hostReadyAgain = false;
+      room.guestReadyAgain = false;
 
-  room.state = createInitialState();
-  room.lines = [];
-  room.arenaVotes = {
-    host: null,
-    guest: null,
-  };
+      room.state = createInitialState();
+      room.lines = [];
+      room.arenaVotes = {
+        host: null,
+        guest: null,
+      };
 
-  io.to(roomCode).emit("play-again-status", {
-    hostReadyAgain: false,
-    guestReadyAgain: false,
+      io.to(roomCode).emit("play-again-status", {
+        hostReadyAgain: false,
+        guestReadyAgain: false,
+      });
+
+      startArenaVote(room);
+    }
   });
 
-  startArenaVote(room);
-}
+  socket.on("leave-room", ({ roomCode, platform }) => {
+    if (platform !== "mobile") return;
+
+    const activeRoomCode = roomCode || socketRooms.get(socket.id);
+
+    if (!activeRoomCode) return;
+
+    cleanupRoomForSocket(socket);
+
+    socket.emit("left-room", {
+      roomCode: activeRoomCode,
+    });
   });
 
   socket.on("disconnect", () => {
     console.log("DISCONNECTED:", socket.id);
 
-waitingPlayers = waitingPlayers.filter(
-  (p) => p.socketId !== socket.id
-);
+    waitingPlayers = waitingPlayers.filter(
+      (p) => p.socketId !== socket.id
+    );
 
     cleanupRoomForSocket(socket);
   });

@@ -2440,6 +2440,7 @@ export default function MobilePage() {
     socket.on('guest-left',function(){ opponentLeft(); });
     socket.on('room-closed',function(){ opponentLeft(); });
     socket.on('force-lobby',function(){ opponentLeft(); });
+    socket.on('left-room',function(){ setMatchStatus('LEFT ROOM'); });
     socket.on('opponent-quit',function(){ opponentLeft(); });
     socket.on('match-cancelled-by-opponent',function(){ opponentLeft(); });
     socket.on('play-again-status',function(data){
@@ -2618,15 +2619,12 @@ export default function MobilePage() {
     lines.push({x1:x1,y1:isHost?y1:H-y1,x2:x2,y2:isHost?y2:H-y2,life:50,owner:'ai'});
   }
   function buildLeavePayload(){
-    return { roomCode:roomCode, room_code:roomCode, code:roomCode, role:isHost?'host':'guest', username:displayName(playerName), reason:'left-game' };
+    return { roomCode:roomCode, room_code:roomCode, code:roomCode, platform:'mobile', source:'mobile-page', role:isHost?'host':'guest', username:displayName(playerName), reason:'left-game' };
   }
   function notifyLeavingOnline(){
     if(mode==='online' && socket && roomCode){
       var payload=buildLeavePayload();
       try{ socket.emit('leave-room',payload); }catch(e){}
-      try{ socket.emit('player-left',payload); }catch(e){}
-      try{ socket.emit('opponent-left',payload); }catch(e){}
-      try{ socket.emit('room-left',payload); }catch(e){}
     }
   }
   function opponentLeft(){
