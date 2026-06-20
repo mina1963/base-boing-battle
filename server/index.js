@@ -33,6 +33,7 @@ const COUNTDOWN_DELAY_MS = 3500;
 const BATTLE_HOLD_MS = 700;
 const TICK_MS = 1000 / 60;
 const STATE_EMIT_MS = 1000 / 60;
+const RECONNECT_GRACE_MS = 15000;
 
 const rooms = new Map();
 const socketRooms = new Map();
@@ -54,11 +55,9 @@ const cleanUsername = (username, fallback = "PLAYER") => {
 const ARENAS = ["classic", "base", "space", "temple"];
 const ARENA_VOTE_MS = 2500;
 
-const normalizeArena = (arena) =>
-  ARENAS.includes(arena) ? arena : null;
+const normalizeArena = (arena) => (ARENAS.includes(arena) ? arena : null);
 
-const randomArena = () =>
-  ARENAS[Math.floor(Math.random() * ARENAS.length)];
+const randomArena = () => ARENAS[Math.floor(Math.random() * ARENAS.length)];
 
 const createInitialState = () => ({
   ball: {
@@ -103,6 +102,14 @@ const createRoomObject = ({
   guestReadyAgain: false,
   lastTickAt: Date.now(),
   lastEmitAt: 0,
+  reconnectTimers: {
+    host: null,
+    guest: null,
+  },
+  disconnectedAt: {
+    host: null,
+    guest: null,
+  },
 });
 
 const withServerNow = (state) => ({
@@ -331,13 +338,32 @@ setInterval(() => {
   }
 }, TICK_MS);
 
+const cleanupRoomByCode = (roomCode, reason = "opponent-left") => {
+  const room = rooms.get(roomCode);
+  if (!room) return;
+
+  io.to(roomCode).emit("opponent-left", {
+    roomCode,
+    reason,
+  });
+
+  if (room.hostSocketId) socketRooms.delete(room.hostSocketId);
+  if (room.guestSocketId) socketRooms.delete(room.guestSocketId);
+
+  if (room.arenaVoteTimer) clearTimeout(room.arenaVoteTimer);
+  if (room.reconnectTimers?.host) clearTimeout(room.reconnectTimers.host);
+  if (room.reconnectTimers?.guest) clearTimeout(room.reconnectTimers.guest);
+
+  rooms.delete(roomCode);
+};
+
 const cleanupRoomForSocket = (socket) => {
   const roomCode = socketRooms.get(socket.id);
   if (!roomCode) return;
 
+  const room = rooms.get(roomCode);
   socketRooms.delete(socket.id);
 
-  const room = rooms.get(roomCode);
   if (!room) return;
 
   const wasHost = room.hostSocketId === socket.id;
@@ -345,34 +371,168 @@ const cleanupRoomForSocket = (socket) => {
 
   if (!wasHost && !wasGuest) return;
 
-  socket.to(roomCode).emit("opponent-left", {
+  cleanupRoomByCode(roomCode, "left-room");
+};
+
+const getSocketRoleInRoom = (room, socketId) => {
+  if (!room || !socketId) return null;
+  if (room.hostSocketId === socketId) return "host";
+  if (room.guestSocketId === socketId) return "guest";
+  return null;
+};
+
+const scheduleReconnectCleanup = (socket) => {
+  const roomCode = socketRooms.get(socket.id);
+  if (!roomCode) return false;
+
+  const room = rooms.get(roomCode);
+  if (!room) {
+    socketRooms.delete(socket.id);
+    return false;
+  }
+
+  const role = getSocketRoleInRoom(room, socket.id);
+  if (!role) {
+    socketRooms.delete(socket.id);
+    return false;
+  }
+
+  socketRooms.delete(socket.id);
+
+  room.disconnectedAt = room.disconnectedAt || {};
+  room.reconnectTimers = room.reconnectTimers || {
+    host: null,
+    guest: null,
+  };
+
+  room.disconnectedAt[role] = Date.now();
+
+  if (room.reconnectTimers[role]) {
+    clearTimeout(room.reconnectTimers[role]);
+  }
+
+  socket.to(roomCode).emit("opponent-reconnecting", {
     roomCode,
+    role,
+    graceMs: RECONNECT_GRACE_MS,
   });
 
-  if (room.hostSocketId) {
-    socketRooms.delete(room.hostSocketId);
+  room.reconnectTimers[role] = setTimeout(() => {
+    const latestRoom = rooms.get(roomCode);
+    if (!latestRoom) return;
+
+    const activeSocketId =
+      role === "host" ? latestRoom.hostSocketId : latestRoom.guestSocketId;
+
+    if (activeSocketId === socket.id) {
+      cleanupRoomByCode(roomCode, "reconnect-timeout");
+    }
+  }, RECONNECT_GRACE_MS);
+
+  return true;
+};
+
+const resolveReconnectRole = (room, username, requestedRole) => {
+  if (!room) return null;
+
+  const safeUsername = cleanUsername(username, "");
+
+  if (
+    requestedRole === "host" &&
+    (!room.hostSocketId || !io.sockets.sockets.get(room.hostSocketId))
+  ) {
+    return "host";
   }
 
-  if (room.guestSocketId) {
-    socketRooms.delete(room.guestSocketId);
+  if (
+    requestedRole === "guest" &&
+    (!room.guestSocketId || !io.sockets.sockets.get(room.guestSocketId))
+  ) {
+    return "guest";
   }
 
-  if (room.arenaVoteTimer) {
-    clearTimeout(room.arenaVoteTimer);
-    room.arenaVoteTimer = null;
+  if (safeUsername && safeUsername === room.hostUsername) return "host";
+  if (safeUsername && safeUsername === room.guestUsername) return "guest";
+
+  if (room.hostSocketId && !io.sockets.sockets.get(room.hostSocketId)) {
+    return "host";
   }
 
-  rooms.delete(roomCode);
+  if (room.guestSocketId && !io.sockets.sockets.get(room.guestSocketId)) {
+    return "guest";
+  }
+
+  return null;
+};
+
+const handleRejoinRoom = (socket, payload = {}) => {
+  const roomCode = payload.roomCode || payload.code;
+  if (!roomCode) return;
+
+  const room = rooms.get(roomCode);
+
+  if (!room) {
+    socket.emit("rejoin-error", {
+      roomCode,
+      message: "ROOM NOT FOUND",
+    });
+    return;
+  }
+
+  const role = resolveReconnectRole(room, payload.username, payload.role);
+
+  if (!role) {
+    socket.emit("rejoin-error", {
+      roomCode,
+      message: "REJOIN DENIED",
+    });
+    return;
+  }
+
+  room.reconnectTimers = room.reconnectTimers || {
+    host: null,
+    guest: null,
+  };
+
+  if (room.reconnectTimers[role]) {
+    clearTimeout(room.reconnectTimers[role]);
+    room.reconnectTimers[role] = null;
+  }
+
+  room.disconnectedAt = room.disconnectedAt || {};
+  room.disconnectedAt[role] = null;
+
+  if (role === "host") {
+    if (room.hostSocketId) socketRooms.delete(room.hostSocketId);
+    room.hostSocketId = socket.id;
+  } else {
+    if (room.guestSocketId) socketRooms.delete(room.guestSocketId);
+    room.guestSocketId = socket.id;
+  }
+
+  socketRooms.set(socket.id, roomCode);
+  socket.join(roomCode);
+
+  socket.emit("rejoined-room", {
+    roomCode,
+    role,
+    arena: room.arena,
+    state: withServerNow(room.state),
+  });
+
+  socket.to(roomCode).emit("player-reconnected", {
+    roomCode,
+    role,
+  });
+
+  emitStateToRoom(room);
 };
 
 const makeRoomCode = () => {
   let code = "";
 
   do {
-    code = Math.random()
-      .toString(36)
-      .substring(2, 6)
-      .toUpperCase();
+    code = Math.random().toString(36).substring(2, 6).toUpperCase();
   } while (rooms.has(code));
 
   return code;
@@ -418,9 +578,7 @@ const finishArenaVote = (room) => {
 const startArenaVote = (room) => {
   if (!room) return;
 
-  if (room.arenaVoteTimer) {
-    clearTimeout(room.arenaVoteTimer);
-  }
+  if (room.arenaVoteTimer) clearTimeout(room.arenaVoteTimer);
 
   room.state.phase = "waiting";
   room.state.roundStartAt = null;
@@ -506,6 +664,25 @@ const createMatchedRoom = ({ host, guest }) => {
 io.on("connection", (socket) => {
   console.log("CONNECTED:", socket.id);
 
+  socket.on("rejoin-room", (payload) => {
+    handleRejoinRoom(socket, payload);
+  });
+
+  socket.on("resume-room", (payload) => {
+    handleRejoinRoom(socket, payload);
+  });
+
+  socket.on("request-state", ({ roomCode }) => {
+    const room = rooms.get(roomCode);
+    if (!room) return;
+
+    if (socket.id !== room.hostSocketId && socket.id !== room.guestSocketId) {
+      return;
+    }
+
+    socket.emit("game-state", withServerNow(room.state));
+  });
+
   socket.on("create-room", ({ roomCode, address, username }) => {
     console.log("CREATE ROOM:", roomCode);
 
@@ -575,14 +752,9 @@ io.on("connection", (socket) => {
   socket.on("find-match", ({ address, username }) => {
     console.log("FIND MATCH:", socket.id);
 
-    if (socketRooms.has(socket.id)) {
-      cleanupRoomForSocket(socket);
-    }
+    if (socketRooms.has(socket.id)) cleanupRoomForSocket(socket);
 
-    waitingPlayers = waitingPlayers.filter(
-      (p) => p.socketId !== socket.id
-    );
-
+    waitingPlayers = waitingPlayers.filter((p) => p.socketId !== socket.id);
     waitingPlayers = waitingPlayers.filter((p) =>
       io.sockets.sockets.get(p.socketId)
     );
@@ -635,9 +807,7 @@ io.on("connection", (socket) => {
   });
 
   socket.on("cancel-matchmaking", () => {
-    waitingPlayers = waitingPlayers.filter(
-      (p) => p.socketId !== socket.id
-    );
+    waitingPlayers = waitingPlayers.filter((p) => p.socketId !== socket.id);
 
     socket.emit("matchmaking-status", {
       status: "cancelled",
@@ -736,7 +906,6 @@ io.on("connection", (socket) => {
     if (platform !== "mobile") return;
 
     const activeRoomCode = roomCode || socketRooms.get(socket.id);
-
     if (!activeRoomCode) return;
 
     cleanupRoomForSocket(socket);
@@ -749,11 +918,13 @@ io.on("connection", (socket) => {
   socket.on("disconnect", () => {
     console.log("DISCONNECTED:", socket.id);
 
-    waitingPlayers = waitingPlayers.filter(
-      (p) => p.socketId !== socket.id
-    );
+    waitingPlayers = waitingPlayers.filter((p) => p.socketId !== socket.id);
 
-    cleanupRoomForSocket(socket);
+    const waitingForReconnect = scheduleReconnectCleanup(socket);
+
+    if (!waitingForReconnect) {
+      cleanupRoomForSocket(socket);
+    }
   });
 });
 
