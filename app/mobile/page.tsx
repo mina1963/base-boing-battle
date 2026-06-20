@@ -2627,11 +2627,61 @@ export default function MobilePage() {
       try{ socket.emit('leave-room',payload); }catch(e){}
     }
   }
-  function opponentLeft(){
-    started=false;
-    paused=true;
-    clearOnlineCountdown();
-    try{ clearOnlineBattleTimer(); }catch(e){}
+ function opponentLeft(){
+  started=false;
+  paused=true;
+  goalLocked=true;
+
+  clearOnlineCountdown();
+  try{ clearOnlineBattleTimer(); }catch(e){}
+
+  try{
+    onlineTarget={
+      x:200,
+      y:350,
+      vx:0,
+      vy:0
+    };
+  }catch(e){}
+
+  try{
+    onlineStartState=null;
+    lastOnlineScoreTotal=null;
+    lastOnlineRoundKey=null;
+  }catch(e){}
+
+  try{
+    if(socket){
+      socket.off('game-state');
+      socket.off('remote-line');
+    }
+  }catch(e){}
+
+  setOverlay('OPPONENT LEFT');
+  setMatchStatus('Rakibin oyundan çıktı. Ana menüye dönebilirsin.');
+
+  if($('resultPanel')){
+    $('resultTitle').textContent='OPPONENT LEFT';
+    $('resultTitle').style.color='#ef4444';
+    $('resultTitle').style.textShadow='0 0 26px #ef4444';
+
+    if($('resultScore'))
+      $('resultScore').textContent='MATCH ENDED';
+
+    if($('playAgainBtn'))
+      $('playAgainBtn').style.display='none';
+
+    if($('resultMenuBtn'))
+      $('resultMenuBtn').textContent='MAIN MENU';
+
+    $('resultPanel').classList.add('active');
+  }
+
+  roomCode=null;
+  mode='ai';
+  isHost=false;
+  roleKnown=false;
+}
     setOverlay('OPPONENT LEFT');
     setMatchStatus('Rakibin oyundan çıktı. Ana menüye dönebilirsin.');
     if($('resultPanel')){
