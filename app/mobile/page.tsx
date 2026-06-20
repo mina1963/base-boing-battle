@@ -1937,6 +1937,30 @@ export default function MobilePage() {
   #howBtnTop {
     margin-left:0 !important;
   }
+
+
+  /* === PATCH: VS AI remove empty orb gap === */
+  #difficultyScreen .premiumDiffOrb {
+    display:none !important;
+    height:0 !important;
+    min-height:0 !important;
+    margin:0 !important;
+    padding:0 !important;
+    border:0 !important;
+    box-shadow:none !important;
+    background:transparent !important;
+  }
+  #difficultyScreen .premiumDiffOrb:before,
+  #difficultyScreen .premiumDiffOrb:after {
+    display:none !important;
+  }
+  #difficultyScreen .premiumDiffPage {
+    gap:14px !important;
+    justify-content:center !important;
+  }
+  #difficultyScreen .premiumDiffTitle {
+    margin-bottom:8px !important;
+  }
 </style>
 <div id="app">
   <div id="noise"></div>
