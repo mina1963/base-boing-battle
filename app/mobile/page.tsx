@@ -2426,25 +2426,31 @@ export default function MobilePage() {
 
     var activeCode=String(roomCode);
 
+    onlineLaunchStarted=true;
+    onlineLaunchRoom=activeCode;
+
     if(onlineMatchStartTimer){
       try{ clearTimeout(onlineMatchStartTimer); }catch(e){}
       onlineMatchStartTimer=null;
     }
 
-    onlineLaunchStarted=true;
-    onlineLaunchRoom=activeCode;
-    pendingMode='onlineMatched';
     mode='online';
-    setMatchStatus((isHost?'HOST':'GUEST')+' • MATCH FOUND • STARTING...');
+    pendingMode='onlineMatched';
+    onlineRoomClosed=false;
+    setMatchStatus('');
 
-    // Critical sync fix: do not leave one client on MATCH FOUND while the other
-    // has already received countdown. Both clients enter the game screen as soon
-    // as the room is matched; countdown/ball still comes only from server state.
+    // IMPORTANT:
+    // Never wait on MATCH FOUND / arena vote screen. Both phones must enter
+    // the game screen immediately and only the server countdown decides when
+    // the ball becomes playable. This prevents one client seeing 3-2-1 while
+    // the other is still stuck on MATCH FOUND for a few seconds.
     try{
       if($('gameScreen') && !$('gameScreen').classList.contains('active')){
         startOnlineMatch();
       }
-    }catch(e){}
+    }catch(e){
+      try{ startOnlineMatch(); }catch(_){}
+    }
 
     if(onlineStartState){
       try{ applyOnlineState(onlineStartState); }catch(e){}
@@ -2523,25 +2529,32 @@ export default function MobilePage() {
 
       roomCode=data.roomCode||data.room_code||roomCode;
 
-      // IMPORTANT: assign role before any launch guard. arena-vote-start can arrive
-      // before match-found on one phone; if we return early here, that phone may
-      // stay on the MATCH FOUND screen or render with the old role.
+      if(onlineLaunchStarted && onlineLaunchRoom===String(roomCode||'')){
+        sendArenaVoteNow();
+
+        // If any previous event already marked this room as launching, still
+        // force the screen open. Otherwise this client can remain on MATCH FOUND
+        // while the other device is already rendering the countdown.
+        try{
+          if($('gameScreen') && !$('gameScreen').classList.contains('active')){
+            startOnlineMatch();
+          }
+          if(onlineStartState){
+            applyOnlineState(onlineStartState);
+            onlineStartState=null;
+          }
+        }catch(e){}
+        return;
+      }
+
+      // IMPORTANT: never let both mobile clients become host.
+      // The server sends role: "host" or "guest". Host uses server coordinates,
+      // guest renders a mirrored field so each player still plays from the bottom.
       if(data.role==='host' || data.role==='guest'){
         isHost=(data.role==='host');
         roleKnown=true;
       }
       rivalName=pickRivalName(data);
-
-      if(onlineLaunchStarted && onlineLaunchRoom===String(roomCode||'')){
-        sendArenaVoteNow();
-        pendingMode='onlineMatched';
-        try{
-          if($('gameScreen') && !$('gameScreen').classList.contains('active')){
-            startOnlineMatch();
-          }
-        }catch(e){}
-        return;
-      }
 
       onlineMatchNo=0;
       setOnlineArenaForMatch();
@@ -2929,7 +2942,6 @@ export default function MobilePage() {
   }
   function leaveOnlineRoom(){
     notifyLeavingOnline();
-
     started=false;
     paused=true;
     goalLocked=true;
