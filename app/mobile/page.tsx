@@ -2556,6 +2556,18 @@ export default function MobilePage() {
       roomCode=data.roomCode||data.room_code||roomCode;
       if(onlineLaunchStarted && onlineLaunchRoom===String(roomCode||'')){
         if(data.state) onlineStartState=data.state;
+
+        // Manual rooms can receive room-matched after the host is already on
+        // the waiting screen. If the launch guard is set but the game screen is
+        // not active yet, unlock one time so the host does not stay on
+        // MATCH FOUND • STARTING while the guest starts countdown.
+        try{
+          if($('gameScreen') && !$('gameScreen').classList.contains('active')){
+            onlineLaunchStarted=false;
+            onlineLaunchRoom=null;
+          }
+        }catch(e){}
+
         scheduleOnlineStart(data.state||null);
         return;
       }
@@ -2575,6 +2587,28 @@ export default function MobilePage() {
       setMatchStatus((isHost?'HOST':'GUEST')+' • MATCH FOUND • '+String(arena).toUpperCase()+' ARENA');
       sendArenaVoteNow();
       pendingMode='onlineMatched';
+
+      // If the room already has countdown/playing state, enter the game screen
+      // immediately. This keeps Create Room / Join Room in sync without touching
+      // the create-room or join-room button handlers.
+      try{
+        var rmState=data.state||null;
+        var rmPhase=rmState && (rmState.phase||'');
+        var rmHasStart=rmState && (rmPhase==='countdown' || rmPhase==='playing' || !!rmState.roundStartAt || !!rmState.round_start_at);
+        if(rmHasStart){
+          if(onlineMatchStartTimer){
+            try{ clearTimeout(onlineMatchStartTimer); }catch(e){}
+            onlineMatchStartTimer=null;
+          }
+          onlineLaunchStarted=true;
+          onlineLaunchRoom=String(roomCode||'');
+          startOnlineMatch();
+          applyOnlineState(rmState);
+          onlineStartState=null;
+          return;
+        }
+      }catch(e){}
+
       scheduleOnlineStart(data.state||null);
     });
     function handleRoomCreated(data){
