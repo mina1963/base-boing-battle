@@ -2103,7 +2103,7 @@ export default function MobilePage() {
   var arena='classic', difficulty='normal', socketRegion='EU', mode='ai';
   var canvas, ctx, raf=0;
   var ball, lines, trail, sparks, score, energy, started=false, paused=false, drawing=null, goalLocked=false;
-  var frame=0, audioUnlocked=false, soundEnabled=true, lastWallSound=0, lastOnlineScoreTotal=null, lastOnlineRoundKey=null, onlineCountdownTimer=null, onlineBattleTimer=null;
+  var frame=0, audioUnlocked=false, soundEnabled=true, lastWallSound=0, lastOnlineScoreTotal=null, lastOnlineRoundKey=null, onlineCountdownTimer=null, onlineBattleTimer=null, onlineRoomClosed=false, activeAudioContexts=[];
   var socket=null, socketReady=false, isHost=false, roleKnown=false, roomCode=null, mobileId='mobile_'+Math.random().toString(16).slice(2,10), onlineTarget={x:200,y:350,vx:1.2,vy:1.8}, onlineStateAt=Date.now();
   var onlineStartState=null;
   var onlineMatchNo=0;
@@ -2285,10 +2285,12 @@ export default function MobilePage() {
   function loadSound(){ var saved=''; try{ saved=localStorage.getItem('bbb_mobile_sound')||''; }catch(e){} soundEnabled = saved==='off' ? false : true; syncSoundButton(); }
   function playSound(type){
     if(!audioUnlocked || !soundEnabled) return;
+    if(onlineRoomClosed) return;
     try{
       var AudioContextClass=window.AudioContext||window.webkitAudioContext;
       if(!AudioContextClass) return;
       var audioCtx=new AudioContextClass();
+      activeAudioContexts.push(audioCtx);
       var oscillator=audioCtx.createOscillator();
       var gain=audioCtx.createGain();
       oscillator.connect(gain); gain.connect(audioCtx.destination);
@@ -2299,8 +2301,25 @@ export default function MobilePage() {
       oscillator.start();
       gain.gain.exponentialRampToValueAtTime(.0001,audioCtx.currentTime+.24);
       oscillator.stop(audioCtx.currentTime+.25);
-      setTimeout(function(){ try{audioCtx.close()}catch(e){} },260);
+      setTimeout(function(){
+        try{ audioCtx.close(); }catch(e){}
+        activeAudioContexts=activeAudioContexts.filter(function(ctx){ return ctx!==audioCtx; });
+      },260);
     }catch(e){}
+  }
+  function stopAllSounds(){
+    try{
+      document.querySelectorAll('audio').forEach(function(a){
+        try{ a.pause(); a.currentTime=0; }catch(e){}
+      });
+    }catch(e){}
+    try{
+      activeAudioContexts.forEach(function(ctx){
+        try{ ctx.close(); }catch(e){}
+      });
+      activeAudioContexts=[];
+    }catch(e){}
+    try{ if(navigator.vibrate) navigator.vibrate(0); }catch(e){}
   }
   function setOverlay(value){
     var text=$('overlayText');
@@ -2482,6 +2501,7 @@ export default function MobilePage() {
   }
   function createRoom(){
     if(!requireName()) return;
+    onlineRoomClosed=false;
     mode='online';
     onlineStartState=null;
     isHost=true;
@@ -2534,6 +2554,7 @@ export default function MobilePage() {
   }
   function joinRoom(){
     if(!requireName()) return;
+    onlineRoomClosed=false;
     var input=$('roomCodeInput'); var code=cleanName(input&&input.value);
     if(!code){ var w=$('roomWarn'); if(w) w.textContent='ENTER ROOM CODE'; return; }
     mode='online'; roomCode=code; onlineMatchNo=0; setOnlineArenaForMatch(); onlineStartState=null; isHost=false; roleKnown=true; rivalName='RIVAL'; show('matchScreen'); setRoomCodeDisplay(null); setMatchStatus('JOINING ROOM '+code+'...');
@@ -2545,6 +2566,7 @@ export default function MobilePage() {
 
   function startOnlineSearch(){
     if(!requireName()) return;
+    onlineRoomClosed=false;
     mode='online'; isHost=false; roleKnown=false; roomCode=null; onlineMatchNo=0; rivalName='RIVAL'; onlineStartState=null; show('matchScreen'); setRoomCodeDisplay(null); setMatchStatus('CONNECTING SOCKET...');
     ensureSocket(function(){
       var name=displayName(playerName);
@@ -2556,6 +2578,7 @@ export default function MobilePage() {
     mode='ai'; roomCode=null; show('menuScreen');
   }
   function startOnlineMatch(){
+    onlineRoomClosed=false;
     if(roomCode) setOnlineArenaForMatch();
     canvas=$('gameCanvas'); ctx=canvas.getContext('2d');
     score={player:0,ai:0,msg:'',life:0}; lastOnlineScoreTotal=null; lastOnlineRoundKey=null; clearOnlineCountdown(); resetBall('down');
@@ -2566,6 +2589,7 @@ export default function MobilePage() {
     if(!raf) loop();
   }
   function applyOnlineState(state){
+    if(onlineRoomClosed || mode!=='online' || !roomCode) return;
     if(!state) return;
     if(!ball){ resetBall('down'); }
     // Online arena is locked client-side from roomCode + match number so both sides always render the same map.
@@ -2612,6 +2636,7 @@ export default function MobilePage() {
     }
   }
   function addRemoteLine(line){
+    if(onlineRoomClosed || mode!=='online' || !roomCode) return;
     if(!line) return;
     var owner=line.owner||'';
     if((isHost && owner==='host')||(!isHost && owner==='guest')) return;
@@ -2630,8 +2655,17 @@ export default function MobilePage() {
   function opponentLeft(){
     started=false;
     paused=true;
+    goalLocked=true;
+    onlineRoomClosed=true;
     clearOnlineCountdown();
     try{ clearOnlineBattleTimer(); }catch(e){}
+    try{ stopAllSounds(); }catch(e){}
+    try{
+      onlineTarget={x:200,y:350,vx:0,vy:0};
+      onlineStartState=null;
+      lastOnlineScoreTotal=null;
+      lastOnlineRoundKey=null;
+    }catch(e){}
     setOverlay('OPPONENT LEFT');
     setMatchStatus('Rakibin oyundan çıktı. Ana menüye dönebilirsin.');
     if($('resultPanel')){
@@ -2652,8 +2686,11 @@ export default function MobilePage() {
     notifyLeavingOnline();
     started=false;
     paused=true;
+    goalLocked=true;
+    onlineRoomClosed=true;
     clearOnlineCountdown();
     try{ clearOnlineBattleTimer(); }catch(e){}
+    try{ stopAllSounds(); }catch(e){}
     roomCode=null;
     mode='ai';
     isHost=false;
