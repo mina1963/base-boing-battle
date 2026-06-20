@@ -1895,6 +1895,28 @@ export default function MobilePage() {
     }
   }
 
+
+  /* === PATCH: username hidden from main menu; PLAY asks username first === */
+  #menuScreen .artProfile,
+  #menuScreen #profileTapArea,
+  #menuScreen #editNameBtn {
+    display:none !important;
+    pointer-events:none !important;
+  }
+  #menuScreen .artTop {
+    justify-content:flex-end !important;
+  }
+  #menuScreen .artHow,
+  #howBtnTop {
+    margin-left:auto !important;
+  }
+  #usernameModal {
+    z-index:120 !important;
+  }
+  .usernameModalSub:after {
+    content:"";
+  }
+
 </style>
 <div id="app">
   <div id="noise"></div>
@@ -2086,6 +2108,7 @@ export default function MobilePage() {
   var onlineStartState=null;
   var onlineMatchNo=0;
   var playerName='PLAYER', rivalName='RIVAL', pendingMode='ai';
+  var usernameAfterSave=null;
   var SOCKET_EU='https://base-boing-battle-1.onrender.com';
   var SOCKET_US='https://base-boing-battle-usa.onrender.com';
   function flash(){ var f=$('goalFlash'); var gw=$('gameWrap'); if(f){ f.classList.add('active'); setTimeout(function(){f.classList.remove('active')},220); } if(gw){ gw.classList.add('shake'); setTimeout(function(){gw.classList.remove('shake')},330); } }
@@ -2098,7 +2121,8 @@ export default function MobilePage() {
     var input=$('usernameInput'); if(input) input.value=playerName==='PLAYER'?'':playerName;
     var profile=$('profileName'); if(profile) profile.textContent='@'+playerName;
   }
-  function openUsernameModal(message){
+  function openUsernameModal(message, afterSave){
+    usernameAfterSave=afterSave||null;
     var modal=$('usernameModal');
     var input=$('usernameInput');
     var warn=$('nameWarn');
@@ -2111,6 +2135,10 @@ export default function MobilePage() {
     var modal=$('usernameModal');
     if(modal){ modal.classList.remove('active'); modal.setAttribute('aria-hidden','true'); }
   }
+  function cancelUsernameModal(){
+    usernameAfterSave=null;
+    closeUsernameModal();
+  }
   function saveName(){
     var input=$('usernameInput');
     var finalName=cleanName(input&&input.value);
@@ -2121,7 +2149,13 @@ export default function MobilePage() {
     if(input) input.value=playerName;
     var profile=$('profileName'); if(profile) profile.textContent='@'+playerName;
     if(warn) warn.textContent='SAVED';
-    setTimeout(function(){ if(warn && warn.textContent==='SAVED') warn.textContent=''; closeUsernameModal(); },420);
+    var next=usernameAfterSave;
+    usernameAfterSave=null;
+    setTimeout(function(){
+      if(warn && warn.textContent==='SAVED') warn.textContent='';
+      closeUsernameModal();
+      if(next==='openMode'){ show('modeScreen'); }
+    },260);
     return true;
   }
   function requireName(){
@@ -2419,7 +2453,10 @@ export default function MobilePage() {
     socket.on('connect_error',function(){ setMatchStatus('SOCKET CONNECTION FAILED'); });
   }
 
-  function openModeScreen(){ if(!requireName()) return; show('modeScreen'); }
+  function openModeScreen(){
+    if(cleanName(playerName)==='' || cleanName(playerName)==='PLAYER'){ openUsernameModal('ENTER USERNAME FIRST','openMode'); return; }
+    show('modeScreen');
+  }
   function chooseMode(m){
     pendingMode=m;
     if(m==='ai'){ show('arenaScreen'); return; }
@@ -2791,7 +2828,7 @@ export default function MobilePage() {
   var nameInput=$('usernameInput'); if(nameInput){ nameInput.addEventListener('input',function(){ this.value=cleanName(this.value); }); }
   var roomInput=$('roomCodeInput'); if(roomInput){ roomInput.addEventListener('input',function(){ this.value=cleanName(this.value); }); }
   bindTap($('saveNameBtn'), saveName);
-  bindTap($('usernameCancelBtn'), closeUsernameModal);
+  bindTap($('usernameCancelBtn'), cancelUsernameModal);
   bindTap($('editNameBtn'), function(){ openUsernameModal(); });
   bindTap($('profileTapArea'), function(){ openUsernameModal(); });
   loadSound();
