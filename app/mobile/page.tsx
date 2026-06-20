@@ -2426,42 +2426,30 @@ export default function MobilePage() {
 
     var activeCode=String(roomCode);
 
-    // Match-start guard:
-    // Mobile networks can deliver match-found, arena-vote-start, arena-selected,
-    // room-matched and game-state very close together. Previously each event could
-    // restart the waiting flow, so the screen stayed on SEARCHING OPPONENT while
-    // MATCH FOUND text kept changing. Start the game screen once per room.
-    if(onlineLaunchStarted && onlineLaunchRoom===activeCode){
-      try{
-        if(onlineStartState && $('gameScreen') && $('gameScreen').classList.contains('active')){
-          applyOnlineState(onlineStartState);
-          onlineStartState=null;
-        }
-      }catch(e){}
-      return;
-    }
-
-    onlineLaunchStarted=true;
-    onlineLaunchRoom=activeCode;
-
     if(onlineMatchStartTimer){
       try{ clearTimeout(onlineMatchStartTimer); }catch(e){}
       onlineMatchStartTimer=null;
     }
 
+    onlineLaunchStarted=true;
+    onlineLaunchRoom=activeCode;
+    pendingMode='onlineMatched';
+    mode='online';
     setMatchStatus((isHost?'HOST':'GUEST')+' • MATCH FOUND • STARTING...');
 
-    onlineMatchStartTimer=setTimeout(function(){
-      onlineMatchStartTimer=null;
-      if(mode!=='online' || !roomCode) return;
-
-      startOnlineMatch();
-
-      if(onlineStartState){
-        applyOnlineState(onlineStartState);
-        onlineStartState=null;
+    // Critical sync fix: do not leave one client on MATCH FOUND while the other
+    // has already received countdown. Both clients enter the game screen as soon
+    // as the room is matched; countdown/ball still comes only from server state.
+    try{
+      if($('gameScreen') && !$('gameScreen').classList.contains('active')){
+        startOnlineMatch();
       }
-    },220);
+    }catch(e){}
+
+    if(onlineStartState){
+      try{ applyOnlineState(onlineStartState); }catch(e){}
+      onlineStartState=null;
+    }
   }
 
   function connectSocket(cb){
@@ -2535,28 +2523,25 @@ export default function MobilePage() {
 
       roomCode=data.roomCode||data.room_code||roomCode;
 
-      if(onlineLaunchStarted && onlineLaunchRoom===String(roomCode||'')){
-        sendArenaVoteNow();
-
-        // Manual room safety: if this device is still on MATCH FOUND / room screen,
-        // force it into the same online game screen used by random 1v1.
-        // Countdown text will still come from server game-state.
-        try{
-          if(wasManualRoom && $('gameScreen') && !$('gameScreen').classList.contains('active')){
-            startOnlineMatch();
-          }
-        }catch(e){}
-        return;
-      }
-
-      // IMPORTANT: never let both mobile clients become host.
-      // The server sends role: "host" or "guest". Host uses server coordinates,
-      // guest renders a mirrored field so each player still plays from the bottom.
+      // IMPORTANT: assign role before any launch guard. arena-vote-start can arrive
+      // before match-found on one phone; if we return early here, that phone may
+      // stay on the MATCH FOUND screen or render with the old role.
       if(data.role==='host' || data.role==='guest'){
         isHost=(data.role==='host');
         roleKnown=true;
       }
       rivalName=pickRivalName(data);
+
+      if(onlineLaunchStarted && onlineLaunchRoom===String(roomCode||'')){
+        sendArenaVoteNow();
+        pendingMode='onlineMatched';
+        try{
+          if($('gameScreen') && !$('gameScreen').classList.contains('active')){
+            startOnlineMatch();
+          }
+        }catch(e){}
+        return;
+      }
 
       onlineMatchNo=0;
       setOnlineArenaForMatch();
