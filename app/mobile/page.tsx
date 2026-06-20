@@ -2547,12 +2547,14 @@ export default function MobilePage() {
       if(data.roomCode || data.room_code){
         roomCode=data.roomCode||data.room_code;
       }
-      setMatchStatus('MATCH FOUND • STARTING...');
-      sendArenaVoteNow();
 
-      // Do not wait on the matchmaking screen after the server has started arena vote.
-      // The first game-state will sync countdown/ball as soon as it arrives.
-      scheduleOnlineStart(null);
+      // IMPORTANT:
+      // Do NOT start the online screen from arena-vote-start.
+      // On mobile networks this event can arrive before the authoritative
+      // room-matched/game-state countdown. Starting here can lock the client on
+      // SEARCHING OPPONENT while MATCH FOUND text keeps changing.
+      setMatchStatus('MATCH FOUND • SELECTING ARENA...');
+      sendArenaVoteNow();
     });
 
     socket.on('matchmaking-status',function(data){
@@ -2580,10 +2582,12 @@ export default function MobilePage() {
       setOnlineArenaForMatch();
       setMatchStatus((isHost?'HOST':'GUEST')+' • MATCH FOUND • '+String(arena).toUpperCase()+' ARENA');
       sendArenaVoteNow();
-      setOverlay(isHost?'HOST READY':'GUEST READY');
       pendingMode='onlineMatched';
       onlineStartState=null;
-      scheduleOnlineStart(null);
+
+      // Do not call scheduleOnlineStart here. The real start source must be
+      // room-matched or game-state countdown from the server, so both phones
+      // enter the game at the same time.
     });
     socket.on('room-matched',function(data){
       data=data||{};
