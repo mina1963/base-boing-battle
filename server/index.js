@@ -406,6 +406,26 @@ const cleanupRoomForSocket = (socket) => {
   rooms.delete(roomCode);
 };
 
+const deleteRoomSilently = (roomCode) => {
+  const room = rooms.get(roomCode);
+  if (!room) return;
+
+  if (room.hostSocketId) {
+    socketRooms.delete(room.hostSocketId);
+  }
+
+  if (room.guestSocketId) {
+    socketRooms.delete(room.guestSocketId);
+  }
+
+  if (room.arenaVoteTimer) {
+    clearTimeout(room.arenaVoteTimer);
+    room.arenaVoteTimer = null;
+  }
+
+  rooms.delete(roomCode);
+};
+
 const makeRoomCode = () => {
   let code = "";
 
@@ -550,6 +570,14 @@ io.on("connection", (socket) => {
   socket.on("create-room", ({ roomCode, address, username }) => {
     console.log("CREATE ROOM:", roomCode);
 
+    if (socketRooms.has(socket.id)) {
+      cleanupRoomForSocket(socket);
+    }
+
+    if (rooms.has(roomCode)) {
+      deleteRoomSilently(roomCode);
+    }
+
     const room = createRoomObject({
       code: roomCode,
       hostSocketId: socket.id,
@@ -559,6 +587,7 @@ io.on("connection", (socket) => {
 
     room.arena = "classic";
     room.state.arena = "classic";
+    room.isCustomRoom = true;
 
     rooms.set(roomCode, room);
     socketRooms.set(socket.id, roomCode);
@@ -573,6 +602,10 @@ io.on("connection", (socket) => {
 
   socket.on("join-room", ({ roomCode, address, username }) => {
     console.log("JOIN ROOM:", roomCode);
+
+    if (socketRooms.has(socket.id)) {
+      cleanupRoomForSocket(socket);
+    }
 
     const room = rooms.get(roomCode);
 
@@ -594,6 +627,7 @@ io.on("connection", (socket) => {
     room.hostReadyAgain = false;
     room.guestReadyAgain = false;
     room.lines = [];
+    room.isCustomRoom = true;
 
     socketRooms.set(socket.id, roomCode);
     socket.join(roomCode);
@@ -776,6 +810,7 @@ io.on("connection", (socket) => {
       room.guestReadyAgain = false;
 
       room.state = createInitialState();
+      room.state.arena = room.arena || "classic";
       room.lines = [];
       room.arenaVotes = {
         host: null,
@@ -787,7 +822,15 @@ io.on("connection", (socket) => {
         guestReadyAgain: false,
       });
 
-      startArenaVote(room);
+      if (room.isCustomRoom) {
+        setTimeout(() => {
+          const latestRoom = rooms.get(roomCode);
+          if (!latestRoom) return;
+          startCustomRoomCountdown(latestRoom);
+        }, 250);
+      } else {
+        startArenaVote(room);
+      }
     }
   });
 
