@@ -1817,6 +1817,84 @@ export default function MobilePage() {
     margin-top:0 !important;
   }
 
+
+  /* === PATCH: main menu PLAY / SETTINGS alignment on mobile === */
+  .artClickPlay,
+  #playBtn.artClickPlay {
+    left:6.2% !important;
+    right:6.2% !important;
+    bottom:126px !important;
+    height:96px !important;
+    border:0 !important;
+    border-radius:0 !important;
+    background:transparent !important;
+    box-shadow:none !important;
+    filter:none !important;
+    outline:none !important;
+    clip-path:polygon(8% 0, 92% 0, 100% 50%, 92% 100%, 8% 100%, 0 50%) !important;
+  }
+
+  .artClickPlay:before,
+  #playBtn.artClickPlay:before {
+    content:"";
+    position:absolute;
+    inset:8px 12px;
+    pointer-events:none;
+    border-radius:24px;
+    clip-path:polygon(8% 0, 92% 0, 100% 50%, 92% 100%, 8% 100%, 0 50%);
+    border:1px solid rgba(90,230,255,.50);
+    box-shadow:
+      0 0 18px rgba(0,210,255,.52),
+      0 0 42px rgba(0,82,255,.34),
+      inset 0 0 18px rgba(0,132,255,.20);
+    opacity:.58;
+  }
+
+  .artClickSettings,
+  #settingsBtn.artClickSettings {
+    left:31% !important;
+    right:31% !important;
+    bottom:58px !important;
+    height:58px !important;
+    border:0 !important;
+    background:transparent !important;
+    box-shadow:none !important;
+    filter:none !important;
+    outline:none !important;
+  }
+
+  @media (max-height:760px) {
+    .artClickPlay,
+    #playBtn.artClickPlay {
+      bottom:116px !important;
+      height:90px !important;
+      left:6.5% !important;
+      right:6.5% !important;
+    }
+
+    .artClickSettings,
+    #settingsBtn.artClickSettings {
+      bottom:50px !important;
+      height:54px !important;
+      left:32% !important;
+      right:32% !important;
+    }
+  }
+
+  @media (max-height:700px) {
+    .artClickPlay,
+    #playBtn.artClickPlay {
+      bottom:106px !important;
+      height:84px !important;
+    }
+
+    .artClickSettings,
+    #settingsBtn.artClickSettings {
+      bottom:44px !important;
+      height:50px !important;
+    }
+  }
+
 </style>
 <div id="app">
   <div id="noise"></div>
