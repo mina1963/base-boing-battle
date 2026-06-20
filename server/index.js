@@ -124,6 +124,47 @@ const startCountdown = (room) => {
   emitStateToRoom(room);
 };
 
+const startCustomRoomCountdown = (room) => {
+  if (!room) return;
+
+  if (room.arenaVoteTimer) {
+    clearTimeout(room.arenaVoteTimer);
+    room.arenaVoteTimer = null;
+  }
+
+  room.arena = room.arena || "classic";
+  room.state = createInitialState();
+  room.state.arena = room.arena;
+  room.lines = [];
+  room.arenaVotes = { host: null, guest: null };
+  room.hostReadyAgain = false;
+  room.guestReadyAgain = false;
+
+  io.to(room.code).emit("arena-selected", {
+    arena: room.arena,
+    votes: {
+      host: null,
+      guest: null,
+    },
+    customRoom: true,
+  });
+
+  startCountdown(room);
+
+  io.to(room.code).emit("room-matched", {
+    roomCode: room.code,
+    arena: room.arena,
+    customRoom: true,
+    state: withServerNow(room.state),
+  });
+
+  setTimeout(() => {
+    const latestRoom = rooms.get(room.code);
+    if (!latestRoom) return;
+    emitStateToRoom(latestRoom);
+  }, 120);
+};
+
 const resetRound = (room, direction = "down") => {
   room.state.phase = "countdown";
   room.state.roundStartAt = Date.now() + COUNTDOWN_DELAY_MS;
@@ -516,6 +557,9 @@ io.on("connection", (socket) => {
       hostUsername: username,
     });
 
+    room.arena = "classic";
+    room.state.arena = "classic";
+
     rooms.set(roomCode, room);
     socketRooms.set(socket.id, roomCode);
     socket.join(roomCode);
@@ -546,6 +590,7 @@ io.on("connection", (socket) => {
     room.guestAddress = address;
     room.guestUsername = cleanUsername(username, "PLAYER 2");
     room.state = createInitialState();
+    room.state.arena = room.arena || "classic";
     room.hostReadyAgain = false;
     room.guestReadyAgain = false;
     room.lines = [];
@@ -560,6 +605,7 @@ io.on("connection", (socket) => {
       role: "host",
       opponentAddress: room.guestAddress,
       opponentUsername: room.guestUsername,
+      customRoom: true,
     });
 
     socket.emit("match-found", {
@@ -567,9 +613,22 @@ io.on("connection", (socket) => {
       role: "guest",
       opponentAddress: room.hostAddress,
       opponentUsername: room.hostUsername,
+      customRoom: true,
     });
 
-    startArenaVote(room);
+    setTimeout(() => {
+      const latestRoom = rooms.get(roomCode);
+      if (!latestRoom) return;
+
+      if (
+        latestRoom.hostSocketId !== room.hostSocketId ||
+        latestRoom.guestSocketId !== socket.id
+      ) {
+        return;
+      }
+
+      startCustomRoomCountdown(latestRoom);
+    }, 250);
   });
 
   socket.on("find-match", ({ address, username }) => {

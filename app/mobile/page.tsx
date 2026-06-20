@@ -2527,11 +2527,28 @@ export default function MobilePage() {
     socket.on('match-found',function(data){
       data=data||{};
       mode='online';
+
+      // Random 1v1 has no roomCode before this event.
+      // Create Room / Join Room already has roomCode before this event.
+      // Use this flag to sync manual rooms without changing the random 1v1 flow.
+      var wasManualRoom=!!roomCode;
+
       roomCode=data.roomCode||data.room_code||roomCode;
+
       if(onlineLaunchStarted && onlineLaunchRoom===String(roomCode||'')){
         sendArenaVoteNow();
+
+        // Manual room safety: if this device is still on MATCH FOUND / room screen,
+        // force it into the same online game screen used by random 1v1.
+        // Countdown text will still come from server game-state.
+        try{
+          if(wasManualRoom && $('gameScreen') && !$('gameScreen').classList.contains('active')){
+            startOnlineMatch();
+          }
+        }catch(e){}
         return;
       }
+
       // IMPORTANT: never let both mobile clients become host.
       // The server sends role: "host" or "guest". Host uses server coordinates,
       // guest renders a mirrored field so each player still plays from the bottom.
@@ -2548,6 +2565,20 @@ export default function MobilePage() {
       setOverlay(isHost?'HOST READY':'GUEST READY');
       pendingMode='onlineMatched';
       onlineStartState=null;
+
+      if(wasManualRoom){
+        // Create Room / Join Room should not remain on MATCH FOUND STARTING.
+        // Enter game screen immediately and wait there for server countdown.
+        if(onlineMatchStartTimer){
+          try{ clearTimeout(onlineMatchStartTimer); }catch(e){}
+          onlineMatchStartTimer=null;
+        }
+        onlineLaunchStarted=true;
+        onlineLaunchRoom=String(roomCode||'');
+        startOnlineMatch();
+        return;
+      }
+
       scheduleOnlineStart(null);
     });
     socket.on('room-matched',function(data){
