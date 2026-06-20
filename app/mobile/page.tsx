@@ -2150,6 +2150,7 @@ export default function MobilePage() {
   var frame=0, audioUnlocked=false, soundEnabled=true, lastWallSound=0, lastOnlineScoreTotal=null, lastOnlineRoundKey=null, onlineCountdownTimer=null, onlineBattleTimer=null, onlineRoomClosed=false, activeAudioContexts=[];
   var socket=null, socketReady=false, isHost=false, roleKnown=false, roomCode=null, mobileId='mobile_'+Math.random().toString(16).slice(2,10), onlineTarget={x:200,y:350,vx:1.2,vy:1.8}, onlineStateAt=Date.now();
   var onlineStartState=null;
+  var onlineMatchStartTimer=null;
   var onlineMatchNo=0;
   var playerName='PLAYER', rivalName='RIVAL', pendingMode='ai';
   var usernameAfterSave=null;
@@ -2417,6 +2418,23 @@ export default function MobilePage() {
     script.onerror=function(){ setMatchStatus('SOCKET LOAD FAILED'); };
     document.head.appendChild(script);
   }
+  function scheduleOnlineStart(state){
+    if(state) onlineStartState=state;
+    if(onlineMatchStartTimer){
+      try{ clearTimeout(onlineMatchStartTimer); }catch(e){}
+      onlineMatchStartTimer=null;
+    }
+    onlineMatchStartTimer=setTimeout(function(){
+      onlineMatchStartTimer=null;
+      if(mode!=='online' || !roomCode) return;
+      startOnlineMatch();
+      if(onlineStartState){
+        applyOnlineState(onlineStartState);
+        onlineStartState=null;
+      }
+    },650);
+  }
+
   function connectSocket(cb){
     var url=socketRegion==='US'?SOCKET_US:SOCKET_EU;
 
@@ -2493,7 +2511,7 @@ export default function MobilePage() {
       setOverlay(isHost?'HOST READY':'GUEST READY');
       pendingMode='onlineMatched';
       onlineStartState=null;
-      setTimeout(function(){ startOnlineMatch(); },900);
+      scheduleOnlineStart(null);
     });
     socket.on('room-matched',function(data){
       data=data||{};
@@ -2515,8 +2533,7 @@ export default function MobilePage() {
       setMatchStatus((isHost?'HOST':'GUEST')+' • MATCH FOUND • '+String(arena).toUpperCase()+' ARENA');
       sendArenaVoteNow();
       pendingMode='onlineMatched';
-      onlineStartState=data.state||null;
-      setTimeout(function(){ startOnlineMatch(); if(onlineStartState){ applyOnlineState(onlineStartState); onlineStartState=null; } },900);
+      scheduleOnlineStart(data.state||null);
     });
     function handleRoomCreated(data){
       data=data||{};
@@ -2763,6 +2780,7 @@ export default function MobilePage() {
     onlineRoomClosed=true;
     clearOnlineCountdown();
     try{ clearOnlineBattleTimer(); }catch(e){}
+    try{ if(onlineMatchStartTimer){ clearTimeout(onlineMatchStartTimer); onlineMatchStartTimer=null; } }catch(e){}
     try{ stopAllSounds(); }catch(e){}
     try{
       onlineTarget={x:200,y:350,vx:0,vy:0};
