@@ -124,44 +124,6 @@ const startCountdown = (room) => {
   emitStateToRoom(room);
 };
 
-const startCustomRoomCountdown = (room) => {
-  if (!room) return;
-
-  if (room.arenaVoteTimer) {
-    clearTimeout(room.arenaVoteTimer);
-    room.arenaVoteTimer = null;
-  }
-
-  room.arena = room.arena || "classic";
-  room.state = createInitialState();
-  room.state.arena = room.arena;
-  room.lines = [];
-  room.arenaVotes = { host: null, guest: null };
-  room.hostReadyAgain = false;
-  room.guestReadyAgain = false;
-
-  io.to(room.code).emit("arena-selected", {
-    arena: room.arena,
-    votes: { host: null, guest: null },
-    customRoom: true,
-  });
-
-  startCountdown(room);
-
-  io.to(room.code).emit("room-matched", {
-    roomCode: room.code,
-    arena: room.arena,
-    customRoom: true,
-    state: withServerNow(room.state),
-  });
-
-  setTimeout(() => {
-    const latestRoom = rooms.get(room.code);
-    if (!latestRoom) return;
-    emitStateToRoom(latestRoom);
-  }, 120);
-};
-
 const resetRound = (room, direction = "down") => {
   room.state.phase = "countdown";
   room.state.roundStartAt = Date.now() + COUNTDOWN_DELAY_MS;
@@ -364,6 +326,7 @@ setInterval(() => {
   for (const room of rooms.values()) {
     const dt = Math.min(50, now - (room.lastTickAt || now));
     room.lastTickAt = now;
+
     tickRoomPhysics(room, dt / 16.67);
   }
 }, TICK_MS);
@@ -371,10 +334,6 @@ setInterval(() => {
 const cleanupRoomForSocket = (socket) => {
   const roomCode = socketRooms.get(socket.id);
   if (!roomCode) return;
-
-  try {
-    socket.leave(roomCode);
-  } catch (e) {}
 
   socketRooms.delete(socket.id);
 
@@ -386,47 +345,17 @@ const cleanupRoomForSocket = (socket) => {
 
   if (!wasHost && !wasGuest) return;
 
-  socket.to(roomCode).emit("opponent-left", { roomCode });
+  socket.to(roomCode).emit("opponent-left", {
+    roomCode,
+  });
 
-  const hostSocket = io.sockets.sockets.get(room.hostSocketId);
-  const guestSocket = io.sockets.sockets.get(room.guestSocketId);
-
-  try {
-    hostSocket?.leave(roomCode);
-  } catch (e) {}
-
-  try {
-    guestSocket?.leave(roomCode);
-  } catch (e) {}
-
-  if (room.hostSocketId) socketRooms.delete(room.hostSocketId);
-  if (room.guestSocketId) socketRooms.delete(room.guestSocketId);
-
-  if (room.arenaVoteTimer) {
-    clearTimeout(room.arenaVoteTimer);
-    room.arenaVoteTimer = null;
+  if (room.hostSocketId) {
+    socketRooms.delete(room.hostSocketId);
   }
 
-  rooms.delete(roomCode);
-};
-
-const deleteRoomSilently = (roomCode) => {
-  const room = rooms.get(roomCode);
-  if (!room) return;
-
-  const hostSocket = io.sockets.sockets.get(room.hostSocketId);
-  const guestSocket = io.sockets.sockets.get(room.guestSocketId);
-
-  try {
-    hostSocket?.leave(roomCode);
-  } catch (e) {}
-
-  try {
-    guestSocket?.leave(roomCode);
-  } catch (e) {}
-
-  if (room.hostSocketId) socketRooms.delete(room.hostSocketId);
-  if (room.guestSocketId) socketRooms.delete(room.guestSocketId);
+  if (room.guestSocketId) {
+    socketRooms.delete(room.guestSocketId);
+  }
 
   if (room.arenaVoteTimer) {
     clearTimeout(room.arenaVoteTimer);
@@ -580,24 +509,12 @@ io.on("connection", (socket) => {
   socket.on("create-room", ({ roomCode, address, username }) => {
     console.log("CREATE ROOM:", roomCode);
 
-    if (socketRooms.has(socket.id)) {
-      cleanupRoomForSocket(socket);
-    }
-
-    if (rooms.has(roomCode)) {
-      deleteRoomSilently(roomCode);
-    }
-
     const room = createRoomObject({
       code: roomCode,
       hostSocketId: socket.id,
       hostAddress: address,
       hostUsername: username,
     });
-
-    room.arena = "classic";
-    room.state.arena = "classic";
-    room.isCustomRoom = true;
 
     rooms.set(roomCode, room);
     socketRooms.set(socket.id, roomCode);
@@ -612,10 +529,6 @@ io.on("connection", (socket) => {
 
   socket.on("join-room", ({ roomCode, address, username }) => {
     console.log("JOIN ROOM:", roomCode);
-
-    if (socketRooms.has(socket.id)) {
-      cleanupRoomForSocket(socket);
-    }
 
     const room = rooms.get(roomCode);
 
@@ -633,11 +546,9 @@ io.on("connection", (socket) => {
     room.guestAddress = address;
     room.guestUsername = cleanUsername(username, "PLAYER 2");
     room.state = createInitialState();
-    room.state.arena = room.arena || "classic";
     room.hostReadyAgain = false;
     room.guestReadyAgain = false;
     room.lines = [];
-    room.isCustomRoom = true;
 
     socketRooms.set(socket.id, roomCode);
     socket.join(roomCode);
@@ -649,7 +560,6 @@ io.on("connection", (socket) => {
       role: "host",
       opponentAddress: room.guestAddress,
       opponentUsername: room.guestUsername,
-      customRoom: true,
     });
 
     socket.emit("match-found", {
@@ -657,22 +567,9 @@ io.on("connection", (socket) => {
       role: "guest",
       opponentAddress: room.hostAddress,
       opponentUsername: room.hostUsername,
-      customRoom: true,
     });
 
-    setTimeout(() => {
-      const latestRoom = rooms.get(roomCode);
-      if (!latestRoom) return;
-
-      if (
-        latestRoom.hostSocketId !== room.hostSocketId ||
-        latestRoom.guestSocketId !== socket.id
-      ) {
-        return;
-      }
-
-      startCustomRoomCountdown(latestRoom);
-    }, 250);
+    startArenaVote(room);
   });
 
   socket.on("find-match", ({ address, username }) => {
@@ -733,6 +630,7 @@ io.on("connection", (socket) => {
   socket.on("vote-arena", ({ roomCode, arena }) => {
     const room = rooms.get(roomCode);
     if (!room) return;
+
     handleArenaVote(room, socket.id, arena);
   });
 
@@ -819,7 +717,6 @@ io.on("connection", (socket) => {
       room.guestReadyAgain = false;
 
       room.state = createInitialState();
-      room.state.arena = room.arena || "classic";
       room.lines = [];
       room.arenaVotes = {
         host: null,
@@ -831,15 +728,7 @@ io.on("connection", (socket) => {
         guestReadyAgain: false,
       });
 
-      if (room.isCustomRoom) {
-        setTimeout(() => {
-          const latestRoom = rooms.get(roomCode);
-          if (!latestRoom) return;
-          startCustomRoomCountdown(latestRoom);
-        }, 250);
-      } else {
-        startArenaVote(room);
-      }
+      startArenaVote(room);
     }
   });
 
@@ -847,6 +736,7 @@ io.on("connection", (socket) => {
     if (platform !== "mobile") return;
 
     const activeRoomCode = roomCode || socketRooms.get(socket.id);
+
     if (!activeRoomCode) return;
 
     cleanupRoomForSocket(socket);
