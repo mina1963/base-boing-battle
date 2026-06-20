@@ -2944,17 +2944,35 @@ export default function MobilePage() {
   }
   function leaveOnlineRoom(){
     notifyLeavingOnline();
+
     started=false;
     paused=true;
     goalLocked=true;
     onlineRoomClosed=true;
+
     clearOnlineCountdown();
     try{ clearOnlineBattleTimer(); }catch(e){}
+    try{
+      if(onlineMatchStartTimer){
+        clearTimeout(onlineMatchStartTimer);
+        onlineMatchStartTimer=null;
+      }
+    }catch(e){}
     try{ stopAllSounds(); }catch(e){}
+
+    onlineTarget={x:200,y:350,vx:0,vy:0};
+    onlineStartState=null;
+    onlineLaunchStarted=false;
+    onlineLaunchRoom=null;
+    lastOnlineScoreTotal=null;
+    lastOnlineRoundKey=null;
+
+    pendingMode='ai';
     roomCode=null;
     mode='ai';
     isHost=false;
     roleKnown=false;
+    rivalName='RIVAL';
   }
   function newMatch(){
     if(!requireName()) return;
