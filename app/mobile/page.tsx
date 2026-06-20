@@ -2152,6 +2152,8 @@ export default function MobilePage() {
   var onlineStartState=null;
   var onlineMatchStartTimer=null;
   var onlineMatchNo=0;
+  var onlineLaunchStarted=false;
+  var onlineLaunchRoom=null;
   var playerName='PLAYER', rivalName='RIVAL', pendingMode='ai';
   var usernameAfterSave=null;
   var SOCKET_EU='https://base-boing-battle-1.onrender.com';
@@ -2420,19 +2422,46 @@ export default function MobilePage() {
   }
   function scheduleOnlineStart(state){
     if(state) onlineStartState=state;
+    if(!roomCode) return;
+
+    var activeCode=String(roomCode);
+
+    // Match-start guard:
+    // Mobile networks can deliver match-found, arena-vote-start, arena-selected,
+    // room-matched and game-state very close together. Previously each event could
+    // restart the waiting flow, so the screen stayed on SEARCHING OPPONENT while
+    // MATCH FOUND text kept changing. Start the game screen once per room.
+    if(onlineLaunchStarted && onlineLaunchRoom===activeCode){
+      try{
+        if(onlineStartState && $('gameScreen') && $('gameScreen').classList.contains('active')){
+          applyOnlineState(onlineStartState);
+          onlineStartState=null;
+        }
+      }catch(e){}
+      return;
+    }
+
+    onlineLaunchStarted=true;
+    onlineLaunchRoom=activeCode;
+
     if(onlineMatchStartTimer){
       try{ clearTimeout(onlineMatchStartTimer); }catch(e){}
       onlineMatchStartTimer=null;
     }
+
+    setMatchStatus((isHost?'HOST':'GUEST')+' • MATCH FOUND • STARTING...');
+
     onlineMatchStartTimer=setTimeout(function(){
       onlineMatchStartTimer=null;
       if(mode!=='online' || !roomCode) return;
+
       startOnlineMatch();
+
       if(onlineStartState){
         applyOnlineState(onlineStartState);
         onlineStartState=null;
       }
-    },650);
+    },220);
   }
 
   function connectSocket(cb){
@@ -2485,6 +2514,10 @@ export default function MobilePage() {
       }
       setMatchStatus('MATCH FOUND • STARTING...');
       sendArenaVoteNow();
+
+      // Do not wait on the matchmaking screen after the server has started arena vote.
+      // The first game-state will sync countdown/ball as soon as it arrives.
+      scheduleOnlineStart(null);
     });
 
     socket.on('matchmaking-status',function(data){
@@ -2495,6 +2528,10 @@ export default function MobilePage() {
       data=data||{};
       mode='online';
       roomCode=data.roomCode||data.room_code||roomCode;
+      if(onlineLaunchStarted && onlineLaunchRoom===String(roomCode||'')){
+        sendArenaVoteNow();
+        return;
+      }
       // IMPORTANT: never let both mobile clients become host.
       // The server sends role: "host" or "guest". Host uses server coordinates,
       // guest renders a mirrored field so each player still plays from the bottom.
@@ -2517,6 +2554,11 @@ export default function MobilePage() {
       data=data||{};
       mode='online';
       roomCode=data.roomCode||data.room_code||roomCode;
+      if(onlineLaunchStarted && onlineLaunchRoom===String(roomCode||'')){
+        if(data.state) onlineStartState=data.state;
+        scheduleOnlineStart(data.state||null);
+        return;
+      }
       // Older/manual room event. Do not force isHost=true here; that was causing
       // both mobile devices to behave like the same side.
       if(data.role==='host' || data.role==='guest'){
@@ -2611,6 +2653,8 @@ export default function MobilePage() {
     onlineRoomClosed=false;
     mode='online';
     onlineStartState=null;
+    onlineLaunchStarted=false;
+    onlineLaunchRoom=null;
     isHost=true;
     roleKnown=true;
     rivalName='RIVAL';
@@ -2664,7 +2708,7 @@ export default function MobilePage() {
     onlineRoomClosed=false;
     var input=$('roomCodeInput'); var code=cleanName(input&&input.value);
     if(!code){ var w=$('roomWarn'); if(w) w.textContent='ENTER ROOM CODE'; return; }
-    mode='online'; roomCode=code; onlineMatchNo=0; setOnlineArenaForMatch(); onlineStartState=null; isHost=false; roleKnown=true; rivalName='RIVAL'; show('matchScreen'); setRoomCodeDisplay(null); setMatchStatus('JOINING ROOM '+code+'...');
+    mode='online'; roomCode=code; onlineMatchNo=0; setOnlineArenaForMatch(); onlineStartState=null; onlineLaunchStarted=false; onlineLaunchRoom=null; isHost=false; roleKnown=true; rivalName='RIVAL'; show('matchScreen'); setRoomCodeDisplay(null); setMatchStatus('JOINING ROOM '+code+'...');
     ensureSocket(function(){
       try{ socket.emit('join-room',{ roomCode:code, address:mobileId, username:displayName(playerName), region:socketRegion }); }
       catch(e){ setMatchStatus('JOIN ROOM FAILED'); }
@@ -2674,7 +2718,7 @@ export default function MobilePage() {
   function startOnlineSearch(){
     if(!requireName()) return;
     onlineRoomClosed=false;
-    mode='online'; isHost=false; roleKnown=false; roomCode=null; onlineMatchNo=0; rivalName='RIVAL'; onlineStartState=null; show('matchScreen'); setRoomCodeDisplay(null); setMatchStatus('CONNECTING SOCKET...');
+    mode='online'; isHost=false; roleKnown=false; roomCode=null; onlineMatchNo=0; rivalName='RIVAL'; onlineStartState=null; onlineLaunchStarted=false; onlineLaunchRoom=null; show('matchScreen'); setRoomCodeDisplay(null); setMatchStatus('CONNECTING SOCKET...');
     ensureSocket(function(){
       var name=displayName(playerName);
       if(!socket || !socket.connected){
@@ -2700,7 +2744,7 @@ export default function MobilePage() {
   }
   function startOnlineMatch(){
     onlineRoomClosed=false;
-    if(roomCode) setOnlineArenaForMatch();
+    // Keep the arena chosen during match-found / arena-selected. Do not re-roll here.
     canvas=$('gameCanvas'); ctx=canvas.getContext('2d');
     score={player:0,ai:0,msg:'',life:0}; lastOnlineScoreTotal=null; lastOnlineRoundKey=null; clearOnlineCountdown(); resetBall('down');
     updateScoreHud();
@@ -2785,6 +2829,8 @@ export default function MobilePage() {
     try{
       onlineTarget={x:200,y:350,vx:0,vy:0};
       onlineStartState=null;
+      onlineLaunchStarted=false;
+      onlineLaunchRoom=null;
       lastOnlineScoreTotal=null;
       lastOnlineRoundKey=null;
     }catch(e){}
@@ -2799,6 +2845,8 @@ export default function MobilePage() {
       if($('resultMenuBtn')) $('resultMenuBtn').textContent='MAIN MENU';
       $('resultPanel').classList.add('active');
     }
+    onlineLaunchStarted=false;
+    onlineLaunchRoom=null;
     roomCode=null;
     mode='ai';
     isHost=false;
