@@ -2154,7 +2154,6 @@ export default function MobilePage() {
   var onlineMatchNo=0;
   var onlineLaunchStarted=false;
   var onlineLaunchRoom=null;
-  var reconnectingOnline=false;
   var playerName='PLAYER', rivalName='RIVAL', pendingMode='ai';
   var usernameAfterSave=null;
   var SOCKET_EU='https://base-boing-battle-1.onrender.com';
@@ -2465,30 +2464,6 @@ export default function MobilePage() {
     },220);
   }
 
-
-  function isOnlineRoomActive(){
-    return mode==='online' && !!roomCode && !onlineRoomClosed;
-  }
-
-  function emitRejoinRoom(){
-    if(!socket || !socket.connected || !roomCode || onlineRoomClosed) return;
-    var code=String(roomCode||'').toUpperCase();
-    var payload={
-      roomCode:code,
-      code:code,
-      address:mobileId,
-      username:displayName(playerName),
-      role:isHost?'host':'guest',
-      region:socketRegion,
-      platform:'mobile'
-    };
-
-    try{ socket.emit('rejoin-room',payload); }catch(e){}
-    try{ socket.emit('resume-room',payload); }catch(e){}
-    try{ socket.emit('request-state',{ roomCode:code, code:code, address:mobileId, platform:'mobile' }); }catch(e){}
-    try{ socket.emit('sync-state',{ roomCode:code, code:code, address:mobileId, platform:'mobile' }); }catch(e){}
-  }
-
   function connectSocket(cb){
     var url=socketRegion==='US'?SOCKET_US:SOCKET_EU;
 
@@ -2510,56 +2485,15 @@ export default function MobilePage() {
       transports:['websocket'],
       upgrade:false,
       reconnection:true,
-      reconnectionAttempts:15,
+      reconnectionAttempts:10,
       reconnectionDelay:500,
-      reconnectionDelayMax:2500,
+      reconnectionDelayMax:2000,
       timeout:10000,
       forceNew:true
     });
     socket.io.uri=url;
-    var connectCallbackDone=false;
-    function runInitialConnectCallback(){
-      if(connectCallbackDone) return;
-      connectCallbackDone=true;
-      if(cb) cb();
-    }
-
-    socket.on('connect',function(){
-      socketReady=true;
-
-      if(isOnlineRoomActive()){
-        if(reconnectingOnline){
-          reconnectingOnline=false;
-          setMatchStatus('RECONNECTED • SYNCING...');
-          if($('gameScreen') && $('gameScreen').classList.contains('active')){
-            setOverlay('SYNCING');
-          }
-        } else if(!$('gameScreen') || !$('gameScreen').classList.contains('active')){
-          setMatchStatus('CONNECTED • SEARCHING...');
-        }
-
-        emitRejoinRoom();
-      } else {
-        setMatchStatus('CONNECTED • SEARCHING...');
-      }
-
-      runInitialConnectCallback();
-    });
-
-    socket.on('disconnect',function(){
-      socketReady=false;
-
-      if(isOnlineRoomActive()){
-        reconnectingOnline=true;
-        setMatchStatus('CONNECTION LOST • RECONNECTING...');
-        try{
-          if($('gameScreen') && $('gameScreen').classList.contains('active')){
-            paused=true;
-            setOverlay('RECONNECTING');
-          }
-        }catch(e){}
-      }
-    });
+    socket.on('connect',function(){ socketReady=true; setMatchStatus('CONNECTED • SEARCHING...'); if(cb) cb(); });
+    socket.on('disconnect',function(){ socketReady=false; });
 
     function sendArenaVoteNow(){
       if(!socket || !roomCode) return;
@@ -2747,34 +2681,6 @@ export default function MobilePage() {
     });
     socket.on('play-again-start',function(data){ onlineMatchNo++; setOnlineArenaForMatch(); startOnlineMatch(); });
     socket.on('new-match',function(data){ onlineMatchNo++; setOnlineArenaForMatch(); startOnlineMatch(); });
-    socket.on('reconnect_attempt',function(attempt){
-      socketReady=false;
-      if(isOnlineRoomActive()){
-        reconnectingOnline=true;
-        setMatchStatus('RECONNECTING... '+attempt+'/15');
-        try{
-          if($('gameScreen') && $('gameScreen').classList.contains('active')){
-            paused=true;
-            setOverlay('RECONNECTING');
-          }
-        }catch(e){}
-      }
-    });
-    socket.on('reconnect',function(){
-      socketReady=true;
-      if(isOnlineRoomActive()){
-        reconnectingOnline=false;
-        setMatchStatus('RECONNECTED • SYNCING...');
-        emitRejoinRoom();
-      }
-    });
-    socket.on('reconnect_failed',function(){
-      socketReady=false;
-      if(isOnlineRoomActive()){
-        setMatchStatus('RECONNECT FAILED • RETURN MAIN MENU');
-        try{ setOverlay('RECONNECT FAILED'); }catch(e){}
-      }
-    });
     socket.on('connect_error',function(){ socketReady=false; setMatchStatus('SOCKET CONNECTION FAILED • RETRYING...'); });
   }
 
