@@ -54,11 +54,9 @@ const cleanUsername = (username, fallback = "PLAYER") => {
 const ARENAS = ["classic", "base", "space", "temple"];
 const ARENA_VOTE_MS = 2500;
 
-const normalizeArena = (arena) =>
-  ARENAS.includes(arena) ? arena : null;
+const normalizeArena = (arena) => (ARENAS.includes(arena) ? arena : null);
 
-const randomArena = () =>
-  ARENAS[Math.floor(Math.random() * ARENAS.length)];
+const randomArena = () => ARENAS[Math.floor(Math.random() * ARENAS.length)];
 
 const createInitialState = () => ({
   ball: {
@@ -365,14 +363,47 @@ const cleanupRoomForSocket = (socket) => {
   rooms.delete(roomCode);
 };
 
+const detachSocketFromCurrentRoom = (socket, { notifyOpponent = true } = {}) => {
+  const oldRoomCode = socketRooms.get(socket.id);
+
+  waitingPlayers = waitingPlayers.filter((p) => p.socketId !== socket.id);
+
+  if (!oldRoomCode) return;
+
+  const oldRoom = rooms.get(oldRoomCode);
+  socketRooms.delete(socket.id);
+
+  try {
+    socket.leave(oldRoomCode);
+  } catch (_) {}
+
+  if (!oldRoom) return;
+
+  const wasHost = oldRoom.hostSocketId === socket.id;
+  const wasGuest = oldRoom.guestSocketId === socket.id;
+
+  if (!wasHost && !wasGuest) return;
+
+  if (notifyOpponent) {
+    socket.to(oldRoomCode).emit("opponent-left", { roomCode: oldRoomCode });
+  }
+
+  if (oldRoom.hostSocketId) socketRooms.delete(oldRoom.hostSocketId);
+  if (oldRoom.guestSocketId) socketRooms.delete(oldRoom.guestSocketId);
+
+  if (oldRoom.arenaVoteTimer) {
+    clearTimeout(oldRoom.arenaVoteTimer);
+    oldRoom.arenaVoteTimer = null;
+  }
+
+  rooms.delete(oldRoomCode);
+};
+
 const makeRoomCode = () => {
   let code = "";
 
   do {
-    code = Math.random()
-      .toString(36)
-      .substring(2, 6)
-      .toUpperCase();
+    code = Math.random().toString(36).substring(2, 6).toUpperCase();
   } while (rooms.has(code));
 
   return code;
@@ -386,6 +417,13 @@ const getArenaVotesPayload = (room) => ({
 const finishArenaVote = (room) => {
   if (!room || room.state.winner) return;
 
+  if (!room.hostSocketId || !room.guestSocketId) return;
+
+  const hostSocket = io.sockets.sockets.get(room.hostSocketId);
+  const guestSocket = io.sockets.sockets.get(room.guestSocketId);
+
+  if (!hostSocket || !guestSocket) return;
+
   if (room.arenaVoteTimer) {
     clearTimeout(room.arenaVoteTimer);
     room.arenaVoteTimer = null;
@@ -394,9 +432,7 @@ const finishArenaVote = (room) => {
   const votes = [room.arenaVotes.host, room.arenaVotes.guest].filter(Boolean);
 
   const selected =
-    votes.length > 0
-      ? votes[Math.floor(Math.random() * votes.length)]
-      : randomArena();
+    votes.length > 0 ? votes[Math.floor(Math.random() * votes.length)] : randomArena();
 
   room.arena = selected;
   room.state.arena = selected;
@@ -408,15 +444,38 @@ const finishArenaVote = (room) => {
 
   startCountdown(room);
 
-  io.to(room.code).emit("room-matched", {
+  const hostPayload = {
     roomCode: room.code,
+    role: "host",
     arena: selected,
+    opponentAddress: room.guestAddress,
+    opponentUsername: room.guestUsername,
     state: withServerNow(room.state),
-  });
+  };
+
+  const guestPayload = {
+    roomCode: room.code,
+    role: "guest",
+    arena: selected,
+    opponentAddress: room.hostAddress,
+    opponentUsername: room.hostUsername,
+    state: withServerNow(room.state),
+  };
+
+  hostSocket.emit("room-matched", hostPayload);
+  guestSocket.emit("room-matched", guestPayload);
+
+  setTimeout(() => emitStateToRoom(room), 120);
+  setTimeout(() => emitStateToRoom(room), 450);
 };
 
 const startArenaVote = (room) => {
   if (!room) return;
+  if (!room.hostSocketId || !room.guestSocketId) return;
+
+  const hostSocket = io.sockets.sockets.get(room.hostSocketId);
+  const guestSocket = io.sockets.sockets.get(room.guestSocketId);
+  if (!hostSocket || !guestSocket) return;
 
   if (room.arenaVoteTimer) {
     clearTimeout(room.arenaVoteTimer);
@@ -506,34 +565,67 @@ const createMatchedRoom = ({ host, guest }) => {
 io.on("connection", (socket) => {
   console.log("CONNECTED:", socket.id);
 
-  socket.on("create-room", ({ roomCode, address, username }) => {
-    console.log("CREATE ROOM:", roomCode);
+  socket.on("create-room", ({ roomCode, address, username } = {}, ack) => {
+    detachSocketFromCurrentRoom(socket, { notifyOpponent: true });
+
+    let safeRoomCode = String(roomCode || makeRoomCode())
+      .trim()
+      .toUpperCase()
+      .replace(/[^A-Z0-9]/g, "")
+      .slice(0, 6);
+
+    if (!safeRoomCode || rooms.has(safeRoomCode)) safeRoomCode = makeRoomCode();
+
+    console.log("CREATE ROOM:", safeRoomCode);
 
     const room = createRoomObject({
-      code: roomCode,
+      code: safeRoomCode,
       hostSocketId: socket.id,
       hostAddress: address,
       hostUsername: username,
     });
 
-    rooms.set(roomCode, room);
-    socketRooms.set(socket.id, roomCode);
-    socket.join(roomCode);
+    rooms.set(safeRoomCode, room);
+    socketRooms.set(socket.id, safeRoomCode);
+    socket.join(safeRoomCode);
 
-    socket.emit("room-created", {
-      roomCode,
+    const payload = {
+      roomCode: safeRoomCode,
       role: "host",
       state: withServerNow(room.state),
-    });
+    };
+
+    socket.emit("room-created", payload);
+    if (typeof ack === "function") ack(payload);
   });
 
-  socket.on("join-room", ({ roomCode, address, username }) => {
-    console.log("JOIN ROOM:", roomCode);
+  socket.on("join-room", ({ roomCode, address, username } = {}) => {
+    const safeRoomCode = String(roomCode || "")
+      .trim()
+      .toUpperCase()
+      .replace(/[^A-Z0-9]/g, "")
+      .slice(0, 6);
 
-    const room = rooms.get(roomCode);
+    console.log("JOIN ROOM:", safeRoomCode);
+
+    detachSocketFromCurrentRoom(socket, { notifyOpponent: true });
+
+    const room = rooms.get(safeRoomCode);
 
     if (!room) {
       socket.emit("join-error", "ROOM NOT FOUND");
+      return;
+    }
+
+    const hostSocket = io.sockets.sockets.get(room.hostSocketId);
+    if (!hostSocket) {
+      rooms.delete(safeRoomCode);
+      socket.emit("join-error", "ROOM EXPIRED");
+      return;
+    }
+
+    if (room.hostSocketId === socket.id) {
+      socket.emit("join-error", "ALREADY HOST");
       return;
     }
 
@@ -550,20 +642,18 @@ io.on("connection", (socket) => {
     room.guestReadyAgain = false;
     room.lines = [];
 
-    socketRooms.set(socket.id, roomCode);
-    socket.join(roomCode);
-
-    const hostSocket = io.sockets.sockets.get(room.hostSocketId);
+    socketRooms.set(socket.id, safeRoomCode);
+    socket.join(safeRoomCode);
 
     hostSocket?.emit("match-found", {
-      roomCode,
+      roomCode: safeRoomCode,
       role: "host",
       opponentAddress: room.guestAddress,
       opponentUsername: room.guestUsername,
     });
 
     socket.emit("match-found", {
-      roomCode,
+      roomCode: safeRoomCode,
       role: "guest",
       opponentAddress: room.hostAddress,
       opponentUsername: room.hostUsername,
@@ -576,16 +666,12 @@ io.on("connection", (socket) => {
     console.log("FIND MATCH:", socket.id);
 
     if (socketRooms.has(socket.id)) {
-      cleanupRoomForSocket(socket);
+      detachSocketFromCurrentRoom(socket, { notifyOpponent: true });
     }
 
-    waitingPlayers = waitingPlayers.filter(
-      (p) => p.socketId !== socket.id
-    );
+    waitingPlayers = waitingPlayers.filter((p) => p.socketId !== socket.id);
 
-    waitingPlayers = waitingPlayers.filter((p) =>
-      io.sockets.sockets.get(p.socketId)
-    );
+    waitingPlayers = waitingPlayers.filter((p) => io.sockets.sockets.get(p.socketId));
 
     const player = {
       socketId: socket.id,
@@ -635,9 +721,7 @@ io.on("connection", (socket) => {
   });
 
   socket.on("cancel-matchmaking", () => {
-    waitingPlayers = waitingPlayers.filter(
-      (p) => p.socketId !== socket.id
-    );
+    waitingPlayers = waitingPlayers.filter((p) => p.socketId !== socket.id);
 
     socket.emit("matchmaking-status", {
       status: "cancelled",
@@ -749,9 +833,7 @@ io.on("connection", (socket) => {
   socket.on("disconnect", () => {
     console.log("DISCONNECTED:", socket.id);
 
-    waitingPlayers = waitingPlayers.filter(
-      (p) => p.socketId !== socket.id
-    );
+    waitingPlayers = waitingPlayers.filter((p) => p.socketId !== socket.id);
 
     cleanupRoomForSocket(socket);
   });
