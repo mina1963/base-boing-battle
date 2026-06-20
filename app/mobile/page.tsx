@@ -2419,12 +2419,56 @@ export default function MobilePage() {
   }
   function connectSocket(cb){
     var url=socketRegion==='US'?SOCKET_US:SOCKET_EU;
-    if(socket && socket.io && socket.io.uri===url){ if(cb) cb(); return; }
+
+    if(socket && socket.io && socket.io.uri===url){
+      if(socket.connected){
+        socketReady=true;
+        if(cb) cb();
+      } else {
+        setMatchStatus('CONNECTING SOCKET...');
+        try{ socket.once('connect',function(){ socketReady=true; if(cb) cb(); }); }catch(e){}
+        try{ socket.connect(); }catch(e){}
+      }
+      return;
+    }
+
     if(socket){ try{ socket.disconnect(); }catch(e){} }
-    socket=io(url,{transports:['websocket']});
+
+    socket=io(url,{
+      transports:['websocket'],
+      upgrade:false,
+      reconnection:true,
+      reconnectionAttempts:10,
+      reconnectionDelay:500,
+      reconnectionDelayMax:2000,
+      timeout:10000,
+      forceNew:true
+    });
     socket.io.uri=url;
     socket.on('connect',function(){ socketReady=true; setMatchStatus('CONNECTED • SEARCHING...'); if(cb) cb(); });
     socket.on('disconnect',function(){ socketReady=false; });
+
+    function sendArenaVoteNow(){
+      if(!socket || !roomCode) return;
+      try{
+        socket.emit('vote-arena',{
+          roomCode:roomCode,
+          arena:arena,
+          role:isHost?'host':'guest',
+          platform:'mobile'
+        });
+      }catch(e){}
+    }
+
+    socket.on('arena-vote-start',function(data){
+      data=data||{};
+      if(data.roomCode || data.room_code){
+        roomCode=data.roomCode||data.room_code;
+      }
+      setMatchStatus('MATCH FOUND • STARTING...');
+      sendArenaVoteNow();
+    });
+
     socket.on('matchmaking-status',function(data){
       if(data && data.status==='searching') setMatchStatus('SEARCHING OPPONENT...');
       if(data && data.status==='cancelled'){ setMatchStatus('CANCELLED'); show('menuScreen'); }
@@ -2445,6 +2489,7 @@ export default function MobilePage() {
       onlineMatchNo=0;
       setOnlineArenaForMatch();
       setMatchStatus((isHost?'HOST':'GUEST')+' • MATCH FOUND • '+String(arena).toUpperCase()+' ARENA');
+      sendArenaVoteNow();
       setOverlay(isHost?'HOST READY':'GUEST READY');
       pendingMode='onlineMatched';
       onlineStartState=null;
@@ -2468,6 +2513,7 @@ export default function MobilePage() {
       onlineMatchNo=0;
       setOnlineArenaForMatch();
       setMatchStatus((isHost?'HOST':'GUEST')+' • MATCH FOUND • '+String(arena).toUpperCase()+' ARENA');
+      sendArenaVoteNow();
       pendingMode='onlineMatched';
       onlineStartState=data.state||null;
       setTimeout(function(){ startOnlineMatch(); if(onlineStartState){ applyOnlineState(onlineStartState); onlineStartState=null; } },900);
@@ -2517,7 +2563,7 @@ export default function MobilePage() {
     });
     socket.on('play-again-start',function(data){ onlineMatchNo++; setOnlineArenaForMatch(); startOnlineMatch(); });
     socket.on('new-match',function(data){ onlineMatchNo++; setOnlineArenaForMatch(); startOnlineMatch(); });
-    socket.on('connect_error',function(){ setMatchStatus('SOCKET CONNECTION FAILED'); });
+    socket.on('connect_error',function(){ socketReady=false; setMatchStatus('SOCKET CONNECTION FAILED • RETRYING...'); });
   }
 
   function openModeScreen(){
@@ -2614,7 +2660,21 @@ export default function MobilePage() {
     mode='online'; isHost=false; roleKnown=false; roomCode=null; onlineMatchNo=0; rivalName='RIVAL'; onlineStartState=null; show('matchScreen'); setRoomCodeDisplay(null); setMatchStatus('CONNECTING SOCKET...');
     ensureSocket(function(){
       var name=displayName(playerName);
-      try{ socket.emit('find-match',{ address:mobileId, username:name, region:socketRegion }); }catch(e){ setMatchStatus('SEARCH FAILED'); }
+      if(!socket || !socket.connected){
+        setMatchStatus('CONNECTING SOCKET...');
+        try{
+          socket.once('connect',function(){
+            socket.emit('find-match',{ address:mobileId, username:name, region:socketRegion, platform:'mobile' });
+            setMatchStatus('SEARCHING OPPONENT...');
+          });
+          socket.connect();
+        }catch(e){ setMatchStatus('SEARCH FAILED'); }
+        return;
+      }
+      try{
+        socket.emit('find-match',{ address:mobileId, username:name, region:socketRegion, platform:'mobile' });
+        setMatchStatus('SEARCHING OPPONENT...');
+      }catch(e){ setMatchStatus('SEARCH FAILED'); }
     });
   }
   function cancelOnlineSearch(){

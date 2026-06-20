@@ -52,7 +52,7 @@ const cleanUsername = (username, fallback = "PLAYER") => {
 };
 
 const ARENAS = ["classic", "base", "space", "temple"];
-const ARENA_VOTE_MS = 10000;
+const ARENA_VOTE_MS = 2500;
 
 const normalizeArena = (arena) =>
   ARENAS.includes(arena) ? arena : null;
