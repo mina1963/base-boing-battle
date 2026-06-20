@@ -2439,6 +2439,9 @@ export default function MobilePage() {
     socket.on('host-left',function(){ opponentLeft(); });
     socket.on('guest-left',function(){ opponentLeft(); });
     socket.on('room-closed',function(){ opponentLeft(); });
+    socket.on('force-lobby',function(){ opponentLeft(); });
+    socket.on('opponent-quit',function(){ opponentLeft(); });
+    socket.on('match-cancelled-by-opponent',function(){ opponentLeft(); });
     socket.on('play-again-status',function(data){
       if(data && (data.hostReadyAgain && data.guestReadyAgain || data.ready===true || data.start===true)){
         onlineMatchNo++;
@@ -2557,6 +2560,7 @@ export default function MobilePage() {
     score={player:0,ai:0,msg:'',life:0}; lastOnlineScoreTotal=null; lastOnlineRoundKey=null; clearOnlineCountdown(); resetBall('down');
     updateScoreHud();
     $('resultPanel').classList.remove('active');
+    if($('playAgainBtn')) $('playAgainBtn').style.display='';
     show('gameScreen'); started=false; paused=true; setOverlay('WAITING');
     if(!raf) loop();
   }
@@ -2613,32 +2617,49 @@ export default function MobilePage() {
     var x1=Number(line.x1), y1=Number(line.y1), x2=Number(line.x2), y2=Number(line.y2);
     lines.push({x1:x1,y1:isHost?y1:H-y1,x2:x2,y2:isHost?y2:H-y2,life:50,owner:'ai'});
   }
+  function buildLeavePayload(){
+    return { roomCode:roomCode, room_code:roomCode, code:roomCode, role:isHost?'host':'guest', username:displayName(playerName), reason:'left-game' };
+  }
+  function notifyLeavingOnline(){
+    if(mode==='online' && socket && roomCode){
+      var payload=buildLeavePayload();
+      try{ socket.emit('leave-room',payload); }catch(e){}
+      try{ socket.emit('player-left',payload); }catch(e){}
+      try{ socket.emit('opponent-left',payload); }catch(e){}
+      try{ socket.emit('room-left',payload); }catch(e){}
+    }
+  }
   function opponentLeft(){
     started=false;
     paused=true;
     clearOnlineCountdown();
+    try{ clearOnlineBattleTimer(); }catch(e){}
     setOverlay('OPPONENT LEFT');
-    setMatchStatus('OPPONENT LEFT THE GAME');
+    setMatchStatus('Rakibin oyundan çıktı. Ana menüye dönebilirsin.');
     if($('resultPanel')){
       $('resultTitle').textContent='OPPONENT LEFT';
       $('resultTitle').style.color='#ef4444';
       $('resultTitle').style.textShadow='0 0 26px #ef4444';
       if($('resultScore')) $('resultScore').textContent='MATCH ENDED';
+      if($('playAgainBtn')) $('playAgainBtn').style.display='none';
+      if($('resultMenuBtn')) $('resultMenuBtn').textContent='MAIN MENU';
       $('resultPanel').classList.add('active');
     }
+    roomCode=null;
+    mode='ai';
+    isHost=false;
+    roleKnown=false;
   }
   function leaveOnlineRoom(){
-    if(mode==='online' && socket && roomCode){
-      var payload={ roomCode:roomCode, room_code:roomCode, code:roomCode, role:isHost?'host':'guest', username:displayName(playerName) };
-      try{ socket.emit('leave-room',payload); }catch(e){}
-      try{ socket.emit('player-left',payload); }catch(e){}
-      try{ socket.emit('opponent-left',payload); }catch(e){}
-    }
+    notifyLeavingOnline();
     started=false;
     paused=true;
     clearOnlineCountdown();
+    try{ clearOnlineBattleTimer(); }catch(e){}
     roomCode=null;
     mode='ai';
+    isHost=false;
+    roleKnown=false;
   }
   function newMatch(){
     if(!requireName()) return;
@@ -2861,11 +2882,8 @@ export default function MobilePage() {
   bindTap($('restartBtn'), function(){ if(mode==='online'){ setOverlay('ONLINE RESTART DISABLED'); } else newMatch(); });
   bindTap($('playAgainBtn'), function(){ if(mode==='online' && socket && roomCode){ $('resultPanel').classList.remove('active'); setOverlay('WAITING RIVAL'); try{ socket.emit('play-again-ready',{ roomCode:roomCode, role:isHost?'host':'guest', nextMatchNo:onlineMatchNo+1 }); }catch(e){} } else newMatch(); });
   bindTap($('resultMenuBtn'), function(){ $('resultPanel').classList.remove('active'); leaveOnlineRoom(); show('menuScreen'); });
-  window.addEventListener('beforeunload', function(){
-    if(mode==='online' && socket && roomCode){
-      try{ socket.emit('leave-room',{ roomCode:roomCode, room_code:roomCode, code:roomCode, role:isHost?'host':'guest', username:displayName(playerName) }); }catch(e){}
-    }
-  });
+  window.addEventListener('beforeunload', function(){ notifyLeavingOnline(); });
+  window.addEventListener('pagehide', function(){ notifyLeavingOnline(); });
 
   setTimeout(function(){
     canvas=$('gameCanvas');
