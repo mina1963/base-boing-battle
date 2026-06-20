@@ -1917,6 +1917,26 @@ export default function MobilePage() {
     content:"";
   }
 
+
+
+  /* === PATCH: restore username on main menu === */
+  #menuScreen .artProfile,
+  #menuScreen #profileTapArea {
+    display:flex !important;
+    pointer-events:auto !important;
+  }
+  #menuScreen #editNameBtn,
+  #menuScreen .artEdit {
+    display:block !important;
+    pointer-events:auto !important;
+  }
+  #menuScreen .artTop {
+    justify-content:space-between !important;
+  }
+  #menuScreen .artHow,
+  #howBtnTop {
+    margin-left:0 !important;
+  }
 </style>
 <div id="app">
   <div id="noise"></div>
@@ -2698,6 +2718,7 @@ export default function MobilePage() {
   }
   function newMatch(){
     if(!requireName()) return;
+    onlineRoomClosed=false;
     mode='ai'; isHost=false; roleKnown=false; roomCode=null;
     canvas=$('gameCanvas'); ctx=canvas.getContext('2d');
     score={player:0,ai:0,msg:'',life:0}; resetBall('down');
