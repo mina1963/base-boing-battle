@@ -142,10 +142,7 @@ const startCustomRoomCountdown = (room) => {
 
   io.to(room.code).emit("arena-selected", {
     arena: room.arena,
-    votes: {
-      host: null,
-      guest: null,
-    },
+    votes: { host: null, guest: null },
     customRoom: true,
   });
 
@@ -367,7 +364,6 @@ setInterval(() => {
   for (const room of rooms.values()) {
     const dt = Math.min(50, now - (room.lastTickAt || now));
     room.lastTickAt = now;
-
     tickRoomPhysics(room, dt / 16.67);
   }
 }, TICK_MS);
@@ -375,6 +371,10 @@ setInterval(() => {
 const cleanupRoomForSocket = (socket) => {
   const roomCode = socketRooms.get(socket.id);
   if (!roomCode) return;
+
+  try {
+    socket.leave(roomCode);
+  } catch (e) {}
 
   socketRooms.delete(socket.id);
 
@@ -386,17 +386,21 @@ const cleanupRoomForSocket = (socket) => {
 
   if (!wasHost && !wasGuest) return;
 
-  socket.to(roomCode).emit("opponent-left", {
-    roomCode,
-  });
+  socket.to(roomCode).emit("opponent-left", { roomCode });
 
-  if (room.hostSocketId) {
-    socketRooms.delete(room.hostSocketId);
-  }
+  const hostSocket = io.sockets.sockets.get(room.hostSocketId);
+  const guestSocket = io.sockets.sockets.get(room.guestSocketId);
 
-  if (room.guestSocketId) {
-    socketRooms.delete(room.guestSocketId);
-  }
+  try {
+    hostSocket?.leave(roomCode);
+  } catch (e) {}
+
+  try {
+    guestSocket?.leave(roomCode);
+  } catch (e) {}
+
+  if (room.hostSocketId) socketRooms.delete(room.hostSocketId);
+  if (room.guestSocketId) socketRooms.delete(room.guestSocketId);
 
   if (room.arenaVoteTimer) {
     clearTimeout(room.arenaVoteTimer);
@@ -410,13 +414,19 @@ const deleteRoomSilently = (roomCode) => {
   const room = rooms.get(roomCode);
   if (!room) return;
 
-  if (room.hostSocketId) {
-    socketRooms.delete(room.hostSocketId);
-  }
+  const hostSocket = io.sockets.sockets.get(room.hostSocketId);
+  const guestSocket = io.sockets.sockets.get(room.guestSocketId);
 
-  if (room.guestSocketId) {
-    socketRooms.delete(room.guestSocketId);
-  }
+  try {
+    hostSocket?.leave(roomCode);
+  } catch (e) {}
+
+  try {
+    guestSocket?.leave(roomCode);
+  } catch (e) {}
+
+  if (room.hostSocketId) socketRooms.delete(room.hostSocketId);
+  if (room.guestSocketId) socketRooms.delete(room.guestSocketId);
 
   if (room.arenaVoteTimer) {
     clearTimeout(room.arenaVoteTimer);
@@ -723,7 +733,6 @@ io.on("connection", (socket) => {
   socket.on("vote-arena", ({ roomCode, arena }) => {
     const room = rooms.get(roomCode);
     if (!room) return;
-
     handleArenaVote(room, socket.id, arena);
   });
 
@@ -838,7 +847,6 @@ io.on("connection", (socket) => {
     if (platform !== "mobile") return;
 
     const activeRoomCode = roomCode || socketRooms.get(socket.id);
-
     if (!activeRoomCode) return;
 
     cleanupRoomForSocket(socket);
