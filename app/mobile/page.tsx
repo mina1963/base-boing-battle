@@ -2409,7 +2409,7 @@ export default function MobilePage() {
   }
   function resetBall(dir){
     goalLocked=false;
-    ball={x:200,y:dir==='up'?525:175,r:8,vx:dir==='up'?1.2:-1.2,vy:dir==='up'?-1.8:1.8};
+    ball={x:200,y:dir==='up'?525:175,r:8,vx:dir==='up'?1.25:-1.25,vy:dir==='up'?-1.85:1.85};
     lines=[]; trail=[]; sparks=[]; energy=100; drawing=null;
   }
   function ensureSocket(cb){
@@ -2464,41 +2464,6 @@ export default function MobilePage() {
     },220);
   }
 
-  function forceOnlineGameStart(state){
-    if(!roomCode) return;
-
-    if(onlineMatchStartTimer){
-      try{ clearTimeout(onlineMatchStartTimer); }catch(e){}
-      onlineMatchStartTimer=null;
-    }
-
-    mode='online';
-    pendingMode='onlineMatched';
-    onlineLaunchStarted=true;
-    onlineLaunchRoom=String(roomCode);
-    onlineStartState=state||onlineStartState||null;
-    setMatchStatus('');
-
-    try{
-      if(!$('gameScreen').classList.contains('active')){
-        startOnlineMatch();
-      }
-    }catch(e){
-      startOnlineMatch();
-    }
-
-    if(state){
-      applyOnlineState(state);
-      onlineStartState=null;
-    }
-  }
-
-  function isStartState(state){
-    if(!state) return false;
-    var phase=state.phase||'';
-    return phase==='countdown' || phase==='playing' || !!state.roundStartAt || !!state.round_start_at;
-  }
-
   function connectSocket(cb){
     var url=socketRegion==='US'?SOCKET_US:SOCKET_EU;
 
@@ -2547,14 +2512,12 @@ export default function MobilePage() {
       if(data.roomCode || data.room_code){
         roomCode=data.roomCode||data.room_code;
       }
-
-      // IMPORTANT:
-      // Do NOT start the online screen from arena-vote-start.
-      // On mobile networks this event can arrive before the authoritative
-      // room-matched/game-state countdown. Starting here can lock the client on
-      // SEARCHING OPPONENT while MATCH FOUND text keeps changing.
-      setMatchStatus('MATCH FOUND • SELECTING ARENA...');
+      setMatchStatus('MATCH FOUND • STARTING...');
       sendArenaVoteNow();
+
+      // Do not wait on the matchmaking screen after the server has started arena vote.
+      // The first game-state will sync countdown/ball as soon as it arrives.
+      scheduleOnlineStart(null);
     });
 
     socket.on('matchmaking-status',function(data){
@@ -2582,18 +2545,34 @@ export default function MobilePage() {
       setOnlineArenaForMatch();
       setMatchStatus((isHost?'HOST':'GUEST')+' • MATCH FOUND • '+String(arena).toUpperCase()+' ARENA');
       sendArenaVoteNow();
+      setOverlay(isHost?'HOST READY':'GUEST READY');
       pendingMode='onlineMatched';
       onlineStartState=null;
-
-      // Do not call scheduleOnlineStart here. The real start source must be
-      // room-matched or game-state countdown from the server, so both phones
-      // enter the game at the same time.
+      scheduleOnlineStart(null);
     });
     socket.on('room-matched',function(data){
       data=data||{};
       mode='online';
       roomCode=data.roomCode||data.room_code||roomCode;
+      if(onlineLaunchStarted && onlineLaunchRoom===String(roomCode||'')){
+        if(data.state) onlineStartState=data.state;
 
+        // Manual rooms can receive room-matched after the host is already on
+        // the waiting screen. If the launch guard is set but the game screen is
+        // not active yet, unlock one time so the host does not stay on
+        // MATCH FOUND • STARTING while the guest starts countdown.
+        try{
+          if($('gameScreen') && !$('gameScreen').classList.contains('active')){
+            onlineLaunchStarted=false;
+            onlineLaunchRoom=null;
+          }
+        }catch(e){}
+
+        scheduleOnlineStart(data.state||null);
+        return;
+      }
+      // Older/manual room event. Do not force isHost=true here; that was causing
+      // both mobile devices to behave like the same side.
       if(data.role==='host' || data.role==='guest'){
         isHost=(data.role==='host');
         roleKnown=true;
@@ -2601,22 +2580,34 @@ export default function MobilePage() {
         isHost=data.isHost;
         roleKnown=true;
       }
-
       rivalName=pickRivalName(data);
+
       onlineMatchNo=0;
       setOnlineArenaForMatch();
       setMatchStatus((isHost?'HOST':'GUEST')+' • MATCH FOUND • '+String(arena).toUpperCase()+' ARENA');
       sendArenaVoteNow();
       pendingMode='onlineMatched';
 
-      // CREATE ROOM / JOIN ROOM FIX:
-      // Manual room host could stay on MATCH FOUND • STARTING while guest already
-      // received countdown. When room-matched includes countdown/playing state,
-      // enter the game immediately on both devices and apply the same state.
-      if(isStartState(data.state)){
-        forceOnlineGameStart(data.state);
-        return;
-      }
+      // If the room already has countdown/playing state, enter the game screen
+      // immediately. This keeps Create Room / Join Room in sync without touching
+      // the create-room or join-room button handlers.
+      try{
+        var rmState=data.state||null;
+        var rmPhase=rmState && (rmState.phase||'');
+        var rmHasStart=rmState && (rmPhase==='countdown' || rmPhase==='playing' || !!rmState.roundStartAt || !!rmState.round_start_at);
+        if(rmHasStart){
+          if(onlineMatchStartTimer){
+            try{ clearTimeout(onlineMatchStartTimer); }catch(e){}
+            onlineMatchStartTimer=null;
+          }
+          onlineLaunchStarted=true;
+          onlineLaunchRoom=String(roomCode||'');
+          startOnlineMatch();
+          applyOnlineState(rmState);
+          onlineStartState=null;
+          return;
+        }
+      }catch(e){}
 
       scheduleOnlineStart(data.state||null);
     });
@@ -2643,13 +2634,25 @@ export default function MobilePage() {
     socket.on('arena-selected',function(data){ if(data && data.arena){ arena=data.arena; } });
     socket.on('game-state',function(state){
       try{
-        if(state && mode==='online' && roomCode && isStartState(state)){
-          // COUNTDOWN SYNC FIX:
-          // The first authoritative countdown/playing state from the server
-          // always wins. This prevents one device from staying on
-          // MATCH FOUND • STARTING while the other is already at 3-2-1.
-          forceOnlineGameStart(state);
-          return;
+        if(state && mode==='online' && roomCode){
+          var phase=state.phase||'';
+          var hasCountdown=phase==='countdown' || phase==='playing' || !!state.roundStartAt || !!state.round_start_at;
+
+          if(hasCountdown){
+            if(onlineMatchStartTimer){
+              try{ clearTimeout(onlineMatchStartTimer); }catch(e){}
+              onlineMatchStartTimer=null;
+            }
+
+            onlineLaunchStarted=true;
+            onlineLaunchRoom=String(roomCode);
+            pendingMode='onlineMatched';
+            setMatchStatus('');
+
+            if(!$('gameScreen').classList.contains('active')){
+              startOnlineMatch();
+            }
+          }
         }
       }catch(e){}
 
