@@ -2154,8 +2154,6 @@ export default function MobilePage() {
   var onlineMatchNo=0;
   var onlineLaunchStarted=false;
   var onlineLaunchRoom=null;
-  var onlineReadyNonce=0;
-  var onlineReadyRoom=null;
   var playerName='PLAYER', rivalName='RIVAL', pendingMode='ai';
   var usernameAfterSave=null;
   var SOCKET_EU='https://base-boing-battle-1.onrender.com';
@@ -2382,59 +2380,66 @@ export default function MobilePage() {
     if(onlineCountdownTimer){ clearTimeout(onlineCountdownTimer); onlineCountdownTimer=null; }
     if(onlineBattleTimer){ clearTimeout(onlineBattleTimer); onlineBattleTimer=null; }
   }
-  function resetOnlineSessionLocal(){
-    clearOnlineCountdown();
-    try{ clearOnlineBattleTimer(); }catch(e){}
-    try{ if(onlineMatchStartTimer){ clearTimeout(onlineMatchStartTimer); onlineMatchStartTimer=null; } }catch(e){}
 
-    onlineReadyNonce++;
-    onlineReadyRoom=null;
 
-    onlineRoomClosed=true;
-    onlineStartState=null;
-    onlineLaunchStarted=false;
-    onlineLaunchRoom=null;
-    lastOnlineScoreTotal=null;
-    lastOnlineRoundKey=null;
+  var onlineClientReadyRoom=null;
+  var onlineClientReadyTimers=[];
 
-    started=false;
-    paused=true;
-    goalLocked=true;
-    drawing=null;
-
-    try{ onlineTarget={x:200,y:350,vx:0,vy:0}; onlineStateAt=Date.now(); }catch(e){}
-    try{ if($('overlayText')) $('overlayText').textContent=''; }catch(e){}
-    try{ if($('resultPanel')) $('resultPanel').classList.remove('active'); }catch(e){}
-  }
-  function emitClientReadyNow(expectedRoom, token){
+  function clearClientReadyTimers(){
     try{
-      if(!socket || !expectedRoom) return;
-      if(token!==onlineReadyNonce) return;
-      if(onlineRoomClosed || mode!=='online') return;
-      if(String(roomCode||'').toUpperCase()!==String(expectedRoom||'').toUpperCase()) return;
-      if(!$('gameScreen') || !$('gameScreen').classList.contains('active')) return;
-
-      onlineReadyRoom=String(expectedRoom||'').toUpperCase();
-      socket.emit('client-ready',{
-        roomCode:onlineReadyRoom,
-        role:isHost?'host':'guest',
-        address:mobileId,
-        platform:'mobile'
-      });
+      onlineClientReadyTimers.forEach(function(t){ clearTimeout(t); });
+      onlineClientReadyTimers=[];
     }catch(e){}
   }
-  function scheduleClientReady(){
+
+  function emitClientReadyNow(targetRoom){
+    try{
+      if(!socket || !targetRoom) return;
+      if(!roomCode || String(roomCode)!==String(targetRoom)) return;
+      if(!$('gameScreen') || !$('gameScreen').classList.contains('active')) return;
+
+      var payload={
+        roomCode:targetRoom,
+        role:isHost?'host':'guest',
+        platform:'mobile',
+        source:'game-screen-visible'
+      };
+
+      socket.emit('client-ready',payload);
+    }catch(e){}
+  }
+
+  function emitClientReadyWhenGameVisible(){
     try{
       if(!socket || !roomCode) return;
-      var expectedRoom=String(roomCode||'').toUpperCase();
-      var token=++onlineReadyNonce;
 
-      // Ready sinyali sadece gameScreen gerçekten aktif olduktan sonra gönderilir.
-      setTimeout(function(){ emitClientReadyNow(expectedRoom,token); },220);
-      setTimeout(function(){ emitClientReadyNow(expectedRoom,token); },520);
-      setTimeout(function(){ emitClientReadyNow(expectedRoom,token); },950);
-      setTimeout(function(){ emitClientReadyNow(expectedRoom,token); },1500);
-      setTimeout(function(){ emitClientReadyNow(expectedRoom,token); },2300);
+      var targetRoom=String(roomCode);
+      clearClientReadyTimers();
+
+      // Aynı oda için ready sinyalini oyun ekranı gerçekten görünmeden gönderme.
+      // Özellikle Android ikinci Create Room'da canvas geç render ettiği için
+      // server countdown'u erken başlatıyordu.
+      function scheduleEmit(delay){
+        var t=setTimeout(function(){
+          try{
+            if(!roomCode || String(roomCode)!==targetRoom) return;
+            if(!$('gameScreen') || !$('gameScreen').classList.contains('active')) return;
+
+            requestAnimationFrame(function(){
+              requestAnimationFrame(function(){
+                emitClientReadyNow(targetRoom);
+              });
+            });
+          }catch(e){}
+        },delay);
+        onlineClientReadyTimers.push(t);
+      }
+
+      onlineClientReadyRoom=targetRoom;
+      scheduleEmit(250);
+      scheduleEmit(650);
+      scheduleEmit(1200);
+      scheduleEmit(2000);
     }catch(e){}
   }
   function startOnlineCountdown(roundRaw, serverNowRaw){
@@ -2597,7 +2602,7 @@ else next='BATTLE!';
       if(data && data.status==='searching'){
         if(!roomCode && !onlineLaunchStarted && pendingMode!=='onlineMatched') setMatchStatus('SEARCHING OPPONENT...');
       }
-      if(data && data.status==='cancelled'){ setMatchStatus('CANCELLED'); leaveOnlineRoom(); show('menuScreen'); }
+      if(data && data.status==='cancelled'){ setMatchStatus('CANCELLED'); show('menuScreen'); }
     });
     socket.on('match-found',function(data){
       data=data||{};
@@ -2900,7 +2905,6 @@ else next='BATTLE!';
   }
   function createRoom(){
     if(!requireName()) return;
-    resetOnlineSessionLocal();
 
     try{
       if(socket){
@@ -2966,7 +2970,6 @@ else next='BATTLE!';
   }
   function joinRoom(){
     if(!requireName()) return;
-    resetOnlineSessionLocal();
 
     var input=$('roomCodeInput');
     var code=cleanName(input&&input.value);
@@ -3031,7 +3034,6 @@ else next='BATTLE!';
 
   function startOnlineSearch(){
     if(!requireName()) return;
-    resetOnlineSessionLocal();
 
     try{
       if(socket){
@@ -3080,7 +3082,22 @@ else next='BATTLE!';
   }
   function cancelOnlineSearch(){
     try{ if(socket) socket.emit('cancel-matchmaking',{ address:mobileId }); }catch(e){}
-    leaveOnlineRoom();
+    try{
+      if(socket){
+        socket.removeAllListeners();
+        socket.disconnect();
+      }
+    }catch(e){}
+    socket=null;
+    socketReady=false;
+    onlineRoomClosed=true;
+    onlineStartState=null;
+    onlineLaunchStarted=false;
+    onlineLaunchRoom=null;
+    lastOnlineScoreTotal=null;
+    lastOnlineRoundKey=null;
+    mode='ai';
+    roomCode=null;
     show('menuScreen');
   }
   function startOnlineMatch(){
@@ -3092,8 +3109,9 @@ else next='BATTLE!';
     $('resultPanel').classList.remove('active');
     if($('playAgainBtn')) $('playAgainBtn').style.display='';
     show('gameScreen'); started=false; paused=true; setOverlay('WAITING');
-    scheduleClientReady();
     if(!raf) loop();
+
+    emitClientReadyWhenGameVisible();
   }
   function applyOnlineState(state){
     if(onlineRoomClosed || mode!=='online' || !roomCode) return;
@@ -3165,6 +3183,8 @@ else next='BATTLE!';
     goalLocked=true;
     onlineRoomClosed=true;
     clearOnlineCountdown();
+    clearClientReadyTimers();
+    onlineClientReadyRoom=null;
     try{ clearOnlineBattleTimer(); }catch(e){}
     try{ if(onlineMatchStartTimer){ clearTimeout(onlineMatchStartTimer); onlineMatchStartTimer=null; } }catch(e){}
     try{ stopAllSounds(); }catch(e){}
@@ -3195,36 +3215,38 @@ else next='BATTLE!';
     roleKnown=false;
   }
   function leaveOnlineRoom(){
-    var leavingRoom=roomCode;
+    notifyLeavingOnline();
 
-    try{ notifyLeavingOnline(); }catch(e){}
+    started=false;
+    paused=true;
+    goalLocked=true;
+    onlineRoomClosed=true;
+
+    clearOnlineCountdown();
+    try{ clearOnlineBattleTimer(); }catch(e){}
     try{
-      if(socket && leavingRoom){
-        socket.emit('leave-room',{
-          roomCode:leavingRoom,
-          room_code:leavingRoom,
-          code:leavingRoom,
-          platform:'mobile',
-          source:'mobile-page',
-          role:isHost?'host':'guest',
-          username:displayName(playerName),
-          reason:'menu-before-finish'
-        });
+      if(onlineMatchStartTimer){
+        clearTimeout(onlineMatchStartTimer);
+        onlineMatchStartTimer=null;
       }
     }catch(e){}
-
-    resetOnlineSessionLocal();
-
     try{ stopAllSounds(); }catch(e){}
+
     try{
       if(socket){
         socket.removeAllListeners();
         socket.disconnect();
       }
     }catch(e){}
-
     socket=null;
     socketReady=false;
+
+    onlineTarget={x:200,y:350,vx:0,vy:0};
+    onlineStartState=null;
+    onlineLaunchStarted=false;
+    onlineLaunchRoom=null;
+    lastOnlineScoreTotal=null;
+    lastOnlineRoundKey=null;
 
     pendingMode='ai';
     roomCode=null;
@@ -3232,7 +3254,6 @@ else next='BATTLE!';
     isHost=false;
     roleKnown=false;
     rivalName='RIVAL';
-    onlineRoomClosed=true;
   }
   function newMatch(){
     if(!requireName()) return;
