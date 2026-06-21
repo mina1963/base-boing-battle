@@ -2396,7 +2396,7 @@ export default function MobilePage() {
     var serverStart=typeof roundRaw==='number'?roundRaw:new Date(roundRaw).getTime();
     var serverNow=Number(serverNowRaw);
     var localStartAt=(isFinite(serverStart)&&isFinite(serverNow))
-      ? Date.now() + (serverStart-serverNow)
+      ? Date.now()+(serverStart-serverNow)
       : serverStart;
 
     var lastText='';
@@ -2445,19 +2445,26 @@ export default function MobilePage() {
     if(state) onlineStartState=state;
     if(!roomCode) return;
 
-    mode='online';
-    pendingMode='onlineMatched';
-    onlineRoomClosed=false;
+    var activeCode=String(roomCode);
+
     onlineLaunchStarted=true;
-    onlineLaunchRoom=String(roomCode||'');
+    onlineLaunchRoom=activeCode;
 
     if(onlineMatchStartTimer){
       try{ clearTimeout(onlineMatchStartTimer); }catch(e){}
       onlineMatchStartTimer=null;
     }
 
+    mode='online';
+    pendingMode='onlineMatched';
+    onlineRoomClosed=false;
     setMatchStatus('');
 
+    // IMPORTANT:
+    // Never wait on MATCH FOUND / arena vote screen. Both phones must enter
+    // the game screen immediately and only the server countdown decides when
+    // the ball becomes playable. This prevents one client seeing 3-2-1 while
+    // the other is still stuck on MATCH FOUND for a few seconds.
     try{
       if($('gameScreen') && !$('gameScreen').classList.contains('active')){
         startOnlineMatch();
@@ -2520,8 +2527,11 @@ export default function MobilePage() {
       if(data.roomCode || data.room_code){
         roomCode=data.roomCode||data.room_code;
       }
-      setMatchStatus('');
+      setMatchStatus('MATCH FOUND • STARTING...');
       sendArenaVoteNow();
+
+      // Do not wait on the matchmaking screen after the server has started arena vote.
+      // The first game-state will sync countdown/ball as soon as it arrives.
       scheduleOnlineStart(null);
     });
 
@@ -2532,45 +2542,87 @@ export default function MobilePage() {
     socket.on('match-found',function(data){
       data=data||{};
       mode='online';
+
+      // Random 1v1 has no roomCode before this event.
+      // Create Room / Join Room already has roomCode before this event.
+      // Use this flag to sync manual rooms without changing the random 1v1 flow.
+      var wasManualRoom=!!roomCode;
+
       roomCode=data.roomCode||data.room_code||roomCode;
 
+      if(onlineLaunchStarted && onlineLaunchRoom===String(roomCode||'')){
+        sendArenaVoteNow();
+
+        // If any previous event already marked this room as launching, still
+        // force the screen open. Otherwise this client can remain on MATCH FOUND
+        // while the other device is already rendering the countdown.
+        try{
+          if($('gameScreen') && !$('gameScreen').classList.contains('active')){
+            startOnlineMatch();
+          }
+          if(onlineStartState){
+            applyOnlineState(onlineStartState);
+            onlineStartState=null;
+          }
+        }catch(e){}
+        return;
+      }
+
+      // IMPORTANT: never let both mobile clients become host.
+      // The server sends role: "host" or "guest". Host uses server coordinates,
+      // guest renders a mirrored field so each player still plays from the bottom.
       if(data.role==='host' || data.role==='guest'){
         isHost=(data.role==='host');
         roleKnown=true;
       }
-
       rivalName=pickRivalName(data);
+
       onlineMatchNo=0;
       setOnlineArenaForMatch();
+      setMatchStatus((isHost?'HOST':'GUEST')+' • MATCH FOUND • '+String(arena).toUpperCase()+' ARENA');
       sendArenaVoteNow();
-
+      setOverlay(isHost?'HOST READY':'GUEST READY');
       pendingMode='onlineMatched';
-      onlineRoomClosed=false;
-      onlineLaunchStarted=true;
-      onlineLaunchRoom=String(roomCode||'');
-      setMatchStatus('');
+      onlineStartState=null;
 
-      try{
-        if($('gameScreen') && !$('gameScreen').classList.contains('active')){
-          startOnlineMatch();
+      if(wasManualRoom){
+        // Create Room / Join Room should not remain on MATCH FOUND STARTING.
+        // Enter game screen immediately and wait there for server countdown.
+        if(onlineMatchStartTimer){
+          try{ clearTimeout(onlineMatchStartTimer); }catch(e){}
+          onlineMatchStartTimer=null;
         }
-      }catch(e){
-        try{ startOnlineMatch(); }catch(_){}
+        onlineLaunchStarted=true;
+        onlineLaunchRoom=String(roomCode||'');
+        startOnlineMatch();
+        return;
       }
 
-      if(data.state){
-        try{ applyOnlineState(data.state); }catch(e){}
-        onlineStartState=null;
-      } else if(onlineStartState){
-        try{ applyOnlineState(onlineStartState); }catch(e){}
-        onlineStartState=null;
-      }
+      scheduleOnlineStart(null);
     });
     socket.on('room-matched',function(data){
       data=data||{};
       mode='online';
       roomCode=data.roomCode||data.room_code||roomCode;
+      if(onlineLaunchStarted && onlineLaunchRoom===String(roomCode||'')){
+        if(data.state) onlineStartState=data.state;
 
+        // Manual rooms can receive room-matched after the host is already on
+        // the waiting screen. If the launch guard is set but the game screen is
+        // not active yet, unlock one time so the host does not stay on
+        // MATCH FOUND • STARTING while the guest starts countdown.
+        try{
+          if($('gameScreen') && !$('gameScreen').classList.contains('active')){
+            onlineLaunchStarted=false;
+            onlineLaunchRoom=null;
+          }
+        }catch(e){}
+
+        scheduleOnlineStart(data.state||null);
+        return;
+      }
+      // Older/manual room event. Do not force isHost=true here; that was causing
+      // both mobile devices to behave like the same side.
       if(data.role==='host' || data.role==='guest'){
         isHost=(data.role==='host');
         roleKnown=true;
@@ -2578,30 +2630,36 @@ export default function MobilePage() {
         isHost=data.isHost;
         roleKnown=true;
       }
-
       rivalName=pickRivalName(data);
-      pendingMode='onlineMatched';
-      onlineRoomClosed=false;
-      onlineLaunchStarted=true;
-      onlineLaunchRoom=String(roomCode||'');
-      setMatchStatus('');
+
+      onlineMatchNo=0;
+      setOnlineArenaForMatch();
+      setMatchStatus((isHost?'HOST':'GUEST')+' • MATCH FOUND • '+String(arena).toUpperCase()+' ARENA');
       sendArenaVoteNow();
+      pendingMode='onlineMatched';
 
+      // If the room already has countdown/playing state, enter the game screen
+      // immediately. This keeps Create Room / Join Room in sync without touching
+      // the create-room or join-room button handlers.
       try{
-        if($('gameScreen') && !$('gameScreen').classList.contains('active')){
+        var rmState=data.state||null;
+        var rmPhase=rmState && (rmState.phase||'');
+        var rmHasStart=rmState && (rmPhase==='countdown' || rmPhase==='playing' || !!rmState.roundStartAt || !!rmState.round_start_at);
+        if(rmHasStart){
+          if(onlineMatchStartTimer){
+            try{ clearTimeout(onlineMatchStartTimer); }catch(e){}
+            onlineMatchStartTimer=null;
+          }
+          onlineLaunchStarted=true;
+          onlineLaunchRoom=String(roomCode||'');
           startOnlineMatch();
+          applyOnlineState(rmState);
+          onlineStartState=null;
+          return;
         }
-      }catch(e){
-        try{ startOnlineMatch(); }catch(_){}
-      }
+      }catch(e){}
 
-      if(data.state){
-        try{ applyOnlineState(data.state); }catch(e){}
-        onlineStartState=null;
-      } else if(onlineStartState){
-        try{ applyOnlineState(onlineStartState); }catch(e){}
-        onlineStartState=null;
-      }
+      scheduleOnlineStart(data.state||null);
     });
     function handleRoomCreated(data){
       data=data||{};
@@ -2654,32 +2712,22 @@ export default function MobilePage() {
       data=data||{};
       mode='online';
       roomCode=data.roomCode||data.room_code||roomCode;
-
       if(data.role==='host' || data.role==='guest'){
         isHost=(data.role==='host');
         roleKnown=true;
       }
-
       rivalName=pickRivalName(data);
       pendingMode='onlineMatched';
-      onlineRoomClosed=false;
       onlineLaunchStarted=true;
       onlineLaunchRoom=String(roomCode||'');
       setMatchStatus('');
-
       try{
         if($('gameScreen') && !$('gameScreen').classList.contains('active')){
           startOnlineMatch();
         }
-      }catch(e){
-        try{ startOnlineMatch(); }catch(_){}
-      }
-
+      }catch(e){ try{ startOnlineMatch(); }catch(_){} }
       if(data.state){
         try{ applyOnlineState(data.state); }catch(e){}
-        onlineStartState=null;
-      } else if(onlineStartState){
-        try{ applyOnlineState(onlineStartState); }catch(e){}
         onlineStartState=null;
       }
     });
@@ -2960,6 +3008,12 @@ export default function MobilePage() {
     onlineLaunchRoom=null;
     lastOnlineScoreTotal=null;
     lastOnlineRoundKey=null;
+    lastOnlineScoreTotal=null;
+    onlineMatchNo=0;
+
+    try{ if($('overlayText')) $('overlayText').textContent=''; }catch(e){}
+    try{ if($('resultPanel')) $('resultPanel').classList.remove('active'); }catch(e){}
+    setMatchStatus('');
 
     pendingMode='ai';
     roomCode=null;
@@ -2967,6 +3021,15 @@ export default function MobilePage() {
     isHost=false;
     roleKnown=false;
     rivalName='RIVAL';
+
+    // Fresh socket session after returning to menu. This prevents late events
+    // from the previous room being applied to the next match on slower devices.
+    try{
+      if(socket){
+        socketReady=false;
+        socket.disconnect();
+      }
+    }catch(e){}
   }
   function newMatch(){
     if(!requireName()) return;
