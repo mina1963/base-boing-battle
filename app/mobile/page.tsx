@@ -2683,25 +2683,39 @@ export default function MobilePage() {
     socket.on('create-room-success',handleRoomCreated);
     socket.on('arena-selected',function(data){ if(data && data.arena){ arena=data.arena; } });
     socket.on('game-state',function(state){
+      if(!state) return;
+
       try{
-        if(state && mode==='online' && roomCode){
-          var phase=state.phase||'';
-          var hasCountdown=phase==='countdown' || phase==='playing' || !!state.roundStartAt || !!state.round_start_at;
+        var phase=state.phase||'';
+        var hasCountdown=phase==='countdown' || phase==='playing' || !!state.roundStartAt || !!state.round_start_at;
 
-          if(hasCountdown){
-            if(onlineMatchStartTimer){
-              try{ clearTimeout(onlineMatchStartTimer); }catch(e){}
-              onlineMatchStartTimer=null;
-            }
+        // Create Room / Join Room fix:
+        // Android can miss match-start / room-matched on the second manual room,
+        // but still receive game-state from the socket room. Treat countdown/playing
+        // game-state as authoritative and enter the arena immediately.
+        if(hasCountdown){
+          mode='online';
+          pendingMode='onlineMatched';
+          onlineRoomClosed=false;
 
+          if(roomCode){
             onlineLaunchStarted=true;
             onlineLaunchRoom=String(roomCode);
-            pendingMode='onlineMatched';
-            setMatchStatus('');
+          }
 
-            if(!$('gameScreen').classList.contains('active')){
+          if(onlineMatchStartTimer){
+            try{ clearTimeout(onlineMatchStartTimer); }catch(e){}
+            onlineMatchStartTimer=null;
+          }
+
+          setMatchStatus('');
+
+          try{
+            if($('gameScreen') && !$('gameScreen').classList.contains('active')){
               startOnlineMatch();
             }
+          }catch(e){
+            try{ startOnlineMatch(); }catch(_){}
           }
         }
       }catch(e){}
@@ -2880,7 +2894,31 @@ export default function MobilePage() {
     setMatchStatus('JOINING ROOM '+code+'...');
 
     ensureSocket(function(){
-      try{ socket.emit('join-room',{ roomCode:code, address:mobileId, username:displayName(playerName), region:socketRegion }); }
+      try{
+        socket.emit('join-room',{ roomCode:code, address:mobileId, username:displayName(playerName), region:socketRegion });
+
+        // Manual Join safety net:
+        // If Android misses match-start, do not leave it on CONNECTED / SEARCHING.
+        // Enter the arena as guest and repeatedly ask the server for current state.
+        [500, 1000, 1700, 2600].forEach(function(delay){
+          setTimeout(function(){
+            try{
+              if(!roomCode || roomCode!==code) return;
+              if(socket && socket.connected){
+                socket.emit('host-state',{roomCode:code});
+              }
+              if($('matchScreen') && $('matchScreen').classList.contains('active')){
+                pendingMode='onlineMatched';
+                onlineRoomClosed=false;
+                onlineLaunchStarted=true;
+                onlineLaunchRoom=String(code);
+                setMatchStatus('');
+                startOnlineMatch();
+              }
+            }catch(e){}
+          }, delay);
+        });
+      }
       catch(e){ setMatchStatus('JOIN ROOM FAILED'); }
     });
   }
