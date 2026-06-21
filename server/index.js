@@ -419,6 +419,7 @@ const getArenaVotesPayload = (room) => ({
 
 const finishArenaVote = (room) => {
   if (!room || room.state.winner) return;
+  if (room.state && (room.state.phase === "countdown" || room.state.phase === "playing")) return;
 
   if (!room.hostSocketId || !room.guestSocketId) return;
 
@@ -488,26 +489,14 @@ const startArenaVote = (room) => {
 
   if (room.arenaVoteTimer) {
     clearTimeout(room.arenaVoteTimer);
+    room.arenaVoteTimer = null;
   }
 
-  room.state.phase = "waiting";
-  room.state.roundStartAt = null;
-  room.state.winner = null;
-  room.state.arena = room.arena || "classic";
   room.arenaVotes = { host: null, guest: null };
   room.lines = [];
+  room.state = createInitialState();
 
-  const endsAt = Date.now() + ARENA_VOTE_MS;
-
-  io.to(room.code).emit("arena-vote-start", {
-    roomCode: room.code,
-    endsAt,
-    votes: getArenaVotesPayload(room),
-  });
-
-  room.arenaVoteTimer = setTimeout(() => {
-    finishArenaVote(room);
-  }, ARENA_VOTE_MS);
+  finishArenaVote(room);
 };
 
 const handleArenaVote = (room, socketId, arena) => {
