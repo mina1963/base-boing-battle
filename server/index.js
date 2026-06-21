@@ -52,9 +52,9 @@ const cleanUsername = (username, fallback = "PLAYER") => {
 };
 
 const ARENAS = ["classic", "base", "space", "temple"];
-const ARENA_VOTE_MS = 2500;
+const ARENA_VOTE_MS = 120;
 
-const normalizeArena = (arena) => (ARENAS.includes(arena) ? arena : null);
+const normalizeArena = (arena) => ARENAS.includes(arena) ? arena : null;
 
 const randomArena = () => ARENAS[Math.floor(Math.random() * ARENAS.length)];
 
@@ -403,7 +403,10 @@ const makeRoomCode = () => {
   let code = "";
 
   do {
-    code = Math.random().toString(36).substring(2, 6).toUpperCase();
+    code = Math.random()
+      .toString(36)
+      .substring(2, 6)
+      .toUpperCase();
   } while (rooms.has(code));
 
   return code;
@@ -432,7 +435,9 @@ const finishArenaVote = (room) => {
   const votes = [room.arenaVotes.host, room.arenaVotes.guest].filter(Boolean);
 
   const selected =
-    votes.length > 0 ? votes[Math.floor(Math.random() * votes.length)] : randomArena();
+    votes.length > 0
+      ? votes[Math.floor(Math.random() * votes.length)]
+      : randomArena();
 
   room.arena = selected;
   room.state.arena = selected;
@@ -465,8 +470,12 @@ const finishArenaVote = (room) => {
   hostSocket.emit("room-matched", hostPayload);
   guestSocket.emit("room-matched", guestPayload);
 
+  hostSocket.emit("match-start", hostPayload);
+  guestSocket.emit("match-start", guestPayload);
+
+  setTimeout(() => emitStateToRoom(room), 20);
   setTimeout(() => emitStateToRoom(room), 120);
-  setTimeout(() => emitStateToRoom(room), 450);
+  setTimeout(() => emitStateToRoom(room), 350);
 };
 
 const startArenaVote = (room) => {
@@ -671,7 +680,9 @@ io.on("connection", (socket) => {
 
     waitingPlayers = waitingPlayers.filter((p) => p.socketId !== socket.id);
 
-    waitingPlayers = waitingPlayers.filter((p) => io.sockets.sockets.get(p.socketId));
+    waitingPlayers = waitingPlayers.filter((p) =>
+      io.sockets.sockets.get(p.socketId)
+    );
 
     const player = {
       socketId: socket.id,

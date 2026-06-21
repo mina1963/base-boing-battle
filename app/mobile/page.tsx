@@ -2687,6 +2687,29 @@ export default function MobilePage() {
 
       applyOnlineState(state);
     });
+    socket.on('match-start',function(data){
+      data=data||{};
+      mode='online';
+      roomCode=data.roomCode||data.room_code||roomCode;
+      if(data.role==='host' || data.role==='guest'){
+        isHost=(data.role==='host');
+        roleKnown=true;
+      }
+      rivalName=pickRivalName(data);
+      pendingMode='onlineMatched';
+      onlineLaunchStarted=true;
+      onlineLaunchRoom=String(roomCode||'');
+      setMatchStatus('');
+      try{
+        if($('gameScreen') && !$('gameScreen').classList.contains('active')){
+          startOnlineMatch();
+        }
+      }catch(e){ try{ startOnlineMatch(); }catch(_){} }
+      if(data.state){
+        try{ applyOnlineState(data.state); }catch(e){}
+        onlineStartState=null;
+      }
+    });
     socket.on('remote-line',function(line){ addRemoteLine(line); });
     socket.on('opponent-left',function(){ opponentLeft(); });
     socket.on('opponent-disconnected',function(){ opponentLeft(); });
