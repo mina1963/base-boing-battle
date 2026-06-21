@@ -98,6 +98,11 @@ const createRoomObject = ({
   arenaVoteTimer: null,
   hostReadyAgain: false,
   guestReadyAgain: false,
+
+  hostClientReady: false,
+  guestClientReady: false,
+  countdownStarted: false,
+
   lastTickAt: Date.now(),
   lastEmitAt: 0,
 });
@@ -588,7 +593,12 @@ const createMatchedRoom = ({ host, guest }) => {
   guestSocket?.join(roomCode);
 
   emitMatchPayloads(room);
-  startArenaVote(room);
+
+  room.hostClientReady = false;
+  room.guestClientReady = false;
+  room.countdownStarted = false;
+
+  pulseRoomSync(roomCode, [300, 700, 1300, 2200]);
 };
 
 io.on("connection", (socket) => {
@@ -675,6 +685,10 @@ io.on("connection", (socket) => {
     room.guestReadyAgain = false;
     room.lines = [];
 
+    room.hostClientReady = false;
+    room.guestClientReady = false;
+    room.countdownStarted = false;
+
     socketRooms.set(socket.id, safeRoomCode);
     socket.join(safeRoomCode);
 
@@ -693,7 +707,6 @@ io.on("connection", (socket) => {
     }
 
     emitMatchPayloads(room);
-    startArenaVote(room);
     pulseRoomSync(safeRoomCode, [300, 700, 1300, 2200]);
   });
 
@@ -748,6 +761,28 @@ io.on("connection", (socket) => {
     socket.emit("matchmaking-status", {
       status: "searching",
     });
+  });
+
+  socket.on("client-ready", ({ roomCode, role }) => {
+    const room = rooms.get(roomCode);
+    if (!room) return;
+
+    if (role === "host" && socket.id === room.hostSocketId) {
+      room.hostClientReady = true;
+    }
+
+    if (role === "guest" && socket.id === room.guestSocketId) {
+      room.guestClientReady = true;
+    }
+
+    if (
+      room.hostClientReady &&
+      room.guestClientReady &&
+      !room.countdownStarted
+    ) {
+      room.countdownStarted = true;
+      startArenaVote(room);
+    }
   });
 
   socket.on("vote-arena", ({ roomCode, arena }) => {
@@ -844,12 +879,17 @@ io.on("connection", (socket) => {
         guest: null,
       };
 
+      room.hostClientReady = false;
+      room.guestClientReady = false;
+      room.countdownStarted = false;
+
       io.to(roomCode).emit("play-again-status", {
         hostReadyAgain: false,
         guestReadyAgain: false,
       });
 
-      startArenaVote(room);
+      emitMatchPayloads(room);
+      pulseRoomSync(roomCode, [300, 700, 1300, 2200]);
     }
   });
 
