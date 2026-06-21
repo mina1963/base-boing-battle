@@ -2507,7 +2507,7 @@ export default function MobilePage() {
       forceNew:true
     });
     socket.io.uri=url;
-    socket.on('connect',function(){ socketReady=true; setMatchStatus('CONNECTED • SEARCHING...'); if(cb) cb(); });
+    socket.on('connect',function(){ socketReady=true; if(roomCode){ setMatchStatus('JOINING ROOM '+roomCode+'...'); } else { setMatchStatus('CONNECTED • SEARCHING...'); } if(cb) cb(); });
     socket.on('disconnect',function(){ socketReady=false; });
 
     function sendArenaVoteNow(){
@@ -2536,7 +2536,9 @@ export default function MobilePage() {
     });
 
     socket.on('matchmaking-status',function(data){
-      if(data && data.status==='searching') setMatchStatus('SEARCHING OPPONENT...');
+      if(data && data.status==='searching'){
+        if(!roomCode && !onlineLaunchStarted && pendingMode!=='onlineMatched') setMatchStatus('SEARCHING OPPONENT...');
+      }
       if(data && data.status==='cancelled'){ setMatchStatus('CANCELLED'); show('menuScreen'); }
     });
     socket.on('match-found',function(data){
@@ -2681,41 +2683,35 @@ export default function MobilePage() {
     socket.on('created-room',handleRoomCreated);
     socket.on('room-code',handleRoomCreated);
     socket.on('create-room-success',handleRoomCreated);
+    socket.on('join-error',function(msg){ setMatchStatus(String(msg||'JOIN ROOM FAILED')); onlineLaunchStarted=false; onlineLaunchRoom=null; });
+    socket.on('room-error',function(msg){ setMatchStatus(String(msg||'ROOM ERROR')); onlineLaunchStarted=false; onlineLaunchRoom=null; });
     socket.on('arena-selected',function(data){ if(data && data.arena){ arena=data.arena; } });
     socket.on('game-state',function(state){
-      if(!state) return;
-
       try{
-        var phase=state.phase||'';
-        var hasCountdown=phase==='countdown' || phase==='playing' || !!state.roundStartAt || !!state.round_start_at;
+        if(state){
+          var phase=state.phase||'';
+          var hasCountdown=phase==='countdown' || phase==='playing' || !!state.roundStartAt || !!state.round_start_at;
 
-        // Create Room / Join Room fix:
-        // Android can miss match-start / room-matched on the second manual room,
-        // but still receive game-state from the socket room. Treat countdown/playing
-        // game-state as authoritative and enter the arena immediately.
-        if(hasCountdown){
-          mode='online';
-          pendingMode='onlineMatched';
-          onlineRoomClosed=false;
+          if(hasCountdown){
+            mode='online';
+            onlineRoomClosed=false;
 
-          if(roomCode){
+            if(!roomCode && state.roomCode){ roomCode=state.roomCode; }
+            if(!roomCode && state.room_code){ roomCode=state.room_code; }
+
+            if(onlineMatchStartTimer){
+              try{ clearTimeout(onlineMatchStartTimer); }catch(e){}
+              onlineMatchStartTimer=null;
+            }
+
             onlineLaunchStarted=true;
-            onlineLaunchRoom=String(roomCode);
-          }
+            onlineLaunchRoom=String(roomCode||'manual-room');
+            pendingMode='onlineMatched';
+            setMatchStatus('');
 
-          if(onlineMatchStartTimer){
-            try{ clearTimeout(onlineMatchStartTimer); }catch(e){}
-            onlineMatchStartTimer=null;
-          }
-
-          setMatchStatus('');
-
-          try{
             if($('gameScreen') && !$('gameScreen').classList.contains('active')){
               startOnlineMatch();
             }
-          }catch(e){
-            try{ startOnlineMatch(); }catch(_){}
           }
         }
       }catch(e){}
@@ -2895,29 +2891,27 @@ export default function MobilePage() {
 
     ensureSocket(function(){
       try{
+        setMatchStatus('JOINING ROOM '+code+'...');
         socket.emit('join-room',{ roomCode:code, address:mobileId, username:displayName(playerName), region:socketRegion });
 
-        // Manual Join safety net:
-        // If Android misses match-start, do not leave it on CONNECTED / SEARCHING.
-        // Enter the arena as guest and repeatedly ask the server for current state.
-        [500, 1000, 1700, 2600].forEach(function(delay){
-          setTimeout(function(){
-            try{
-              if(!roomCode || roomCode!==code) return;
-              if(socket && socket.connected){
-                socket.emit('host-state',{roomCode:code});
-              }
-              if($('matchScreen') && $('matchScreen').classList.contains('active')){
-                pendingMode='onlineMatched';
-                onlineRoomClosed=false;
-                onlineLaunchStarted=true;
-                onlineLaunchRoom=String(code);
-                setMatchStatus('');
+        // Manual rooms can receive match-start/game-state before slower Android UI
+        // leaves the lobby. Open the field proactively; server state will lock
+        // the countdown and ball position.
+        setTimeout(function(){
+          try{
+            if(mode==='online' && roomCode && String(roomCode).toUpperCase()===String(code).toUpperCase()){
+              pendingMode='onlineMatched';
+              onlineRoomClosed=false;
+              onlineLaunchStarted=true;
+              onlineLaunchRoom=String(roomCode||code);
+              setMatchStatus('');
+              if($('gameScreen') && !$('gameScreen').classList.contains('active')){
                 startOnlineMatch();
               }
-            }catch(e){}
-          }, delay);
-        });
+              try{ socket.emit('host-state',{ roomCode:roomCode }); }catch(_e){}
+            }
+          }catch(_e){}
+        }, 350);
       }
       catch(e){ setMatchStatus('JOIN ROOM FAILED'); }
     });
