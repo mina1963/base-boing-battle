@@ -2405,10 +2405,11 @@ export default function MobilePage() {
       var remaining=localStartAt-Date.now();
       var next='';
 
-      if(remaining>2000) next='3';
-      else if(remaining>1000) next='2';
-      else if(remaining>0) next='1';
-      else next='BATTLE!';
+if(remaining>3000) next='GET READY';
+else if(remaining>2000) next='3';
+else if(remaining>1000) next='2';
+else if(remaining>0) next='1';
+else next='BATTLE!';
 
       if(next!==lastText){
         setOverlay(next);
