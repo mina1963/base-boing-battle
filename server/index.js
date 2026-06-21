@@ -628,7 +628,7 @@ io.on("connection", (socket) => {
     if (typeof ack === "function") ack(payload);
   });
 
-  socket.on("join-room", ({ roomCode, address, username } = {}) => {
+  socket.on("join-room", ({ roomCode, address, username } = {}, ack) => {
     const safeRoomCode = String(roomCode || "")
       .trim()
       .toUpperCase()
@@ -643,6 +643,7 @@ io.on("connection", (socket) => {
 
     if (!room) {
       socket.emit("join-error", "ROOM NOT FOUND");
+      if (typeof ack === "function") ack({ error: "ROOM NOT FOUND" });
       return;
     }
 
@@ -650,16 +651,19 @@ io.on("connection", (socket) => {
     if (!hostSocket) {
       rooms.delete(safeRoomCode);
       socket.emit("join-error", "ROOM EXPIRED");
+      if (typeof ack === "function") ack({ error: "ROOM EXPIRED" });
       return;
     }
 
     if (room.hostSocketId === socket.id) {
       socket.emit("join-error", "ALREADY HOST");
+      if (typeof ack === "function") ack({ error: "ALREADY HOST" });
       return;
     }
 
     if (room.guestSocketId) {
       socket.emit("join-error", "ROOM FULL");
+      if (typeof ack === "function") ack({ error: "ROOM FULL" });
       return;
     }
 
@@ -673,6 +677,20 @@ io.on("connection", (socket) => {
 
     socketRooms.set(socket.id, safeRoomCode);
     socket.join(safeRoomCode);
+
+    const joinPayload = {
+      roomCode: safeRoomCode,
+      role: "guest",
+      opponentAddress: room.hostAddress,
+      opponentUsername: room.hostUsername,
+      state: withServerNow(room.state),
+    };
+
+    socket.emit("room-joined", joinPayload);
+
+    if (typeof ack === "function") {
+      ack(joinPayload);
+    }
 
     emitMatchPayloads(room);
     startArenaVote(room);
