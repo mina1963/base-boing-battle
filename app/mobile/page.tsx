@@ -2382,29 +2382,50 @@ export default function MobilePage() {
   }
   function startOnlineCountdown(roundRaw, serverNowRaw){
     if(!roundRaw) return;
+
     var key=String(roundRaw);
     if(lastOnlineRoundKey===key) return;
     lastOnlineRoundKey=key;
+
     clearOnlineCountdown();
-    started=false; paused=true;
+
+    started=false;
+    paused=true;
+    goalLocked=true;
+
     var serverStart=typeof roundRaw==='number'?roundRaw:new Date(roundRaw).getTime();
     var serverNow=Number(serverNowRaw);
-    var startAtMs=(isFinite(serverStart)&&isFinite(serverNow)) ? Date.now()+Math.max(0, serverStart-serverNow) : serverStart;
+    var localStartAt=(isFinite(serverStart)&&isFinite(serverNow))
+      ? Date.now() + (serverStart-serverNow)
+      : serverStart;
+
     var lastText='';
+
     function tick(){
-      var remaining=startAtMs-Date.now();
+      var remaining=localStartAt-Date.now();
       var next='';
+
       if(remaining>2000) next='3';
       else if(remaining>1000) next='2';
       else if(remaining>0) next='1';
       else next='BATTLE!';
-      if(next!==lastText){ setOverlay(next); lastText=next; }
-      if(next==='BATTLE!'){
-        onlineBattleTimer=setTimeout(function(){ $('overlayText').textContent=''; started=true; paused=false; goalLocked=false; },600);
+
+      if(next!==lastText){
+        setOverlay(next);
+        lastText=next;
+      }
+
+      if(remaining<=0){
+        $('overlayText').textContent='';
+        started=true;
+        paused=false;
+        goalLocked=false;
         return;
       }
-      onlineCountdownTimer=setTimeout(tick,80);
+
+      onlineCountdownTimer=setTimeout(tick,40);
     }
+
     tick();
   }
   function resetBall(dir){
