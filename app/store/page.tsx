@@ -1968,7 +1968,7 @@ export default function MobilePage() {
   <div id="usernameModal" aria-hidden="true">
     <div class="usernameModalCard">
       <div class="usernameModalTitle">USERNAME</div>
-      <div class="usernameModalSub">CHOOSE YOUR PLAYER NAME</div>
+      <div class="usernameModalSub">OPTIONAL • CHANGE YOUR GUEST NAME</div>
       <div class="usernameModalForm">
         <input id="usernameInput" maxlength="10" placeholder="PLAYER" />
         <button id="saveNameBtn">SAVE</button>
@@ -1984,7 +1984,7 @@ export default function MobilePage() {
         <div id="profileTapArea" class="artProfile">
           <div class="artAvatar">B</div>
           <div style="min-width:0;flex:1">
-            <div id="profileName" class="artPlayerName">@PLAYER</div>
+            <div id="profileName" class="artPlayerName">@GUEST</div>
             <div class="artOnline">● ONLINE</div>
           </div>
           <button id="editNameBtn" class="artEdit">✎</button>
@@ -2162,10 +2162,43 @@ export default function MobilePage() {
 
   function $(id){ return document.getElementById(id); }
   function cleanName(value){ return String(value||'').replace(/[^a-zA-Z0-9_]/g,'').slice(0,10).toUpperCase(); }
+
+  function makeGuestName(){
+    return 'GUEST'+String(Math.floor(1000+Math.random()*9000));
+  }
+
+  function ensureGuestName(){
+    var name=cleanName(playerName);
+    if(!name || name==='PLAYER'){
+      name=makeGuestName();
+      playerName=name;
+      try{ localStorage.setItem('bbb_store_username', playerName); }catch(e){}
+    }
+
+    var input=$('usernameInput');
+    if(input) input.value=playerName;
+    var profile=$('profileName');
+    if(profile) profile.textContent='@'+playerName;
+
+    return playerName;
+  }
+
   function loadName(){
-    var saved=''; try{ saved=localStorage.getItem('bbb_mobile_username')||''; }catch(e){}
-    playerName=cleanName(saved)||'PLAYER';
-    var input=$('usernameInput'); if(input) input.value=playerName==='PLAYER'?'':playerName;
+    var saved='';
+    try{
+      saved=localStorage.getItem('bbb_store_username')
+        || localStorage.getItem('bbb_mobile_username')
+        || '';
+    }catch(e){}
+
+    playerName=cleanName(saved);
+
+    if(!playerName || playerName==='PLAYER'){
+      playerName=makeGuestName();
+      try{ localStorage.setItem('bbb_store_username', playerName); }catch(e){}
+    }
+
+    var input=$('usernameInput'); if(input) input.value=playerName;
     var profile=$('profileName'); if(profile) profile.textContent='@'+playerName;
   }
   function openUsernameModal(message, afterSave){
@@ -2192,7 +2225,10 @@ export default function MobilePage() {
     var warn=$('nameWarn');
     if(!finalName){ if(warn) warn.textContent='ENTER USERNAME FIRST'; openUsernameModal('ENTER USERNAME FIRST'); return false; }
     playerName=finalName;
-    try{ localStorage.setItem('bbb_mobile_username', playerName); }catch(e){}
+    try{
+      localStorage.setItem('bbb_store_username', playerName);
+      localStorage.setItem('bbb_mobile_username', playerName);
+    }catch(e){}
     if(input) input.value=playerName;
     var profile=$('profileName'); if(profile) profile.textContent='@'+playerName;
     if(warn) warn.textContent='SAVED';
@@ -2206,11 +2242,8 @@ export default function MobilePage() {
     return true;
   }
   function requireName(){
-    var input=$('usernameInput');
-    var candidate=cleanName(input&&input.value) || cleanName(playerName);
-    if(candidate && candidate!=='PLAYER'){ playerName=candidate; saveName(); return true; }
-    openUsernameModal('ENTER USERNAME FIRST');
-    return false;
+    ensureGuestName();
+    return true;
   }
   function displayName(name){ return cleanName(name)||'PLAYER'; }
 
@@ -2881,7 +2914,7 @@ else next='BATTLE!';
   }
 
   function openModeScreen(){
-    if(cleanName(playerName)==='' || cleanName(playerName)==='PLAYER'){ openUsernameModal('ENTER USERNAME FIRST','openMode'); return; }
+    ensureGuestName();
     show('modeScreen');
   }
   function chooseMode(m){
