@@ -434,6 +434,52 @@ const getArenaVotesPayload = (room) => ({
   guest: room.arenaVotes?.guest || null,
 });
 
+const emitMatchPayloads = (room) => {
+  if (!room || !room.hostSocketId || !room.guestSocketId) return;
+
+  const hostSocket = io.sockets.sockets.get(room.hostSocketId);
+  const guestSocket = io.sockets.sockets.get(room.guestSocketId);
+
+  const hostPayload = {
+    roomCode: room.code,
+    role: "host",
+    arena: room.state.arena,
+    opponentAddress: room.guestAddress,
+    opponentUsername: room.guestUsername,
+    state: withServerNow(room.state),
+  };
+
+  const guestPayload = {
+    roomCode: room.code,
+    role: "guest",
+    arena: room.state.arena,
+    opponentAddress: room.hostAddress,
+    opponentUsername: room.hostUsername,
+    state: withServerNow(room.state),
+  };
+
+  hostSocket?.emit("match-found", hostPayload);
+  guestSocket?.emit("match-found", guestPayload);
+
+  hostSocket?.emit("room-matched", hostPayload);
+  guestSocket?.emit("room-matched", guestPayload);
+
+  hostSocket?.emit("match-start", hostPayload);
+  guestSocket?.emit("match-start", guestPayload);
+};
+
+const pulseRoomSync = (roomCode, delays = [250, 600, 1200, 2000]) => {
+  for (const delay of delays) {
+    setTimeout(() => {
+      const room = rooms.get(roomCode);
+      if (!room) return;
+
+      emitMatchPayloads(room);
+      emitStateToRoom(room);
+    }, delay);
+  }
+};
+
 const finishArenaVote = (room) => {
   if (!room || room.state.winner) return;
 
@@ -473,33 +519,8 @@ const finishArenaVote = (room) => {
 
   startCountdown(room);
 
-  const hostPayload = {
-    roomCode: room.code,
-    role: "host",
-    arena: selected,
-    opponentAddress: room.guestAddress,
-    opponentUsername: room.guestUsername,
-    state: withServerNow(room.state),
-  };
-
-  const guestPayload = {
-    roomCode: room.code,
-    role: "guest",
-    arena: selected,
-    opponentAddress: room.hostAddress,
-    opponentUsername: room.hostUsername,
-    state: withServerNow(room.state),
-  };
-
-  hostSocket.emit("room-matched", hostPayload);
-  guestSocket.emit("room-matched", guestPayload);
-
-  hostSocket.emit("match-start", hostPayload);
-  guestSocket.emit("match-start", guestPayload);
-
-  setTimeout(() => emitStateToRoom(room), 20);
-  setTimeout(() => emitStateToRoom(room), 120);
-  setTimeout(() => emitStateToRoom(room), 350);
+  emitMatchPayloads(room);
+  pulseRoomSync(room.code);
 };
 
 const startArenaVote = (room) => {
@@ -566,20 +587,7 @@ const createMatchedRoom = ({ host, guest }) => {
   hostSocket?.join(roomCode);
   guestSocket?.join(roomCode);
 
-  hostSocket?.emit("match-found", {
-    roomCode,
-    role: "host",
-    opponentAddress: guest.address,
-    opponentUsername: room.guestUsername,
-  });
-
-  guestSocket?.emit("match-found", {
-    roomCode,
-    role: "guest",
-    opponentAddress: host.address,
-    opponentUsername: room.hostUsername,
-  });
-
+  emitMatchPayloads(room);
   startArenaVote(room);
 };
 
@@ -666,21 +674,9 @@ io.on("connection", (socket) => {
     socketRooms.set(socket.id, safeRoomCode);
     socket.join(safeRoomCode);
 
-    hostSocket?.emit("match-found", {
-      roomCode: safeRoomCode,
-      role: "host",
-      opponentAddress: room.guestAddress,
-      opponentUsername: room.guestUsername,
-    });
-
-    socket.emit("match-found", {
-      roomCode: safeRoomCode,
-      role: "guest",
-      opponentAddress: room.hostAddress,
-      opponentUsername: room.hostUsername,
-    });
-
+    emitMatchPayloads(room);
     startArenaVote(room);
+    pulseRoomSync(safeRoomCode, [300, 700, 1300, 2200]);
   });
 
   socket.on("find-match", ({ address, username }) => {
