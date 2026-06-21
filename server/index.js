@@ -29,7 +29,7 @@ const BALL_RESET_VX = 1.2;
 const BALL_RESET_VY = 1.8;
 const MAX_BALL_SPEED = 10;
 
-const COUNTDOWN_DELAY_MS = 3500;
+const COUNTDOWN_DELAY_MS = 6500;
 const BATTLE_HOLD_MS = 700;
 const TICK_MS = 1000 / 60;
 const STATE_EMIT_MS = 1000 / 60;
