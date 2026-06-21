@@ -2679,10 +2679,60 @@ export default function MobilePage() {
         setMatchStatus('ROOM CREATED • WAITING CODE');
       }
     }
+    function handleRoomJoined(data){
+      data=data||{};
+
+      if(data.error){
+        setMatchStatus(String(data.error||'JOIN ROOM FAILED'));
+        onlineLaunchStarted=false;
+        onlineLaunchRoom=null;
+        return;
+      }
+
+      mode='online';
+      roomCode=String(data.roomCode||data.room_code||roomCode||'').toUpperCase();
+      isHost=false;
+      roleKnown=true;
+      rivalName=pickRivalName(data);
+      pendingMode='onlineMatched';
+      onlineRoomClosed=false;
+      onlineLaunchStarted=true;
+      onlineLaunchRoom=String(roomCode||'');
+
+      setRoomCodeDisplay(roomCode||null);
+      setMatchStatus('');
+
+      try{
+        if(onlineMatchStartTimer){
+          clearTimeout(onlineMatchStartTimer);
+          onlineMatchStartTimer=null;
+        }
+      }catch(e){}
+
+      try{
+        if($('gameScreen') && !$('gameScreen').classList.contains('active')){
+          startOnlineMatch();
+        }
+      }catch(e){
+        try{ startOnlineMatch(); }catch(_){}
+      }
+
+      if(data.state){
+        try{ applyOnlineState(data.state); }catch(e){}
+        onlineStartState=null;
+      }
+
+      try{
+        if(socket && roomCode){
+          socket.emit('host-state',{ roomCode:roomCode });
+        }
+      }catch(e){}
+    }
     socket.on('room-created',handleRoomCreated);
     socket.on('created-room',handleRoomCreated);
     socket.on('room-code',handleRoomCreated);
     socket.on('create-room-success',handleRoomCreated);
+    socket.on('room-joined',handleRoomJoined);
     socket.on('join-error',function(msg){ setMatchStatus(String(msg||'JOIN ROOM FAILED')); onlineLaunchStarted=false; onlineLaunchRoom=null; });
     socket.on('room-error',function(msg){ setMatchStatus(String(msg||'ROOM ERROR')); onlineLaunchStarted=false; onlineLaunchRoom=null; });
     socket.on('arena-selected',function(data){ if(data && data.arena){ arena=data.arena; } });
@@ -2892,7 +2942,9 @@ export default function MobilePage() {
     ensureSocket(function(){
       try{
         setMatchStatus('JOINING ROOM '+code+'...');
-        socket.emit('join-room',{ roomCode:code, address:mobileId, username:displayName(playerName), region:socketRegion });
+        socket.emit('join-room',{ roomCode:code, address:mobileId, username:displayName(playerName), region:socketRegion },function(data){
+          handleRoomJoined(data||{ roomCode:code, role:'guest' });
+        });
 
         // Manual rooms can receive match-start/game-state before slower Android UI
         // leaves the lobby. Open the field proactively; server state will lock
@@ -3316,7 +3368,7 @@ export default function MobilePage() {
 
     ctx.beginPath(); ctx.arc(ball.x,ball.y,ball.r+8,0,Math.PI*2); ctx.fillStyle='rgba(0,82,255,.18)'; ctx.fill();
     ctx.beginPath(); ctx.arc(ball.x,ball.y,ball.r,0,Math.PI*2); ctx.fillStyle='white'; ctx.shadowColor=theme().main; ctx.shadowBlur=26; ctx.fill(); ctx.shadowBlur=0;
-    ctx.fillStyle='rgba(255,255,255,.12)'; ctx.fillRect(120,72,160,8); ctx.fillStyle=theme().main; ctx.fillRect(120,72,160*energy/100,8);
+    ctx.fillStyle='rgba(255,255,255,.12)'; ctx.fillRect(120,72,160,8); ctx.fillStyle='#ef4444'; ctx.fillRect(120,72,160*energy/100,8);
     ctx.fillStyle='rgba(255,255,255,.55)'; ctx.font='10px monospace'; ctx.textAlign='center'; ctx.fillText('ENERGY',W/2,96);
   }
   function loop(){ if(ctx) render(); raf=requestAnimationFrame(loop); }
