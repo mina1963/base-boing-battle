@@ -2782,17 +2782,27 @@ export default function MobilePage() {
   }
   function createRoom(){
     if(!requireName()) return;
+
+    try{
+      if(socket){
+        socket.removeAllListeners();
+        socket.disconnect();
+      }
+    }catch(e){}
+    socket=null;
+    socketReady=false;
+
     onlineRoomClosed=false;
     mode='online';
     onlineStartState=null;
     onlineLaunchStarted=false;
     onlineLaunchRoom=null;
+    lastOnlineScoreTotal=null;
+    lastOnlineRoundKey=null;
     isHost=true;
     roleKnown=true;
     rivalName='RIVAL';
 
-    // Show a shareable code immediately. If the server returns its own code,
-    // the room-created listener below will replace this one.
     roomCode=makeRoomCode();
     onlineMatchNo=0;
     setOnlineArenaForMatch();
@@ -2837,10 +2847,38 @@ export default function MobilePage() {
   }
   function joinRoom(){
     if(!requireName()) return;
-    onlineRoomClosed=false;
-    var input=$('roomCodeInput'); var code=cleanName(input&&input.value);
+
+    var input=$('roomCodeInput');
+    var code=cleanName(input&&input.value);
     if(!code){ var w=$('roomWarn'); if(w) w.textContent='ENTER ROOM CODE'; return; }
-    mode='online'; roomCode=code; onlineMatchNo=0; setOnlineArenaForMatch(); onlineStartState=null; onlineLaunchStarted=false; onlineLaunchRoom=null; isHost=false; roleKnown=true; rivalName='RIVAL'; show('matchScreen'); setRoomCodeDisplay(null); setMatchStatus('JOINING ROOM '+code+'...');
+
+    try{
+      if(socket){
+        socket.removeAllListeners();
+        socket.disconnect();
+      }
+    }catch(e){}
+    socket=null;
+    socketReady=false;
+
+    onlineRoomClosed=false;
+    mode='online';
+    roomCode=code;
+    onlineMatchNo=0;
+    setOnlineArenaForMatch();
+    onlineStartState=null;
+    onlineLaunchStarted=false;
+    onlineLaunchRoom=null;
+    lastOnlineScoreTotal=null;
+    lastOnlineRoundKey=null;
+    isHost=false;
+    roleKnown=true;
+    rivalName='RIVAL';
+
+    show('matchScreen');
+    setRoomCodeDisplay(null);
+    setMatchStatus('JOINING ROOM '+code+'...');
+
     ensureSocket(function(){
       try{ socket.emit('join-room',{ roomCode:code, address:mobileId, username:displayName(playerName), region:socketRegion }); }
       catch(e){ setMatchStatus('JOIN ROOM FAILED'); }
@@ -2849,8 +2887,33 @@ export default function MobilePage() {
 
   function startOnlineSearch(){
     if(!requireName()) return;
+
+    try{
+      if(socket){
+        socket.removeAllListeners();
+        socket.disconnect();
+      }
+    }catch(e){}
+    socket=null;
+    socketReady=false;
+
     onlineRoomClosed=false;
-    mode='online'; isHost=false; roleKnown=false; roomCode=null; onlineMatchNo=0; rivalName='RIVAL'; onlineStartState=null; onlineLaunchStarted=false; onlineLaunchRoom=null; show('matchScreen'); setRoomCodeDisplay(null); setMatchStatus('CONNECTING SOCKET...');
+    mode='online';
+    isHost=false;
+    roleKnown=false;
+    roomCode=null;
+    onlineMatchNo=0;
+    rivalName='RIVAL';
+    onlineStartState=null;
+    onlineLaunchStarted=false;
+    onlineLaunchRoom=null;
+    lastOnlineScoreTotal=null;
+    lastOnlineRoundKey=null;
+
+    show('matchScreen');
+    setRoomCodeDisplay(null);
+    setMatchStatus('CONNECTING SOCKET...');
+
     ensureSocket(function(){
       var name=displayName(playerName);
       if(!socket || !socket.connected){
@@ -2872,7 +2935,23 @@ export default function MobilePage() {
   }
   function cancelOnlineSearch(){
     try{ if(socket) socket.emit('cancel-matchmaking',{ address:mobileId }); }catch(e){}
-    mode='ai'; roomCode=null; show('menuScreen');
+    try{
+      if(socket){
+        socket.removeAllListeners();
+        socket.disconnect();
+      }
+    }catch(e){}
+    socket=null;
+    socketReady=false;
+    onlineRoomClosed=true;
+    onlineStartState=null;
+    onlineLaunchStarted=false;
+    onlineLaunchRoom=null;
+    lastOnlineScoreTotal=null;
+    lastOnlineRoundKey=null;
+    mode='ai';
+    roomCode=null;
+    show('menuScreen');
   }
   function startOnlineMatch(){
     onlineRoomClosed=false;
@@ -3002,18 +3081,21 @@ export default function MobilePage() {
     }catch(e){}
     try{ stopAllSounds(); }catch(e){}
 
+    try{
+      if(socket){
+        socket.removeAllListeners();
+        socket.disconnect();
+      }
+    }catch(e){}
+    socket=null;
+    socketReady=false;
+
     onlineTarget={x:200,y:350,vx:0,vy:0};
     onlineStartState=null;
     onlineLaunchStarted=false;
     onlineLaunchRoom=null;
     lastOnlineScoreTotal=null;
     lastOnlineRoundKey=null;
-    lastOnlineScoreTotal=null;
-    onlineMatchNo=0;
-
-    try{ if($('overlayText')) $('overlayText').textContent=''; }catch(e){}
-    try{ if($('resultPanel')) $('resultPanel').classList.remove('active'); }catch(e){}
-    setMatchStatus('');
 
     pendingMode='ai';
     roomCode=null;
@@ -3021,15 +3103,6 @@ export default function MobilePage() {
     isHost=false;
     roleKnown=false;
     rivalName='RIVAL';
-
-    // Fresh socket session after returning to menu. This prevents late events
-    // from the previous room being applied to the next match on slower devices.
-    try{
-      if(socket){
-        socketReady=false;
-        socket.disconnect();
-      }
-    }catch(e){}
   }
   function newMatch(){
     if(!requireName()) return;
