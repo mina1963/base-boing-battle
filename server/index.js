@@ -52,9 +52,8 @@ const cleanUsername = (username, fallback = "PLAYER") => {
 };
 
 const ARENAS = ["classic", "base", "space", "temple"];
-const ARENA_VOTE_MS = 120;
 
-const normalizeArena = (arena) => ARENAS.includes(arena) ? arena : null;
+const normalizeArena = (arena) => (ARENAS.includes(arena) ? arena : null);
 
 const randomArena = () => ARENAS[Math.floor(Math.random() * ARENAS.length)];
 
@@ -111,6 +110,15 @@ const withServerNow = (state) => ({
 const emitStateToRoom = (room) => {
   io.to(room.code).emit("game-state", withServerNow(room.state));
   room.lastEmitAt = Date.now();
+};
+
+const forceLeaveRoom = (socketId, roomCode) => {
+  const s = io.sockets.sockets.get(socketId);
+  if (s) {
+    try {
+      s.leave(roomCode);
+    } catch (_) {}
+  }
 };
 
 const startCountdown = (room) => {
@@ -348,10 +356,12 @@ const cleanupRoomForSocket = (socket) => {
   });
 
   if (room.hostSocketId) {
+    forceLeaveRoom(room.hostSocketId, roomCode);
     socketRooms.delete(room.hostSocketId);
   }
 
   if (room.guestSocketId) {
+    forceLeaveRoom(room.guestSocketId, roomCode);
     socketRooms.delete(room.guestSocketId);
   }
 
@@ -388,8 +398,15 @@ const detachSocketFromCurrentRoom = (socket, { notifyOpponent = true } = {}) => 
     socket.to(oldRoomCode).emit("opponent-left", { roomCode: oldRoomCode });
   }
 
-  if (oldRoom.hostSocketId) socketRooms.delete(oldRoom.hostSocketId);
-  if (oldRoom.guestSocketId) socketRooms.delete(oldRoom.guestSocketId);
+  if (oldRoom.hostSocketId) {
+    forceLeaveRoom(oldRoom.hostSocketId, oldRoomCode);
+    socketRooms.delete(oldRoom.hostSocketId);
+  }
+
+  if (oldRoom.guestSocketId) {
+    forceLeaveRoom(oldRoom.guestSocketId, oldRoomCode);
+    socketRooms.delete(oldRoom.guestSocketId);
+  }
 
   if (oldRoom.arenaVoteTimer) {
     clearTimeout(oldRoom.arenaVoteTimer);
@@ -419,7 +436,13 @@ const getArenaVotesPayload = (room) => ({
 
 const finishArenaVote = (room) => {
   if (!room || room.state.winner) return;
-  if (room.state && (room.state.phase === "countdown" || room.state.phase === "playing")) return;
+
+  if (
+    room.state &&
+    (room.state.phase === "countdown" || room.state.phase === "playing")
+  ) {
+    return;
+  }
 
   if (!room.hostSocketId || !room.guestSocketId) return;
 
