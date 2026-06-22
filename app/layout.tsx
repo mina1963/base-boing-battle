@@ -26,6 +26,12 @@ export const metadata: Metadata = {
   title: "Base Boing Battle",
   description: "Online 1v1 physics battle built on Base",
 
+icons: {
+  icon: "/icon.png",
+  apple: "/icon.png",
+  shortcut: "/icon.png",
+},
+
   other: {
     "base:app_id": "6a2ad1880cfd412b2ab2bac7",
   },

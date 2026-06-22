@@ -3,6 +3,7 @@ export const dynamic = "force-static";
 export default function MobilePage() {
   return (
     <main
+      suppressHydrationWarning
       dangerouslySetInnerHTML={{
         __html: `
 <style>
@@ -1961,14 +1962,43 @@ export default function MobilePage() {
   #difficultyScreen .premiumDiffTitle {
     margin-bottom:8px !important;
   }
+
+  /* STORE APP SPLASH SCREEN */
+  #storeSplash{
+    position:fixed;
+    inset:0;
+    z-index:999999;
+    background:#000;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    overflow:hidden;
+    transition:opacity .55s ease, visibility .55s ease;
+  }
+  #storeSplash.hide{
+    opacity:0;
+    visibility:hidden;
+    pointer-events:none;
+  }
+#storeSplash img{
+  width:100%;
+  height:100%;
+  object-fit:contain;
+  background:#000;
+}
+
 </style>
 <div id="app">
+  <div id="storeSplash" aria-hidden="true">
+    <img src="/splash-store.png" alt="Boing Battle Loading" />
+  </div>
+
   <div id="noise"></div>
 
   <div id="usernameModal" aria-hidden="true">
     <div class="usernameModalCard">
       <div class="usernameModalTitle">USERNAME</div>
-      <div class="usernameModalSub">OPTIONAL • CHANGE YOUR GUEST NAME</div>
+      <div class="usernameModalSub">CHOOSE YOUR PLAYER NAME</div>
       <div class="usernameModalForm">
         <input id="usernameInput" maxlength="10" placeholder="PLAYER" />
         <button id="saveNameBtn">SAVE</button>
@@ -1984,7 +2014,7 @@ export default function MobilePage() {
         <div id="profileTapArea" class="artProfile">
           <div class="artAvatar">B</div>
           <div style="min-width:0;flex:1">
-            <div id="profileName" class="artPlayerName">@GUEST</div>
+            <div id="profileName" class="artPlayerName">@PLAYER</div>
             <div class="artOnline">● ONLINE</div>
           </div>
           <button id="editNameBtn" class="artEdit">✎</button>
@@ -2147,7 +2177,7 @@ export default function MobilePage() {
   var arena='classic', difficulty='normal', socketRegion='EU', mode='ai';
   var canvas, ctx, raf=0;
   var ball, lines, trail, sparks, score, energy, started=false, paused=false, drawing=null, goalLocked=false;
-  var frame=0, audioUnlocked=false, soundEnabled=true, lastWallSound=0, lastOnlineScoreTotal=null, lastOnlineRoundKey=null, onlineCountdownTimer=null, onlineBattleTimer=null, onlineRoomClosed=false, activeAudioContexts=[];
+  var frame=0, audioUnlocked=false, soundEnabled=true, lastWallSound=0, lastOnlineScoreTotal=null, lastOnlineRoundKey=null, onlineCountdownTimer=null, onlineBattleTimer=null, onlineRoomClosed=false, activeAudioContexts=[], resultSoundPlayed=false;
   var socket=null, socketReady=false, isHost=false, roleKnown=false, roomCode=null, mobileId='mobile_'+Math.random().toString(16).slice(2,10), onlineTarget={x:200,y:350,vx:1.2,vy:1.8}, onlineStateAt=Date.now();
   var onlineStartState=null;
   var onlineMatchStartTimer=null;
@@ -2162,43 +2192,10 @@ export default function MobilePage() {
 
   function $(id){ return document.getElementById(id); }
   function cleanName(value){ return String(value||'').replace(/[^a-zA-Z0-9_]/g,'').slice(0,10).toUpperCase(); }
-
-  function makeGuestName(){
-    return 'GUEST'+String(Math.floor(1000+Math.random()*9000));
-  }
-
-  function ensureGuestName(){
-    var name=cleanName(playerName);
-    if(!name || name==='PLAYER'){
-      name=makeGuestName();
-      playerName=name;
-      try{ localStorage.setItem('bbb_store_username', playerName); }catch(e){}
-    }
-
-    var input=$('usernameInput');
-    if(input) input.value=playerName;
-    var profile=$('profileName');
-    if(profile) profile.textContent='@'+playerName;
-
-    return playerName;
-  }
-
   function loadName(){
-    var saved='';
-    try{
-      saved=localStorage.getItem('bbb_store_username')
-        || localStorage.getItem('bbb_mobile_username')
-        || '';
-    }catch(e){}
-
-    playerName=cleanName(saved);
-
-    if(!playerName || playerName==='PLAYER'){
-      playerName=makeGuestName();
-      try{ localStorage.setItem('bbb_store_username', playerName); }catch(e){}
-    }
-
-    var input=$('usernameInput'); if(input) input.value=playerName;
+    var saved=''; try{ saved=localStorage.getItem('bbb_mobile_username')||''; }catch(e){}
+    playerName=cleanName(saved)||'PLAYER';
+    var input=$('usernameInput'); if(input) input.value=playerName==='PLAYER'?'':playerName;
     var profile=$('profileName'); if(profile) profile.textContent='@'+playerName;
   }
   function openUsernameModal(message, afterSave){
@@ -2225,10 +2222,7 @@ export default function MobilePage() {
     var warn=$('nameWarn');
     if(!finalName){ if(warn) warn.textContent='ENTER USERNAME FIRST'; openUsernameModal('ENTER USERNAME FIRST'); return false; }
     playerName=finalName;
-    try{
-      localStorage.setItem('bbb_store_username', playerName);
-      localStorage.setItem('bbb_mobile_username', playerName);
-    }catch(e){}
+    try{ localStorage.setItem('bbb_mobile_username', playerName); }catch(e){}
     if(input) input.value=playerName;
     var profile=$('profileName'); if(profile) profile.textContent='@'+playerName;
     if(warn) warn.textContent='SAVED';
@@ -2242,8 +2236,11 @@ export default function MobilePage() {
     return true;
   }
   function requireName(){
-    ensureGuestName();
-    return true;
+    var input=$('usernameInput');
+    var candidate=cleanName(input&&input.value) || cleanName(playerName);
+    if(candidate && candidate!=='PLAYER'){ playerName=candidate; saveName(); return true; }
+    openUsernameModal('ENTER USERNAME FIRST');
+    return false;
   }
   function displayName(name){ return cleanName(name)||'PLAYER'; }
 
@@ -2374,17 +2371,63 @@ export default function MobilePage() {
       var oscillator=audioCtx.createOscillator();
       var gain=audioCtx.createGain();
       oscillator.connect(gain); gain.connect(audioCtx.destination);
-      if(type==='hit'){ oscillator.frequency.value=620; gain.gain.value=.085; try{navigator.vibrate&&navigator.vibrate(18)}catch(e){} }
-      if(type==='wall'){ oscillator.frequency.value=260; gain.gain.value=.06; try{navigator.vibrate&&navigator.vibrate(10)}catch(e){} }
-      if(type==='goal'){ oscillator.frequency.value=135; gain.gain.value=.12; try{navigator.vibrate&&navigator.vibrate([45,25,45])}catch(e){} }
+
+      var duration=.22;
       oscillator.type='square';
+
+      if(type==='hit'){
+        oscillator.frequency.value=620;
+        gain.gain.value=.085;
+        duration=.18;
+        try{navigator.vibrate&&navigator.vibrate(18)}catch(e){}
+      } else if(type==='wall'){
+        oscillator.frequency.value=260;
+        gain.gain.value=.06;
+        duration=.16;
+        try{navigator.vibrate&&navigator.vibrate(10)}catch(e){}
+      } else if(type==='goal'){
+        oscillator.frequency.value=135;
+        gain.gain.value=.12;
+        duration=.28;
+        try{navigator.vibrate&&navigator.vibrate([45,25,45])}catch(e){}
+      } else if(type==='count'){
+        oscillator.frequency.value=760;
+        gain.gain.value=.075;
+        duration=.12;
+        try{navigator.vibrate&&navigator.vibrate(8)}catch(e){}
+      } else if(type==='battle'){
+        oscillator.frequency.value=980;
+        gain.gain.value=.10;
+        duration=.20;
+        try{navigator.vibrate&&navigator.vibrate(20)}catch(e){}
+      } else if(type==='win'){
+        oscillator.frequency.value=880;
+        gain.gain.value=.11;
+        duration=.36;
+        try{navigator.vibrate&&navigator.vibrate([35,20,35])}catch(e){}
+      } else if(type==='lose'){
+        oscillator.frequency.value=180;
+        gain.gain.value=.09;
+        duration=.36;
+        try{navigator.vibrate&&navigator.vibrate(35)}catch(e){}
+      } else {
+        oscillator.frequency.value=420;
+        gain.gain.value=.05;
+        duration=.16;
+      }
+
       oscillator.start();
-      gain.gain.exponentialRampToValueAtTime(.0001,audioCtx.currentTime+.24);
-      oscillator.stop(audioCtx.currentTime+.25);
+      gain.gain.exponentialRampToValueAtTime(.0001,audioCtx.currentTime+duration);
+      oscillator.stop(audioCtx.currentTime+duration+.01);
       setTimeout(function(){
-        try{ audioCtx.close(); }catch(e){}
+        try{
+          if(audioCtx && audioCtx.state !== 'closed'){
+            var p = audioCtx.close();
+            if(p && typeof p.catch === 'function') p.catch(function(){});
+          }
+        }catch(e){}
         activeAudioContexts=activeAudioContexts.filter(function(ctx){ return ctx!==audioCtx; });
-      },260);
+      },Math.ceil((duration+.04)*1000));
     }catch(e){}
   }
   function stopAllSounds(){
@@ -2395,7 +2438,12 @@ export default function MobilePage() {
     }catch(e){}
     try{
       activeAudioContexts.forEach(function(ctx){
-        try{ ctx.close(); }catch(e){}
+        try{
+          if(ctx && ctx.state !== 'closed'){
+            var p = ctx.close();
+            if(p && typeof p.catch === 'function') p.catch(function(){});
+          }
+        }catch(e){}
       });
       activeAudioContexts=[];
     }catch(e){}
@@ -2508,6 +2556,8 @@ else next='BATTLE!';
 
       if(next!==lastText){
         setOverlay(next);
+        if(next==='3' || next==='2' || next==='1') playSound('count');
+        if(next==='BATTLE!') playSound('battle');
         lastText=next;
       }
 
@@ -2529,6 +2579,56 @@ else next='BATTLE!';
     ball={x:200,y:dir==='up'?525:175,r:8,vx:dir==='up'?1.25:-1.25,vy:dir==='up'?-1.85:1.85};
     lines=[]; trail=[]; sparks=[]; energy=100; drawing=null;
   }
+  function handleRoomJoinedGlobal(data){
+    data=data||{};
+
+    if(data.error){
+      setMatchStatus(String(data.error||'JOIN ROOM FAILED'));
+      onlineLaunchStarted=false;
+      onlineLaunchRoom=null;
+      return;
+    }
+
+    mode='online';
+    roomCode=String(data.roomCode||data.room_code||roomCode||'').toUpperCase();
+    isHost=false;
+    roleKnown=true;
+    rivalName=pickRivalName(data);
+    pendingMode='onlineMatched';
+    onlineRoomClosed=false;
+    onlineLaunchStarted=true;
+    onlineLaunchRoom=String(roomCode||'');
+
+    setRoomCodeDisplay(roomCode||null);
+    setMatchStatus('');
+
+    try{
+      if(onlineMatchStartTimer){
+        clearTimeout(onlineMatchStartTimer);
+        onlineMatchStartTimer=null;
+      }
+    }catch(e){}
+
+    try{
+      if($('gameScreen') && !$('gameScreen').classList.contains('active')){
+        startOnlineMatch();
+      }
+    }catch(e){
+      try{ startOnlineMatch(); }catch(_){}
+    }
+
+    if(data.state){
+      try{ applyOnlineState(data.state); }catch(e){}
+      onlineStartState=null;
+    }
+
+    try{
+      if(socket && roomCode){
+        socket.emit('host-state',{ roomCode:roomCode });
+      }
+    }catch(e){}
+  }
+
   function ensureSocket(cb){
     if(window.io){ connectSocket(cb); return; }
     var script=document.createElement('script');
@@ -2914,7 +3014,7 @@ else next='BATTLE!';
   }
 
   function openModeScreen(){
-    ensureGuestName();
+    if(cleanName(playerName)==='' || cleanName(playerName)==='PLAYER'){ openUsernameModal('ENTER USERNAME FIRST','openMode'); return; }
     show('modeScreen');
   }
   function chooseMode(m){
@@ -3039,7 +3139,7 @@ else next='BATTLE!';
       try{
         setMatchStatus('JOINING ROOM '+code+'...');
         socket.emit('join-room',{ roomCode:code, address:mobileId, username:displayName(playerName), region:socketRegion },function(data){
-          handleRoomJoined(data||{ roomCode:code, role:'guest' });
+          handleRoomJoinedGlobal(data||{ roomCode:code, role:'guest' });
         });
 
         // Manual rooms can receive match-start/game-state before slower Android UI
@@ -3137,7 +3237,7 @@ else next='BATTLE!';
     onlineRoomClosed=false;
     // Keep the arena chosen during match-found / arena-selected. Do not re-roll here.
     canvas=$('gameCanvas'); ctx=canvas.getContext('2d');
-    score={player:0,ai:0,msg:'',life:0}; lastOnlineScoreTotal=null; lastOnlineRoundKey=null; clearOnlineCountdown(); resetBall('down');
+    score={player:0,ai:0,msg:'',life:0}; lastOnlineScoreTotal=null; lastOnlineRoundKey=null; resultSoundPlayed=false; clearOnlineCountdown(); resetBall('down');
     updateScoreHud();
     $('resultPanel').classList.remove('active');
     if($('playAgainBtn')) $('playAgainBtn').style.display='';
@@ -3191,6 +3291,7 @@ else next='BATTLE!';
       $('resultTitle').style.color=youWin?theme().main:'#ef4444';
       $('resultScore').textContent=displayName(rivalName)+' '+score.ai+' ◇ '+score.player+' '+displayName(playerName);
       $('resultPanel').classList.add('active');
+      if(!resultSoundPlayed){ resultSoundPlayed=true; playSound(youWin?'win':'lose'); }
     }
   }
   function addRemoteLine(line){
@@ -3293,7 +3394,7 @@ else next='BATTLE!';
     onlineRoomClosed=false;
     mode='ai'; isHost=false; roleKnown=false; roomCode=null;
     canvas=$('gameCanvas'); ctx=canvas.getContext('2d');
-    score={player:0,ai:0,msg:'',life:0}; resetBall('down');
+    score={player:0,ai:0,msg:'',life:0}; resultSoundPlayed=false; resetBall('down');
     updateScoreHud();
     $('resultPanel').classList.remove('active');
     show('gameScreen'); started=false; paused=true;
@@ -3302,8 +3403,8 @@ else next='BATTLE!';
   }
   function countdown(n){
     var text=$('overlayText');
-    if(n>0){ setOverlay(String(n)); setTimeout(function(){countdown(n-1)},650); }
-    else { setOverlay('BATTLE!'); setTimeout(function(){text.textContent=''; started=true; paused=false; goalLocked=false;},600); }
+    if(n>0){ setOverlay(String(n)); playSound('count'); setTimeout(function(){countdown(n-1)},650); }
+    else { setOverlay('BATTLE!'); playSound('battle'); setTimeout(function(){text.textContent=''; started=true; paused=false; goalLocked=false;},600); }
   }
   function getPos(e){
     var t=e.touches&&e.touches[0]?e.touches[0]:e;
@@ -3355,6 +3456,7 @@ else next='BATTLE!';
       $('resultTitle').style.textShadow='0 0 26px '+(score.player>=7?theme().main:'#ef4444');
       $('resultScore').textContent='AI '+score.ai+' ◇ '+score.player+' '+displayName(playerName);
       $('resultPanel').classList.add('active');
+      if(!resultSoundPlayed){ resultSoundPlayed=true; playSound(score.player>=7?'win':'lose'); }
       return;
     }
     setOverlay(who==='player'?displayName(playerName)+' SCORES':'AI SCORES');
@@ -3524,6 +3626,25 @@ else next='BATTLE!';
       canvas.addEventListener('pointerup',canvasUp,{passive:false});
     }
   },0);
+
+  function hideStoreSplash(){
+    try{
+      var splash=document.getElementById('storeSplash');
+      if(!splash) return;
+      splash.classList.add('hide');
+      setTimeout(function(){
+        try{
+          if(splash && splash.parentNode) splash.parentNode.removeChild(splash);
+        }catch(e){}
+      },650);
+    }catch(e){}
+  }
+
+  window.addEventListener('load',function(){
+    setTimeout(hideStoreSplash,1500);
+  });
+  setTimeout(hideStoreSplash,2600);
+
 })();
 </script>
         `,
