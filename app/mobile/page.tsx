@@ -2147,7 +2147,7 @@ export default function MobilePage() {
   var arena='classic', difficulty='normal', socketRegion='EU', mode='ai';
   var canvas, ctx, raf=0;
   var ball, lines, trail, sparks, score, energy, started=false, paused=false, drawing=null, goalLocked=false;
-  var frame=0, audioUnlocked=false, soundEnabled=true, lastWallSound=0, lastOnlineScoreTotal=null, lastOnlineRoundKey=null, onlineCountdownTimer=null, onlineBattleTimer=null, onlineRoomClosed=false, activeAudioContexts=[];
+  var frame=0, lastFrameAt=Date.now(), audioUnlocked=false, soundEnabled=true, lastWallSound=0, lastOnlineScoreTotal=null, lastOnlineRoundKey=null, onlineCountdownTimer=null, onlineBattleTimer=null, onlineRoomClosed=false, activeAudioContexts=[];
   var socket=null, socketReady=false, isHost=false, roleKnown=false, roomCode=null, mobileId='mobile_'+Math.random().toString(16).slice(2,10), onlineTarget={x:200,y:350,vx:1.2,vy:1.8}, onlineStateAt=Date.now();
   var onlineStartState=null;
   var onlineMatchStartTimer=null;
@@ -3381,8 +3381,13 @@ else next='BATTLE!';
     addLine({x:ball.x-55+err,y:Math.max(42,ball.y-35)}, {x:ball.x+55+err,y:Math.max(42,ball.y-10)}, 'ai');
   }
   function physics(){
+    var now=Date.now();
+    var dt=Math.min(50,Math.max(0,now-lastFrameAt));
+    lastFrameAt=now;
+    var dtScale=dt/16.67;
+
     frame++;
-    if(energy<100) energy=Math.min(100,energy+0.22);
+    if(energy<100) energy=Math.min(100,energy+(0.22*dtScale));
     if(!started||paused) return;
     if(mode==='online'){
       var elapsed=Math.min(4,(Date.now()-onlineStateAt)/16.67);
