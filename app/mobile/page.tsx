@@ -2147,7 +2147,7 @@ export default function MobilePage() {
   var arena='classic', difficulty='normal', socketRegion='EU', mode='ai';
   var canvas, ctx, raf=0;
   var ball, lines, trail, sparks, score, energy, started=false, paused=false, drawing=null, goalLocked=false;
-  var frame=0, lastFrameAt=Date.now(), audioUnlocked=false, soundEnabled=true, lastWallSound=0, lastOnlineScoreTotal=null, lastOnlineRoundKey=null, onlineCountdownTimer=null, onlineBattleTimer=null, onlineRoomClosed=false, activeAudioContexts=[];
+  var frame=0, lastFrameAt=Date.now(), lastDtScale=1, audioUnlocked=false, soundEnabled=true, lastWallSound=0, lastOnlineScoreTotal=null, lastOnlineRoundKey=null, onlineCountdownTimer=null, onlineBattleTimer=null, onlineRoomClosed=false, activeAudioContexts=[];
   var socket=null, socketReady=false, isHost=false, roleKnown=false, roomCode=null, mobileId='mobile_'+Math.random().toString(16).slice(2,10), onlineTarget={x:200,y:350,vx:1.2,vy:1.8}, onlineStateAt=Date.now();
   var onlineStartState=null;
   var onlineMatchStartTimer=null;
@@ -3385,6 +3385,7 @@ else next='BATTLE!';
     var dt=Math.min(50,Math.max(0,now-lastFrameAt));
     lastFrameAt=now;
     var dtScale=dt/16.67;
+    lastDtScale=dtScale;
 
     frame++;
     if(energy<100) energy=Math.min(100,energy+(0.22*dtScale));
@@ -3394,15 +3395,24 @@ else next='BATTLE!';
       var px=Math.max(22,Math.min(W-22,onlineTarget.x+onlineTarget.vx*elapsed));
       var py=Math.max(22,Math.min(H-22,onlineTarget.y+onlineTarget.vy*elapsed));
       var dxo=px-ball.x, dyo=py-ball.y, disto=Math.hypot(dxo,dyo);
-      if(disto>90){ ball.x=px; ball.y=py; } else { ball.x+=dxo*.32; ball.y+=dyo*.32; }
+      if(disto>90){
+        ball.x=px;
+        ball.y=py;
+      } else {
+        var follow=1-Math.pow(0.68,dtScale);
+        ball.x+=dxo*follow;
+        ball.y+=dyo*follow;
+      }
       ball.vx=onlineTarget.vx; ball.vy=onlineTarget.vy;
       return;
     }
     aiThink();
 
-    var steps=Math.max(1,Math.ceil(Math.hypot(ball.vx,ball.vy)/2));
+    var moveVx=ball.vx*dtScale;
+    var moveVy=ball.vy*dtScale;
+    var steps=Math.max(1,Math.ceil(Math.hypot(moveVx,moveVy)/2));
     for(var s=0;s<steps;s++){
-      ball.x+=ball.vx/steps; ball.y+=ball.vy/steps;
+      ball.x+=moveVx/steps; ball.y+=moveVy/steps;
       for(var i=0;i<lines.length;i++){
         var l=lines[i]; if(l.life<4) continue;
         var dx=l.x2-l.x1,dy=l.y2-l.y1,lenSq=dx*dx+dy*dy;
@@ -3431,8 +3441,16 @@ else next='BATTLE!';
       ctx.fillText((score.player===6&&score.ai===6)?'FINAL CLASH':(arena==='space'?'ORBIT POINT':arena==='temple'?'CHAIN POINT':arena==='base'?'BASE POINT':'MATCH POINT'), W/2, H/2-95); ctx.restore();
     }
     trail.push({x:ball.x,y:ball.y}); if(trail.length>20) trail.shift();
-    lines=lines.map(function(l){l.life--;return l}).filter(function(l){return l.life>0});
-    sparks=sparks.map(function(s){s.x+=s.vx; s.y+=s.vy; s.vx*=.95; s.vy*=.95; s.life--; return s;}).filter(function(s){return s.life>0;});
+    lines=lines.map(function(l){l.life-=lastDtScale;return l}).filter(function(l){return l.life>0});
+    sparks=sparks.map(function(s){
+      s.x+=s.vx*lastDtScale;
+      s.y+=s.vy*lastDtScale;
+      var damp=Math.pow(.95,lastDtScale);
+      s.vx*=damp;
+      s.vy*=damp;
+      s.life-=lastDtScale;
+      return s;
+    }).filter(function(s){return s.life>0;});
 
     lines.forEach(function(l){ var a=Math.max(l.life/42,.08); ctx.beginPath(); ctx.moveTo(l.x1,l.y1); ctx.lineTo(l.x2,l.y2); ctx.lineCap='round'; ctx.lineWidth=10; ctx.strokeStyle=l.owner==='player'?'rgba(0,82,255,'+a+')':'rgba(239,68,68,'+a+')'; ctx.shadowColor=l.owner==='player'?'#0052ff':'#ef4444'; ctx.shadowBlur=24; ctx.stroke(); ctx.shadowBlur=0; });
     trail.forEach(function(p,i){ var a=i/trail.length; ctx.beginPath(); ctx.arc(p.x,p.y,ball.r*a*1.5,0,Math.PI*2); ctx.fillStyle='rgba(0,82,255,'+(a*.26)+')'; ctx.fill(); });
