@@ -1,14 +1,10 @@
 export const dynamic = "force-static";
-import MobileEnergyButton from "./MobileEnergyButton";
 
 export default function MobilePage() {
   return (
-    <>
-      <MobileEnergyButton />
-
-      <main
-        dangerouslySetInnerHTML={{
-          __html: `
+    <main
+      dangerouslySetInnerHTML={{
+        __html: `
 <style>
   html, body {
     margin:0; padding:0; background:#020204; color:white; overflow:hidden;
@@ -3521,8 +3517,7 @@ else next='BATTLE!';
 })();
 </script>
         `,
-        }}
-      />
-    </>
+      }}
+    />
   );
 }
