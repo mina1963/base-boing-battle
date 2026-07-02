@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useAccount, usePublicClient, useWalletClient } from "wagmi";
 import { useConnectModal } from "@rainbow-me/rainbowkit";
 import { io } from "socket.io-client";
+import { useRouter } from "next/navigation";
 
 
 const ENERGY_CONTRACT_ADDRESS =
@@ -166,6 +167,18 @@ const getArenaLabel = (arena: Arena) =>
   ARENA_OPTIONS.find((item) => item.key === arena)?.label || "CLASSIC";
 
 export default function Home() {
+  const router = useRouter();
+
+  useEffect(() => {
+    const userAgent = navigator.userAgent || "";
+    const isMobileDevice =
+      /Android|iPhone|iPad|iPod/i.test(userAgent) ||
+      (navigator.maxTouchPoints > 1 && /Macintosh/i.test(userAgent));
+
+    if (isMobileDevice && window.location.pathname === "/") {
+      router.replace("/mobile");
+    }
+  }, [router]);
 
   const socketRef = useRef<any>(null);
   const { address, isConnected } = useAccount();
