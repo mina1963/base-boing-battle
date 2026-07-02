@@ -88,15 +88,27 @@ export default function MobileEnergyButton() {
 
   return (
     <button
+      type="button"
       onClick={activateEnergy}
+      onTouchEnd={(e) => {
+        e.preventDefault();
+        activateEnergy();
+      }}
       disabled={loading}
       style={{
         position: "fixed",
         right: 14,
         top: "calc(env(safe-area-inset-top) + 14px)",
-        zIndex: 999999,
-        border: active ? "1px solid rgba(52,211,153,.7)" : "1px solid rgba(0,82,255,.8)",
-        background: active ? "rgba(16,185,129,.18)" : "rgba(0,82,255,.92)",
+        zIndex: 2147483647,
+        pointerEvents: "auto",
+        touchAction: "manipulation",
+        WebkitTapHighlightColor: "transparent",
+        border: active
+          ? "1px solid rgba(52,211,153,.7)"
+          : "1px solid rgba(0,82,255,.8)",
+        background: active
+          ? "rgba(16,185,129,.18)"
+          : "rgba(0,82,255,.92)",
         color: "white",
         borderRadius: 999,
         padding: "10px 13px",
