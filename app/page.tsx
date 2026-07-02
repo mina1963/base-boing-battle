@@ -330,12 +330,14 @@ const handleActivateBaseEnergy = async () => {
     setBaseEnergyLoading(true);
     setBaseEnergyStatus("CONFIRM TX IN WALLET");
 
-    const hash = await walletClient.writeContract({
-      address: ENERGY_CONTRACT_ADDRESS,
-      abi: ENERGY_ABI,
-      functionName: "activateEnergy",
-      account: address,
-    });
+const hash = await walletClient.writeContract({
+  address: ENERGY_CONTRACT_ADDRESS,
+  abi: ENERGY_ABI,
+  functionName: "activateEnergy",
+  account: address,
+  dataSuffix:
+    "0x62635f6873616772376c620b0080218021802180218021802180218021",
+});
 
     setBaseEnergyStatus("ACTIVATING ENERGY...");
 
