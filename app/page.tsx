@@ -170,10 +170,13 @@ export default function Home() {
   const router = useRouter();
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
+
     const userAgent = navigator.userAgent || "";
     const isMobileDevice =
-      /Android|iPhone|iPad|iPod/i.test(userAgent) ||
-      (navigator.maxTouchPoints > 1 && /Macintosh/i.test(userAgent));
+      /Android|iPhone|iPad|iPod|Mobile|IEMobile|Opera Mini/i.test(userAgent) ||
+      (navigator.maxTouchPoints > 1 && /Macintosh/i.test(userAgent)) ||
+      window.innerWidth <= 768;
 
     if (isMobileDevice && window.location.pathname === "/") {
       router.replace("/mobile");
