@@ -32,7 +32,13 @@ const MAX_BALL_SPEED = 10;
 const COUNTDOWN_DELAY_MS = 6500;
 const BATTLE_HOLD_MS = 700;
 const TICK_MS = 1000 / 60;
-const STATE_EMIT_MS = 1000 / 60;
+// Physics stays at 60 Hz, while snapshots are sent at 30 Hz. The clients
+// interpolate between snapshots, so doubling network traffic adds load without
+// making motion visibly smoother.
+const STATE_EMIT_MS = 1000 / 30;
+const MIN_LINE_LENGTH = 12;
+const MAX_LINE_LENGTH = 180;
+const DRAW_COOLDOWN_MS = 45;
 
 const rooms = new Map();
 const socketRooms = new Map();
@@ -105,6 +111,10 @@ const createRoomObject = ({
 
   lastTickAt: Date.now(),
   lastEmitAt: 0,
+  lastDrawAt: {
+    host: 0,
+    guest: 0,
+  },
 });
 
 const withServerNow = (state) => ({
@@ -827,17 +837,30 @@ io.on("connection", (socket) => {
 
     if (!owner) return;
     if (room.state.phase !== "playing") return;
+    if (!line || typeof line !== "object") return;
+
+    const now = Date.now();
+    if (now - room.lastDrawAt[owner] < DRAW_COOLDOWN_MS) return;
+
+    const coordinates = [line.x1, line.y1, line.x2, line.y2].map(Number);
+    if (!coordinates.every(Number.isFinite)) return;
+
+    const [rawX1, rawY1, rawX2, rawY2] = coordinates;
+    const lineLength = Math.hypot(rawX2 - rawX1, rawY2 - rawY1);
+    if (lineLength < MIN_LINE_LENGTH || lineLength > MAX_LINE_LENGTH) return;
 
     const BOTTOM_LINE_LIMIT = GAME_H - 45;
 
     const safeLine = {
       owner,
-      x1: Math.max(0, Math.min(GAME_W, Number(line.x1))),
-      y1: Math.max(0, Math.min(BOTTOM_LINE_LIMIT, Number(line.y1))),
-      x2: Math.max(0, Math.min(GAME_W, Number(line.x2))),
-      y2: Math.max(0, Math.min(BOTTOM_LINE_LIMIT, Number(line.y2))),
+      x1: Math.max(0, Math.min(GAME_W, rawX1)),
+      y1: Math.max(0, Math.min(BOTTOM_LINE_LIMIT, rawY1)),
+      x2: Math.max(0, Math.min(GAME_W, rawX2)),
+      y2: Math.max(0, Math.min(BOTTOM_LINE_LIMIT, rawY2)),
       life: 45,
     };
+
+    room.lastDrawAt[owner] = now;
 
     const ownerLines = room.lines.filter((l) => l.owner === owner);
 

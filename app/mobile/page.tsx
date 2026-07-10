@@ -2870,13 +2870,13 @@ else next='BATTLE!';
       if(data && (data.hostReadyAgain && data.guestReadyAgain || data.ready===true || data.start===true)){
         onlineMatchNo++;
         setOnlineArenaForMatch();
-        startOnlineMatch();
+        startOnlineMatch(true);
       } else {
         setOverlay('WAITING RIVAL');
       }
     });
-    socket.on('play-again-start',function(data){ onlineMatchNo++; setOnlineArenaForMatch(); startOnlineMatch(); });
-    socket.on('new-match',function(data){ onlineMatchNo++; setOnlineArenaForMatch(); startOnlineMatch(); });
+    socket.on('play-again-start',function(data){ onlineMatchNo++; setOnlineArenaForMatch(); startOnlineMatch(true); });
+    socket.on('new-match',function(data){ onlineMatchNo++; setOnlineArenaForMatch(); startOnlineMatch(true); });
     socket.on('connect_error',function(){ socketReady=false; setMatchStatus('SOCKET CONNECTION FAILED • RETRYING...'); });
   }
 
@@ -3100,8 +3100,15 @@ else next='BATTLE!';
     roomCode=null;
     show('menuScreen');
   }
-  function startOnlineMatch(){
+  function startOnlineMatch(forceReset){
     onlineRoomClosed=false;
+    // Socket aliases and reconnect syncs may announce the same match more than
+    // once. Never reset an already visible match; doing so restarted the local
+    // countdown and caused one phone to appear several seconds behind.
+    if(!forceReset && $('gameScreen') && $('gameScreen').classList.contains('active') && mode==='online' && roomCode){
+      emitClientReadyWhenGameVisible();
+      return;
+    }
     // Keep the arena chosen during match-found / arena-selected. Do not re-roll here.
     canvas=$('gameCanvas'); ctx=canvas.getContext('2d');
     score={player:0,ai:0,msg:'',life:0}; lastOnlineScoreTotal=null; lastOnlineRoundKey=null; clearOnlineCountdown(); resetBall('down');
