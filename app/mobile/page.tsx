@@ -3298,7 +3298,7 @@ else next='BATTLE!';
       return true;
     });
     lines.push({x1:start.x,y1:start.y,x2:start.x+Math.cos(a)*l,y2:start.y+Math.sin(a)*l,life:50,owner:owner});
-    if(owner==='player') energy=Math.max(0,energy-25);
+    if(owner==='player') energy=Math.max(0,energy-20);
   }
   function canvasDown(e){ if(!started||paused) return; var p=getPos(e); if(p.y<H/2) return; drawing=p; e.preventDefault(); }
   function canvasMove(e){
@@ -3395,7 +3395,7 @@ else next='BATTLE!';
     lastDtScale=dtScale;
 
     frame++;
-    if(energy<100) energy=Math.min(100,energy+(0.22*dtScale));
+    if(energy<100) energy=Math.min(100,energy+(0.30*dtScale));
     if(!started||paused) return;
     if(mode==='online'){
       var elapsed=Math.min(4,(Date.now()-onlineStateAt)/16.67);
