@@ -2465,6 +2465,7 @@ export default function MobilePage() {
 
   var onlineClientReadyRoom=null;
   var onlineClientReadyTimers=[];
+  var onlineClientReadySent=false;
 
   function clearClientReadyTimers(){
     try{
@@ -2478,6 +2479,7 @@ export default function MobilePage() {
       if(!socket || !targetRoom) return;
       if(!roomCode || String(roomCode)!==String(targetRoom)) return;
       if(!$('gameScreen') || !$('gameScreen').classList.contains('active')) return;
+      if(onlineClientReadySent) return;
 
       var payload={
         roomCode:targetRoom,
@@ -2487,6 +2489,8 @@ export default function MobilePage() {
       };
 
       socket.emit('client-ready',payload);
+      onlineClientReadySent=true;
+      clearClientReadyTimers();
     }catch(e){}
   }
 
@@ -2495,7 +2499,9 @@ export default function MobilePage() {
       if(!socket || !roomCode) return;
 
       var targetRoom=String(roomCode);
+      if(onlineClientReadyRoom===targetRoom && (onlineClientReadySent || onlineClientReadyTimers.length)) return;
       clearClientReadyTimers();
+      onlineClientReadySent=false;
 
       // Aynı oda için ready sinyalini oyun ekranı gerçekten görünmeden gönderme.
       // Özellikle Android ikinci Create Room'da canvas geç render ettiği için
@@ -2517,10 +2523,12 @@ export default function MobilePage() {
       }
 
       onlineClientReadyRoom=targetRoom;
-      scheduleEmit(250);
-      scheduleEmit(650);
-      scheduleEmit(1200);
-      scheduleEmit(2000);
+      // Older Android WebViews can mark the screen active before the canvas is
+      // actually painted. Give the first paint enough time before telling the
+      // server this player is ready to start the authoritative countdown.
+      scheduleEmit(800);
+      scheduleEmit(1400);
+      scheduleEmit(2200);
     }catch(e){}
   }
   function startOnlineCountdown(roundRaw, serverNowRaw){
@@ -3196,6 +3204,9 @@ else next='BATTLE!';
       emitClientReadyWhenGameVisible();
       return;
     }
+    onlineClientReadyRoom=null;
+    onlineClientReadySent=false;
+    clearClientReadyTimers();
     // Keep the arena chosen during match-found / arena-selected. Do not re-roll here.
     canvas=$('gameCanvas'); ctx=canvas.getContext('2d');
     score={player:0,ai:0,msg:'',life:0}; lastOnlineScoreTotal=null; lastOnlineRoundKey=null; resultSoundPlayed=false; clearOnlineCountdown(); resetBall('down');
@@ -3280,6 +3291,7 @@ else next='BATTLE!';
     clearOnlineCountdown();
     clearClientReadyTimers();
     onlineClientReadyRoom=null;
+    onlineClientReadySent=false;
     try{ clearOnlineBattleTimer(); }catch(e){}
     try{ if(onlineMatchStartTimer){ clearTimeout(onlineMatchStartTimer); onlineMatchStartTimer=null; } }catch(e){}
     try{ stopAllSounds(); }catch(e){}
@@ -3318,6 +3330,9 @@ else next='BATTLE!';
     onlineRoomClosed=true;
 
     clearOnlineCountdown();
+    clearClientReadyTimers();
+    onlineClientReadyRoom=null;
+    onlineClientReadySent=false;
     try{ clearOnlineBattleTimer(); }catch(e){}
     try{
       if(onlineMatchStartTimer){
