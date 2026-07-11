@@ -3233,8 +3233,24 @@ else next='BATTLE!';
     socket=null;
     socketReady=false;
 
+    // Returning to the menu must be equivalent to a fresh page runtime. The
+    // animation loop otherwise keeps old ball/session state alive and can make
+    // a later room appear to start before the authoritative countdown.
+    try{ if(raf){ cancelAnimationFrame(raf); raf=0; } }catch(e){}
+    canvas=null;
+    ctx=null;
+    ball=null;
+    lines=[];
+    trail=[];
+    sparks=[];
+    drawing=null;
+    score=null;
+    energy=100;
+    onlineStateAt=Date.now();
+
     onlineTarget={x:200,y:350,vx:0,vy:0};
     onlineStartState=null;
+    onlineMatchId=null;
     onlineLaunchStarted=false;
     onlineLaunchRoom=null;
     lastOnlineScoreTotal=null;
@@ -3246,6 +3262,8 @@ else next='BATTLE!';
     isHost=false;
     roleKnown=false;
     rivalName='RIVAL';
+    try{ $('overlayText').textContent=''; }catch(e){}
+    try{ $('resultPanel').classList.remove('active'); }catch(e){}
   }
   function newMatch(){
     if(!requireName()) return;
