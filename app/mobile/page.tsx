@@ -2147,7 +2147,7 @@ export default function MobilePage() {
   var arena='classic', difficulty='normal', socketRegion='EU', mode='ai';
   var canvas, ctx, raf=0;
   var ball, lines, trail, sparks, score, energy, started=false, paused=false, drawing=null, goalLocked=false;
-  var frame=0, lastFrameAt=Date.now(), lastDtScale=1, audioUnlocked=false, soundEnabled=true, lastWallSound=0, lastOnlineScoreTotal=null, lastOnlineRoundKey=null, onlineCountdownTimer=null, onlineBattleTimer=null, onlineRoomClosed=false, activeAudioContexts=[];
+  var frame=0, lastFrameAt=Date.now(), lastDtScale=1, audioUnlocked=false, soundEnabled=true, lastWallSound=0, lastOnlineScoreTotal=null, lastOnlineRoundKey=null, onlineCountdownTimer=null, onlineBattleTimer=null, onlineRoomClosed=false, onlineServerPlaying=false, activeAudioContexts=[];
   var socket=null, socketReady=false, isHost=false, roleKnown=false, roomCode=null, mobileId='mobile_'+Math.random().toString(16).slice(2,10), onlineTarget={x:200,y:350,vx:1.2,vy:1.8}, onlineStateAt=Date.now();
   var onlineStartState=null;
   var onlineMatchStartTimer=null;
@@ -2462,6 +2462,7 @@ export default function MobilePage() {
     started=false;
     paused=true;
     goalLocked=true;
+    onlineServerPlaying=false;
 
     var serverStart=typeof roundRaw==='number'?roundRaw:new Date(roundRaw).getTime();
     var serverNow=Number(serverNowRaw);
@@ -2529,6 +2530,7 @@ else next='BATTLE!';
     mode='online';
     pendingMode='onlineMatched';
     onlineRoomClosed=false;
+    onlineServerPlaying=false;
     setMatchStatus('');
 
     var launchAt=Number(launchAtRaw);
@@ -3112,6 +3114,7 @@ else next='BATTLE!';
     onlineTarget.x=bx; onlineTarget.y=isHost?by:H-by; onlineTarget.vx=bvx; onlineTarget.vy=isHost?bvy:-bvy; onlineStateAt=Date.now();
     var phase=state.phase||'';
     if(phase==='countdown'){
+      onlineServerPlaying=false;
       started=false; paused=true;
       var roundRaw=state.round_start_at||state.roundStartAt;
       var serverNow=state.serverNow||state.server_now;
@@ -3119,11 +3122,13 @@ else next='BATTLE!';
       else setOverlay('3');
     }
     if(phase==='playing'){
+      onlineServerPlaying=true;
       if(!onlineCountdownTimer && !onlineBattleTimer){ $('overlayText').textContent=''; }
       started=true; paused=false;
     }
     var winner=state.winner || (hostScore>=7?'host':guestScore>=7?'guest':null);
     if(winner){
+      onlineServerPlaying=false;
       started=false; paused=true;
       var youWin=(winner==='host'&&isHost)||(winner==='guest'&&!isHost);
       $('resultTitle').textContent=youWin?'YOU WIN':'RIVAL WINS';
@@ -3154,6 +3159,7 @@ else next='BATTLE!';
     paused=true;
     goalLocked=true;
     onlineRoomClosed=true;
+    onlineServerPlaying=false;
     clearOnlineCountdown();
     clearClientReadyTimers();
     onlineClientReadyRoom=null;
@@ -3194,6 +3200,7 @@ else next='BATTLE!';
     paused=true;
     goalLocked=true;
     onlineRoomClosed=true;
+    onlineServerPlaying=false;
 
     clearOnlineCountdown();
     clearClientReadyTimers();
@@ -3369,6 +3376,7 @@ else next='BATTLE!';
     if(energy<100) energy=Math.min(100,energy+(0.30*dtScale));
     if(!started||paused) return;
     if(mode==='online'){
+      if(!onlineServerPlaying) return;
       var elapsed=Math.min(4,(Date.now()-onlineStateAt)/16.67);
       var px=Math.max(22,Math.min(W-22,onlineTarget.x+onlineTarget.vx*elapsed));
       var py=Math.max(22,Math.min(H-22,onlineTarget.y+onlineTarget.vy*elapsed));
