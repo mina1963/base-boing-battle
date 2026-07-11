@@ -2637,7 +2637,7 @@ else next='BATTLE!';
     script.onerror=function(){ setMatchStatus('SOCKET LOAD FAILED'); };
     document.head.appendChild(script);
   }
-  function scheduleOnlineStart(state){
+  function scheduleOnlineStart(state,launchAtRaw,serverNowRaw){
     if(state) onlineStartState=state;
     if(!roomCode) return;
 
@@ -2656,23 +2656,14 @@ else next='BATTLE!';
     onlineRoomClosed=false;
     setMatchStatus('');
 
-    // IMPORTANT:
-    // Never wait on MATCH FOUND / arena vote screen. Both phones must enter
-    // the game screen immediately and only the server countdown decides when
-    // the ball becomes playable. This prevents one client seeing 3-2-1 while
-    // the other is still stuck on MATCH FOUND for a few seconds.
-    try{
-      if($('gameScreen') && !$('gameScreen').classList.contains('active')){
-        startOnlineMatch();
-      }
-    }catch(e){
-      try{ startOnlineMatch(); }catch(_){}
-    }
-
-    if(onlineStartState){
-      try{ applyOnlineState(onlineStartState); }catch(e){}
-      onlineStartState=null;
-    }
+    var launchAt=Number(launchAtRaw);
+    var serverNow=Number(serverNowRaw);
+    var delay=(isFinite(launchAt)&&isFinite(serverNow))?Math.max(0,launchAt-serverNow):0;
+    onlineMatchStartTimer=setTimeout(function(){
+      onlineMatchStartTimer=null;
+      try{ if($('gameScreen') && !$('gameScreen').classList.contains('active')) startOnlineMatch(); }catch(e){ try{ startOnlineMatch(); }catch(_){} }
+      if(onlineStartState){ try{ applyOnlineState(onlineStartState); }catch(e){} onlineStartState=null; }
+    },delay);
   }
 
   function connectSocket(cb){
@@ -2728,7 +2719,7 @@ else next='BATTLE!';
 
       // Do not wait on the matchmaking screen after the server has started arena vote.
       // The first game-state will sync countdown/ball as soon as it arrives.
-      scheduleOnlineStart(null);
+      scheduleOnlineStart(null,data.launchAt,data.serverNow);
     });
 
     socket.on('matchmaking-status',function(data){
@@ -2792,11 +2783,11 @@ else next='BATTLE!';
         }
         onlineLaunchStarted=true;
         onlineLaunchRoom=String(roomCode||'');
-        startOnlineMatch();
+        scheduleOnlineStart(data.state||null,data.launchAt,data.serverNow);
         return;
       }
 
-      scheduleOnlineStart(null);
+      scheduleOnlineStart(null,data.launchAt,data.serverNow);
     });
     socket.on('room-matched',function(data){
       data=data||{};
@@ -2816,7 +2807,7 @@ else next='BATTLE!';
           }
         }catch(e){}
 
-        scheduleOnlineStart(data.state||null);
+        scheduleOnlineStart(data.state||null,data.launchAt,data.serverNow);
         return;
       }
       // Older/manual room event. Do not force isHost=true here; that was causing
@@ -2857,7 +2848,7 @@ else next='BATTLE!';
         }
       }catch(e){}
 
-      scheduleOnlineStart(data.state||null);
+      scheduleOnlineStart(data.state||null,data.launchAt,data.serverNow);
     });
     function handleRoomCreated(data){
       data=data||{};
@@ -2905,18 +2896,7 @@ else next='BATTLE!';
         }
       }catch(e){}
 
-      try{
-        if($('gameScreen') && !$('gameScreen').classList.contains('active')){
-          startOnlineMatch();
-        }
-      }catch(e){
-        try{ startOnlineMatch(); }catch(_){}
-      }
-
-      if(data.state){
-        try{ applyOnlineState(data.state); }catch(e){}
-        onlineStartState=null;
-      }
+      scheduleOnlineStart(data.state||null,data.launchAt,data.serverNow);
 
       try{
         if(socket && roomCode){
@@ -2977,15 +2957,7 @@ else next='BATTLE!';
       onlineLaunchStarted=true;
       onlineLaunchRoom=String(roomCode||'');
       setMatchStatus('');
-      try{
-        if($('gameScreen') && !$('gameScreen').classList.contains('active')){
-          startOnlineMatch();
-        }
-      }catch(e){ try{ startOnlineMatch(); }catch(_){} }
-      if(data.state){
-        try{ applyOnlineState(data.state); }catch(e){}
-        onlineStartState=null;
-      }
+      scheduleOnlineStart(data.state||null,data.launchAt,data.serverNow);
     });
     socket.on('remote-line',function(line){ addRemoteLine(line); });
     socket.on('opponent-left',function(){ opponentLeft(); });
@@ -3142,24 +3114,6 @@ else next='BATTLE!';
           handleRoomJoinedGlobal(data||{ roomCode:code, role:'guest' });
         });
 
-        // Manual rooms can receive match-start/game-state before slower Android UI
-        // leaves the lobby. Open the field proactively; server state will lock
-        // the countdown and ball position.
-        setTimeout(function(){
-          try{
-            if(mode==='online' && roomCode && String(roomCode).toUpperCase()===String(code).toUpperCase()){
-              pendingMode='onlineMatched';
-              onlineRoomClosed=false;
-              onlineLaunchStarted=true;
-              onlineLaunchRoom=String(roomCode||code);
-              setMatchStatus('');
-              if($('gameScreen') && !$('gameScreen').classList.contains('active')){
-                startOnlineMatch();
-              }
-              try{ socket.emit('host-state',{ roomCode:roomCode }); }catch(_e){}
-            }
-          }catch(_e){}
-        }, 350);
       }
       catch(e){ setMatchStatus('JOIN ROOM FAILED'); }
     });

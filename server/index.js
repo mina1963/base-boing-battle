@@ -39,6 +39,7 @@ const STATE_EMIT_MS = 1000 / 30;
 const MIN_LINE_LENGTH = 12;
 const MAX_LINE_LENGTH = 180;
 const DRAW_COOLDOWN_MS = 45;
+const MATCH_SCREEN_LEAD_MS = 1500;
 
 const rooms = new Map();
 const socketRooms = new Map();
@@ -108,6 +109,7 @@ const createRoomObject = ({
   hostClientReady: false,
   guestClientReady: false,
   countdownStarted: false,
+  launchAt: null,
 
   lastTickAt: Date.now(),
   lastEmitAt: 0,
@@ -462,6 +464,8 @@ const emitMatchPayloads = (room) => {
     opponentAddress: room.guestAddress,
     opponentUsername: room.guestUsername,
     state: withServerNow(room.state),
+    launchAt: room.launchAt,
+    serverNow: Date.now(),
   };
 
   const guestPayload = {
@@ -471,6 +475,8 @@ const emitMatchPayloads = (room) => {
     opponentAddress: room.hostAddress,
     opponentUsername: room.hostUsername,
     state: withServerNow(room.state),
+    launchAt: room.launchAt,
+    serverNow: Date.now(),
   };
 
   hostSocket?.emit("match-found", hostPayload);
@@ -591,6 +597,7 @@ const createMatchedRoom = ({ host, guest }) => {
     hostUsername: host.username,
     guestUsername: guest.username,
   });
+  room.launchAt = Date.now() + MATCH_SCREEN_LEAD_MS;
 
   rooms.set(roomCode, room);
   socketRooms.set(host.socketId, roomCode);
@@ -698,6 +705,7 @@ io.on("connection", (socket) => {
     room.hostClientReady = false;
     room.guestClientReady = false;
     room.countdownStarted = false;
+    room.launchAt = Date.now() + MATCH_SCREEN_LEAD_MS;
 
     socketRooms.set(socket.id, safeRoomCode);
     socket.join(safeRoomCode);
@@ -708,6 +716,8 @@ io.on("connection", (socket) => {
       opponentAddress: room.hostAddress,
       opponentUsername: room.hostUsername,
       state: withServerNow(room.state),
+      launchAt: room.launchAt,
+      serverNow: Date.now(),
     };
 
     socket.emit("room-joined", joinPayload);
