@@ -3431,18 +3431,20 @@ else next='BATTLE!';
       if(line.owner===owner){ count++; return count<2; }
       return true;
     });
-    lines.push({x1:start.x,y1:start.y,x2:start.x+Math.cos(a)*l,y2:start.y+Math.sin(a)*l,life:50,owner:owner});
+    var createdLine={x1:start.x,y1:start.y,x2:start.x+Math.cos(a)*l,y2:start.y+Math.sin(a)*l,life:50,owner:owner};
+    lines.push(createdLine);
     if(owner==='player') energy=Math.max(0,energy-20);
+    return createdLine;
   }
   function canvasDown(e){ if(!started||paused) return; var p=getPos(e); if(p.y<H/2) return; drawing=p; e.preventDefault(); }
   function canvasMove(e){
     if(!started||paused||!drawing) return;
     var p=getPos(e); if(p.y<H/2) return;
     var d=Math.hypot(p.x-drawing.x,p.y-drawing.y);
-    if(d>55 && energy>=25){
-      addLine(drawing,p,'player');
+    if(d>55 && energy>=20){
+      var createdLine=addLine(drawing,p,'player');
       if(mode==='online' && socket && roomCode){
-        var end=p; var sx=drawing.x, sy=drawing.y, ex=end.x, ey=end.y;
+        var sx=createdLine.x1, sy=createdLine.y1, ex=createdLine.x2, ey=createdLine.y2;
         socket.emit('draw-line',{ roomCode:roomCode, line:{ owner:isHost?'host':'guest', x1:sx, y1:isHost?sy:H-sy, x2:ex, y2:isHost?ey:H-ey } });
       }
       drawing=null;
