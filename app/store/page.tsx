@@ -2180,6 +2180,7 @@ export default function MobilePage() {
   var frame=0, lastEnergyAt=Date.now(), audioUnlocked=false, soundEnabled=true, lastWallSound=0, lastOnlineScoreTotal=null, lastOnlineRoundKey=null, onlineCountdownTimer=null, onlineBattleTimer=null, onlineRoomClosed=false, onlineServerPlaying=false, activeAudioContexts=[], resultSoundPlayed=false;
   var socket=null, socketReady=false, isHost=false, roleKnown=false, roomCode=null, mobileId='mobile_'+Math.random().toString(16).slice(2,10), onlineTarget={x:200,y:350,vx:1.2,vy:1.8}, onlineStateAt=Date.now();
   var onlineStartState=null;
+  var onlineMatchId=null;
   var onlineMatchStartTimer=null;
   var onlineMatchNo=0;
   var onlineLaunchStarted=false;
@@ -2485,7 +2486,8 @@ export default function MobilePage() {
         roomCode:targetRoom,
         role:isHost?'host':'guest',
         platform:'mobile',
-        source:'game-screen-visible'
+        source:'game-screen-visible',
+        matchId:onlineMatchId
       };
 
       socket.emit('client-ready',payload);
@@ -2748,6 +2750,7 @@ else next='BATTLE!';
       var wasManualRoom=!!roomCode;
 
       roomCode=data.roomCode||data.room_code||roomCode;
+      onlineMatchId=data.matchId||onlineMatchId;
 
       if(onlineLaunchStarted && onlineLaunchRoom===String(roomCode||'')){
         sendArenaVoteNow();
@@ -2803,6 +2806,7 @@ else next='BATTLE!';
       data=data||{};
       mode='online';
       roomCode=data.roomCode||data.room_code||roomCode;
+      onlineMatchId=data.matchId||onlineMatchId;
       if(onlineLaunchStarted && onlineLaunchRoom===String(roomCode||'')){
         if(data.state) onlineStartState=data.state;
 
@@ -2888,6 +2892,7 @@ else next='BATTLE!';
 
       mode='online';
       roomCode=String(data.roomCode||data.room_code||roomCode||'').toUpperCase();
+      onlineMatchId=data.matchId||onlineMatchId;
       isHost=false;
       roleKnown=true;
       rivalName=pickRivalName(data);
@@ -2958,6 +2963,7 @@ else next='BATTLE!';
       data=data||{};
       mode='online';
       roomCode=data.roomCode||data.room_code||roomCode;
+      onlineMatchId=data.matchId||onlineMatchId;
       if(data.role==='host' || data.role==='guest'){
         isHost=(data.role==='host');
         roleKnown=true;
@@ -3033,6 +3039,7 @@ else next='BATTLE!';
     onlineRoomClosed=false;
     mode='online';
     onlineStartState=null;
+    onlineMatchId=null;
     onlineLaunchStarted=false;
     onlineLaunchRoom=null;
     lastOnlineScoreTotal=null;
@@ -3105,6 +3112,7 @@ else next='BATTLE!';
     onlineMatchNo=0;
     setOnlineArenaForMatch();
     onlineStartState=null;
+    onlineMatchId=null;
     onlineLaunchStarted=false;
     onlineLaunchRoom=null;
     lastOnlineScoreTotal=null;
@@ -3149,6 +3157,7 @@ else next='BATTLE!';
     onlineMatchNo=0;
     rivalName='RIVAL';
     onlineStartState=null;
+    onlineMatchId=null;
     onlineLaunchStarted=false;
     onlineLaunchRoom=null;
     lastOnlineScoreTotal=null;

@@ -110,6 +110,7 @@ const createRoomObject = ({
   guestClientReady: false,
   countdownStarted: false,
   launchAt: null,
+  matchId: `${code}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
 
   lastTickAt: Date.now(),
   lastEmitAt: 0,
@@ -465,6 +466,7 @@ const emitMatchPayloads = (room) => {
     opponentUsername: room.guestUsername,
     state: withServerNow(room.state),
     launchAt: room.launchAt,
+    matchId: room.matchId,
     serverNow: Date.now(),
   };
 
@@ -476,6 +478,7 @@ const emitMatchPayloads = (room) => {
     opponentUsername: room.hostUsername,
     state: withServerNow(room.state),
     launchAt: room.launchAt,
+    matchId: room.matchId,
     serverNow: Date.now(),
   };
 
@@ -705,6 +708,7 @@ io.on("connection", (socket) => {
     room.hostClientReady = false;
     room.guestClientReady = false;
     room.countdownStarted = false;
+    room.matchId = `${safeRoomCode}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     room.launchAt = Date.now() + MATCH_SCREEN_LEAD_MS;
 
     socketRooms.set(socket.id, safeRoomCode);
@@ -717,6 +721,7 @@ io.on("connection", (socket) => {
       opponentUsername: room.hostUsername,
       state: withServerNow(room.state),
       launchAt: room.launchAt,
+      matchId: room.matchId,
       serverNow: Date.now(),
     };
 
@@ -783,9 +788,10 @@ io.on("connection", (socket) => {
     });
   });
 
-  socket.on("client-ready", ({ roomCode, role }) => {
+  socket.on("client-ready", ({ roomCode, role, platform, matchId }) => {
     const room = rooms.get(roomCode);
     if (!room) return;
+    if (platform === "mobile" && matchId !== room.matchId) return;
 
     if (role === "host" && socket.id === room.hostSocketId) {
       room.hostClientReady = true;
