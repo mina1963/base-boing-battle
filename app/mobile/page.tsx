@@ -44,7 +44,9 @@ function MobileEnergyCard() {
   const { disconnect } = useDisconnect();
   const { data: walletClient } = useWalletClient();
   const publicClient = usePublicClient();
-  const [menuVisible, setMenuVisible] = useState(false);
+  // Start visible so the Base Wallet gate is present in the server-rendered
+  // mobile HTML as well. Some iOS webviews hydrate after the legacy menu script.
+  const [menuVisible, setMenuVisible] = useState(true);
   const [energyLeft, setEnergyLeft] = useState(0);
   const [status, setStatus] = useState("BASE WALLET REQUIRED");
   const [isActivating, setIsActivating] = useState(false);
