@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
+import Script from "next/script";
 
 export const viewport = {
   width: "device-width",
@@ -21,10 +22,15 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://baseboingbattle.online"),
+  metadataBase: new URL("https://www.baseboingbattle.online"),
 
-  title: "Base Boing Battle",
-  description: "Online 1v1 physics battle built on Base",
+  applicationName: "Base Boing Battle",
+  title: "Base Boing Battle — Online 1v1 Game on Base",
+  description: "Draw, deflect, and battle in a fast online 1v1 physics game built on Base.",
+  manifest: "/manifest.webmanifest",
+  alternates: {
+    canonical: "https://www.baseboingbattle.online/mobile",
+  },
 
 icons: {
   icon: "/icon.png",
@@ -37,9 +43,9 @@ icons: {
   },
 
   openGraph: {
-    title: "Base Boing Battle",
-    description: "Online 1v1 physics battle built on Base",
-    url: "https://baseboingbattle.online",
+    title: "Base Boing Battle — Online 1v1 Game on Base",
+    description: "Draw, deflect, and battle in a fast online 1v1 physics game built on Base.",
+    url: "https://www.baseboingbattle.online/mobile",
     siteName: "Base Boing Battle",
     images: [
       {
@@ -54,8 +60,8 @@ icons: {
 
   twitter: {
     card: "summary_large_image",
-    title: "Base Boing Battle",
-    description: "Online 1v1 physics battle built on Base",
+    title: "Base Boing Battle — Online 1v1 Game on Base",
+    description: "Draw, deflect, and battle in a fast online 1v1 physics game built on Base.",
     images: ["/og.png"],
   },
 };
@@ -72,6 +78,9 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col">
         <Providers>{children}</Providers>
+        <Script id="base-app-mobile-entry" strategy="beforeInteractive">
+          {`(function(){try{var p=window.location.pathname;if(p!=='/'&&p!=='')return;var ua=navigator.userAgent||'';var mobile=/Android|iPhone|iPad|iPod|Mobile|IEMobile|Opera Mini/i.test(ua)||(navigator.maxTouchPoints>1&&/Macintosh/i.test(ua))||window.innerWidth<=768;if(mobile)window.location.replace('/mobile');}catch(e){}})();`}
+        </Script>
       </body>
     </html>
   );

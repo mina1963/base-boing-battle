@@ -998,7 +998,7 @@ const socket = io(
   useEffect(() => {
     const timer = setTimeout(() => {
       setShowSplash(false);
-    }, 5000);
+    }, 1200);
 
     return () => clearTimeout(timer);
   }, []);
