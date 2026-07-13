@@ -3887,6 +3887,99 @@ else next='BATTLE!';
   window.addEventListener('beforeunload', function(){ notifyLeavingOnline(); });
   window.addEventListener('pagehide', function(){ notifyLeavingOnline(); });
 
+  // Native wallet bridge for older iOS browsers. The page contains a large
+  // legacy game shell, so React hydration can arrive too late for the first tap.
+  // This delegated handler works even when the React wallet card is replaced.
+  var nativeWalletTapAt=0;
+  var ENERGY_CONTRACT='0x55894e2e9b29dad1b526c7f7c5d2d5e8e1b9d7db';
+  var ENERGY_BUILDER_SUFFIX='62635f6873616772376c620b0080218021802180218021802180218021';
+  function nativeEnergyUi(message,active){
+    var copy=document.querySelector('.mobileEnergyCopy strong');
+    var button=document.querySelector('.mobileEnergyCard button');
+    var card=document.querySelector('.mobileEnergyCard');
+    if(copy) copy.textContent=message;
+    if(button) button.textContent=active?'ENERGY ACTIVE':message==='READY TO ACTIVATE'?'ACTIVATE ENERGY':'CONNECT BASE WALLET';
+    if(card) card.classList.toggle('active',!!active);
+    window.__bbbEnergyActive=!!active;
+  }
+  function nativeHexAddressData(address){
+    return '0x19c3994b'+String(address||'').toLowerCase().replace(/^0x/,'').padStart(64,'0');
+  }
+  async function nativeBaseWalletFlow(){
+    var injected=window.ethereum;
+    var provider=null;
+    if(injected&&Array.isArray(injected.providers)){
+      provider=injected.providers.find(function(item){ return item&&(item.isCoinbaseWallet||item.isBaseWallet); })||null;
+    }else if(injected&&(injected.isCoinbaseWallet||injected.isBaseWallet)){
+      provider=injected;
+    }
+    if(!provider || typeof provider.request!=='function'){
+      nativeEnergyUi('OPENING BASE APP',false);
+      var returnUrl=window.location.href.split('#')[0];
+      window.location.href='https://go.cb-w.com/dapp?cb_url='+encodeURIComponent(returnUrl);
+      return;
+    }
+    try{
+      nativeEnergyUi('CONNECTING BASE WALLET',false);
+      var accounts=await provider.request({method:'eth_requestAccounts'});
+      var account=accounts&&accounts[0];
+      if(!account) throw new Error('NO_ACCOUNT');
+      try{
+        await provider.request({method:'wallet_switchEthereumChain',params:[{chainId:'0x2105'}]});
+      }catch(chainError){
+        try{
+          await provider.request({method:'wallet_addEthereumChain',params:[{
+            chainId:'0x2105',chainName:'Base',nativeCurrency:{name:'Ether',symbol:'ETH',decimals:18},
+            rpcUrls:['https://mainnet.base.org'],blockExplorerUrls:['https://basescan.org']
+          }]});
+        }catch(addError){}
+      }
+      var leftHex=await provider.request({method:'eth_call',params:[{
+        to:ENERGY_CONTRACT,data:nativeHexAddressData(account)
+      },'latest']});
+      var left=0;
+      try{ left=Number(BigInt(leftHex||'0x0')); }catch(parseError){}
+      if(left>0){
+        var hours=Math.floor(left/3600),minutes=Math.floor((left%3600)/60);
+        nativeEnergyUi('ENERGY ACTIVE • '+(hours?hours+'H ':'')+minutes+'M LEFT',true);
+        return;
+      }
+      nativeEnergyUi('CONFIRM IN BASE WALLET',false);
+      var txHash=await provider.request({method:'eth_sendTransaction',params:[{
+        from:account,to:ENERGY_CONTRACT,value:'0x0',data:'0xf5d7e22f'+ENERGY_BUILDER_SUFFIX
+      }]});
+      nativeEnergyUi('ACTIVATING ON BASE',false);
+      var attempts=0;
+      var receiptTimer=setInterval(async function(){
+        attempts++;
+        try{
+          var receipt=await provider.request({method:'eth_getTransactionReceipt',params:[txHash]});
+          if(receipt){
+            clearInterval(receiptTimer);
+            if(receipt.status==='0x1') nativeEnergyUi('ENERGY ACTIVE • 24H UNLOCKED',true);
+            else nativeEnergyUi('ACTIVATION FAILED',false);
+          }else if(attempts>60){ clearInterval(receiptTimer); nativeEnergyUi('CHECK TRANSACTION STATUS',false); }
+        }catch(receiptError){ if(attempts>60) clearInterval(receiptTimer); }
+      },2000);
+    }catch(error){
+      nativeEnergyUi('TAP TO CONNECT BASE WALLET',false);
+    }
+  }
+  function nativeEnergyTap(event){
+    var target=event.target&&event.target.closest?event.target.closest('.mobileEnergyCard button'):null;
+    if(!target) return;
+    var now=Date.now();
+    if(now-nativeWalletTapAt<700) return;
+    nativeWalletTapAt=now;
+    event.preventDefault();
+    event.stopPropagation();
+    if(event.stopImmediatePropagation) event.stopImmediatePropagation();
+    nativeBaseWalletFlow();
+  }
+  document.addEventListener('touchend',nativeEnergyTap,true);
+  document.addEventListener('pointerup',nativeEnergyTap,true);
+  document.addEventListener('click',nativeEnergyTap,true);
+
   setTimeout(function(){
     canvas=$('gameCanvas');
     if(canvas){
