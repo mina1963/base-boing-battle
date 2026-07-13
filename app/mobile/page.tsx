@@ -79,6 +79,11 @@ function MobileEnergyCard() {
       );
     };
     const observer = new MutationObserver(updateVisibility);
+    const handleUsernameVisibility = (event: Event) => {
+      const open = Boolean((event as CustomEvent<{ open?: boolean }>).detail?.open);
+      setMenuVisible(!open && Boolean(document.getElementById("menuScreen")?.classList.contains("active")));
+    };
+    window.addEventListener("bbb:username-modal", handleUsernameVisibility);
     const timer = window.setTimeout(() => {
       updateVisibility();
       const app = document.getElementById("app");
@@ -87,6 +92,7 @@ function MobileEnergyCard() {
     return () => {
       window.clearTimeout(timer);
       observer.disconnect();
+      window.removeEventListener("bbb:username-modal", handleUsernameVisibility);
     };
   }, []);
 
@@ -2321,6 +2327,7 @@ export default function MobilePage() {
   .mobileEnergyCard button { position:relative; z-index:2; min-width:108px; min-height:40px; padding:0 11px; border:1px solid rgba(107,219,255,.5); border-radius:15px; color:white; background:linear-gradient(180deg,#1687ff,#0052ff 58%,#07327e); box-shadow:0 0 20px rgba(0,82,255,.4),inset 0 1px 0 rgba(255,255,255,.28); font-size:8px; font-weight:1000; letter-spacing:.09em; touch-action:manipulation; pointer-events:auto !important; cursor:pointer; -webkit-user-select:none; user-select:none; }
   .mobileEnergyCard.active button { border-color:rgba(69,255,185,.45); color:#b8ffdf; background:rgba(23,135,89,.35); box-shadow:0 0 18px rgba(34,255,167,.18); }
   .mobileEnergyCard button:disabled { opacity:.9; }
+  html[data-username-modal="open"] .mobileEnergyCard { display:none !important; pointer-events:none !important; }
   @keyframes energyCardIn { from{opacity:0;transform:translateY(-8px) scale(.98)} to{opacity:1;transform:translateY(0) scale(1)} }
   @keyframes energyRequired { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-7px)} 50%{transform:translateX(7px)} 75%{transform:translateX(-4px)} }
   @media(max-width:360px){ .mobileEnergyCard{grid-template-columns:36px minmax(0,1fr) auto;gap:7px;padding:8px}.mobileEnergyOrb{width:36px;height:36px;border-radius:13px}.mobileEnergyCard button{min-width:90px;padding:0 8px;font-size:7px} }
@@ -2540,11 +2547,15 @@ export default function MobilePage() {
     if(input) input.value=playerName==='PLAYER'?'':playerName;
     if(warn) warn.textContent=message||'';
     if(modal){ modal.classList.add('active'); modal.setAttribute('aria-hidden','false'); }
+    document.documentElement.setAttribute('data-username-modal','open');
+    window.dispatchEvent(new CustomEvent('bbb:username-modal',{detail:{open:true}}));
     setTimeout(function(){ try{ if(input) input.focus(); }catch(e){} },80);
   }
   function closeUsernameModal(){
     var modal=$('usernameModal');
     if(modal){ modal.classList.remove('active'); modal.setAttribute('aria-hidden','true'); }
+    document.documentElement.removeAttribute('data-username-modal');
+    window.dispatchEvent(new CustomEvent('bbb:username-modal',{detail:{open:false}}));
   }
   function cancelUsernameModal(){
     usernameAfterSave=null;
@@ -3905,6 +3916,12 @@ else next='BATTLE!';
   function nativeHexAddressData(address){
     return '0x19c3994b'+String(address||'').toLowerCase().replace(/^0x/,'').padStart(64,'0');
   }
+  function nativeRequestWithTimeout(provider,payload,timeoutMs){
+    return Promise.race([
+      provider.request(payload),
+      new Promise(function(_,reject){ setTimeout(function(){ reject(new Error('WALLET_TIMEOUT')); },timeoutMs); })
+    ]);
+  }
   async function nativeBaseWalletFlow(){
     var injected=window.ethereum;
     var provider=null;
@@ -3921,7 +3938,13 @@ else next='BATTLE!';
     }
     try{
       nativeEnergyUi('CONNECTING BASE WALLET',false);
-      var accounts=await provider.request({method:'eth_requestAccounts'});
+      // Base App generally exposes its active account already. Asking again can
+      // leave older iOS webviews waiting forever without showing a prompt.
+      var accounts=[];
+      try{ accounts=await nativeRequestWithTimeout(provider,{method:'eth_accounts'},3500)||[]; }catch(accountReadError){}
+      if(!accounts.length){
+        accounts=await nativeRequestWithTimeout(provider,{method:'eth_requestAccounts'},12000);
+      }
       var account=accounts&&accounts[0];
       if(!account) throw new Error('NO_ACCOUNT');
       try{
