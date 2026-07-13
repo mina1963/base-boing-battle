@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
-import Script from "next/script";
 
 export const viewport = {
   width: "device-width",
@@ -76,11 +75,17 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
+      <head>
+        <script
+          id="base-app-mobile-entry"
+          dangerouslySetInnerHTML={{
+            __html:
+              "(function(){try{var p=window.location.pathname;if(p!=='/'&&p!=='')return;var ua=navigator.userAgent||'';var mobile=/Android|iPhone|iPad|iPod|Mobile|IEMobile|Opera Mini|Base App|Coinbase/i.test(ua)||(navigator.maxTouchPoints>1&&/Macintosh/i.test(ua))||window.innerWidth<=768;if(mobile)window.location.replace('/mobile');}catch(e){}})();",
+          }}
+        />
+      </head>
       <body className="min-h-full flex flex-col">
         <Providers>{children}</Providers>
-        <Script id="base-app-mobile-entry" strategy="beforeInteractive">
-          {`(function(){try{var p=window.location.pathname;if(p!=='/'&&p!=='')return;var ua=navigator.userAgent||'';var mobile=/Android|iPhone|iPad|iPod|Mobile|IEMobile|Opera Mini/i.test(ua)||(navigator.maxTouchPoints>1&&/Macintosh/i.test(ua))||window.innerWidth<=768;if(mobile)window.location.replace('/mobile');}catch(e){}})();`}
-        </Script>
       </body>
     </html>
   );
