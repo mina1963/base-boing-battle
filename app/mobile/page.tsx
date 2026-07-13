@@ -1,10 +1,187 @@
-export const dynamic = "force-static";
+"use client";
+
+import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  useAccount,
+  useConnect,
+  useDisconnect,
+  usePublicClient,
+  useWalletClient,
+} from "wagmi";
+
+const ENERGY_CONTRACT_ADDRESS =
+  "0x55894e2e9b29dad1b526c7f7c5d2d5e8e1b9d7db" as const;
+
+const ENERGY_ABI = [
+  {
+    type: "function",
+    name: "activateEnergy",
+    stateMutability: "nonpayable",
+    inputs: [],
+    outputs: [],
+  },
+  {
+    type: "function",
+    name: "getEnergyTimeLeft",
+    stateMutability: "view",
+    inputs: [{ name: "user", type: "address" }],
+    outputs: [{ name: "", type: "uint256" }],
+  },
+] as const;
+
+const BUILDER_CODE_SUFFIX =
+  "0x62635f6873616772376c620b0080218021802180218021802180218021" as const;
+
+function formatEnergyTime(seconds: number) {
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  return hours > 0 ? `${hours}H ${minutes}M LEFT` : `${Math.max(1, minutes)}M LEFT`;
+}
+
+function MobileEnergyCard() {
+  const { address, isConnected, connector } = useAccount();
+  const { connectors, connect, isPending: isConnecting } = useConnect();
+  const { disconnect } = useDisconnect();
+  const { data: walletClient } = useWalletClient();
+  const publicClient = usePublicClient();
+  const [menuVisible, setMenuVisible] = useState(false);
+  const [energyLeft, setEnergyLeft] = useState(0);
+  const [status, setStatus] = useState("BASE WALLET REQUIRED");
+  const [isActivating, setIsActivating] = useState(false);
+
+  const baseWalletConnector = useMemo(
+    () =>
+      connectors.find((item) =>
+        /coinbase|base account|base wallet/i.test(`${item.id} ${item.name}`),
+      ),
+    [connectors],
+  );
+
+  const isBaseWallet = Boolean(
+    isConnected &&
+      connector &&
+      /coinbase|base account|base wallet/i.test(
+        `${connector.id} ${connector.name}`,
+      ),
+  );
+
+  useEffect(() => {
+    const updateVisibility = () => {
+      setMenuVisible(
+        document.getElementById("menuScreen")?.classList.contains("active") ??
+          false,
+      );
+    };
+    const observer = new MutationObserver(updateVisibility);
+    const timer = window.setTimeout(() => {
+      updateVisibility();
+      const app = document.getElementById("app");
+      if (app) observer.observe(app, { attributes: true, subtree: true });
+    }, 0);
+    return () => {
+      window.clearTimeout(timer);
+      observer.disconnect();
+    };
+  }, []);
+
+  const refreshEnergy = useCallback(async () => {
+    if (!address || !publicClient || !isBaseWallet) {
+      setEnergyLeft(0);
+      setStatus(isConnected ? "SWITCH TO BASE WALLET" : "BASE WALLET REQUIRED");
+      return;
+    }
+    try {
+      const left = await publicClient.readContract({
+        address: ENERGY_CONTRACT_ADDRESS,
+        abi: ENERGY_ABI,
+        functionName: "getEnergyTimeLeft",
+        args: [address],
+      });
+      const remaining = Number(left);
+      setEnergyLeft(remaining);
+      setStatus(remaining > 0 ? formatEnergyTime(remaining) : "READY TO ACTIVATE");
+    } catch {
+      setStatus("ENERGY CHECK UNAVAILABLE");
+    }
+  }, [address, isBaseWallet, isConnected, publicClient]);
+
+  useEffect(() => {
+    void refreshEnergy();
+    const timer = window.setInterval(() => {
+      setEnergyLeft((current) => Math.max(0, current - 30));
+    }, 30_000);
+    return () => window.clearInterval(timer);
+  }, [refreshEnergy]);
+
+  const handleAction = async () => {
+    if (!isBaseWallet) {
+      if (isConnected) {
+        disconnect();
+        setStatus("BASE WALLET DISCONNECTED — TAP AGAIN");
+        return;
+      }
+      if (baseWalletConnector) connect({ connector: baseWalletConnector });
+      else setStatus("OPEN IN BASE APP");
+      return;
+    }
+    if (energyLeft > 0 || !walletClient || !publicClient || !address) return;
+    try {
+      setIsActivating(true);
+      setStatus("CONFIRM IN BASE WALLET");
+      const hash = await walletClient.writeContract({
+        address: ENERGY_CONTRACT_ADDRESS,
+        abi: ENERGY_ABI,
+        functionName: "activateEnergy",
+        account: address,
+        dataSuffix: BUILDER_CODE_SUFFIX,
+      });
+      setStatus("ACTIVATING ON BASE");
+      await publicClient.waitForTransactionReceipt({ hash });
+      await refreshEnergy();
+    } catch {
+      setStatus("ACTIVATION CANCELLED");
+    } finally {
+      setIsActivating(false);
+    }
+  };
+
+  if (!menuVisible) return null;
+
+  const active = energyLeft > 0;
+  const buttonLabel = active
+    ? "ENERGY ACTIVE"
+    : isBaseWallet
+      ? isActivating
+        ? "ACTIVATING..."
+        : "ACTIVATE ENERGY"
+      : isConnecting
+        ? "CONNECTING..."
+        : "CONNECT BASE WALLET";
+
+  return (
+    <aside className={`mobileEnergyCard${active ? " active" : ""}`}>
+      <div className="mobileEnergyOrb" aria-hidden="true">⚡</div>
+      <div className="mobileEnergyCopy">
+        <span>BASE ENERGY</span>
+        <strong>{status}</strong>
+      </div>
+      <button
+        type="button"
+        onClick={handleAction}
+        disabled={active || isActivating || isConnecting}
+      >
+        {buttonLabel}
+      </button>
+    </aside>
+  );
+}
 
 export default function MobilePage() {
   return (
-    <main
-      dangerouslySetInnerHTML={{
-        __html: `
+    <main>
+      <div
+        dangerouslySetInnerHTML={{
+          __html: `
 <style>
   html, body {
     margin:0; padding:0; background:#020204; color:white; overflow:hidden;
@@ -1961,6 +2138,124 @@ export default function MobilePage() {
   #difficultyScreen .premiumDiffTitle {
     margin-bottom:8px !important;
   }
+
+  /* === PREMIUM MOBILE IDENTITY + MATCH HUD === */
+  #menuScreen .artTop {
+    top:calc(env(safe-area-inset-top) + 14px) !important;
+    left:14px !important;
+    right:14px !important;
+    height:56px !important;
+  }
+  #menuScreen .artProfile {
+    height:52px !important;
+    max-width:245px !important;
+    padding:0 10px 0 13px !important;
+    border:1px solid rgba(91,209,255,.55) !important;
+    border-radius:22px !important;
+    background:linear-gradient(120deg,rgba(4,31,78,.88),rgba(0,7,24,.76)) !important;
+    box-shadow:0 12px 30px rgba(0,10,42,.48),0 0 24px rgba(0,132,255,.28),inset 0 1px 0 rgba(255,255,255,.12) !important;
+    backdrop-filter:blur(16px) saturate(1.35);
+  }
+  #menuScreen .artProfile:before {
+    width:9px !important;
+    height:9px !important;
+    background:#3dffad !important;
+    box-shadow:0 0 13px rgba(61,255,173,.85) !important;
+  }
+  #menuScreen .artPlayerName {
+    color:#f3fbff !important;
+    font-size:16px !important;
+    letter-spacing:.07em !important;
+    text-shadow:0 0 14px rgba(93,214,255,.5) !important;
+  }
+  #menuScreen .artEdit {
+    width:30px !important;
+    height:30px !important;
+    border:1px solid rgba(91,209,255,.35) !important;
+    background:linear-gradient(180deg,rgba(30,132,255,.26),rgba(0,34,92,.32)) !important;
+    color:#b9efff !important;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.1) !important;
+  }
+  #menuScreen .artHow {
+    width:50px !important;
+    height:50px !important;
+    border:1px solid rgba(91,209,255,.52) !important;
+    background:linear-gradient(145deg,rgba(6,38,91,.9),rgba(0,8,27,.8)) !important;
+    color:#c8f4ff !important;
+    box-shadow:0 12px 30px rgba(0,10,42,.42),0 0 22px rgba(0,132,255,.25),inset 0 1px 0 rgba(255,255,255,.12) !important;
+    backdrop-filter:blur(16px);
+  }
+  #hudTop {
+    top:calc(env(safe-area-inset-top) + 11px) !important;
+    left:12px !important;
+    right:12px !important;
+    gap:9px !important;
+    align-items:stretch !important;
+  }
+  #hudTop .pill {
+    min-height:44px;
+    padding:0 13px !important;
+    border:1px solid rgba(107,219,255,.36) !important;
+    border-radius:17px !important;
+    background:linear-gradient(180deg,rgba(4,25,65,.88),rgba(0,5,18,.76)) !important;
+    box-shadow:0 10px 28px rgba(0,9,36,.5),inset 0 1px 0 rgba(255,255,255,.09),0 0 18px rgba(0,82,255,.14) !important;
+    backdrop-filter:blur(14px) saturate(1.3);
+    color:#eafaff !important;
+    font-size:10px !important;
+    letter-spacing:.14em !important;
+  }
+  #scoreHud {
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    border-color:rgba(93,178,255,.5) !important;
+    background:linear-gradient(180deg,rgba(5,31,78,.94),rgba(0,7,24,.82)) !important;
+    text-shadow:0 0 12px rgba(103,203,255,.55);
+  }
+  #menuBtn:before { content:"‹ "; color:#6fe3ff; }
+  #restartBtn:after { content:" ↻"; color:#6fe3ff; }
+  #roundHint {
+    top:calc(env(safe-area-inset-top) + 67px) !important;
+    width:max-content;
+    left:50% !important;
+    right:auto !important;
+    transform:translateX(-50%);
+    padding:6px 12px;
+    border:1px solid rgba(255,255,255,.08);
+    border-radius:999px;
+    background:rgba(0,8,25,.5);
+    color:rgba(190,232,255,.72) !important;
+    font-size:8px !important;
+    letter-spacing:.24em !important;
+    backdrop-filter:blur(8px);
+  }
+
+  /* Base-only energy control rendered by React above the legacy game shell. */
+  .mobileEnergyCard {
+    position:fixed; z-index:110;
+    top:calc(env(safe-area-inset-top) + 80px);
+    left:max(16px,calc((100vw - 430px)/2 + 16px));
+    right:max(16px,calc((100vw - 430px)/2 + 16px));
+    min-height:64px; padding:9px 10px;
+    display:grid; grid-template-columns:42px minmax(0,1fr) auto; align-items:center; gap:10px;
+    border:1px solid rgba(91,209,255,.42); border-radius:22px;
+    background:linear-gradient(115deg,rgba(5,29,76,.93),rgba(0,7,24,.9));
+    box-shadow:0 14px 38px rgba(0,20,70,.5),0 0 28px rgba(0,132,255,.25),inset 0 1px 0 rgba(255,255,255,.1);
+    backdrop-filter:blur(16px) saturate(1.35); font-family:Arial,Helvetica,sans-serif;
+    animation:energyCardIn .42s ease-out both;
+  }
+  .mobileEnergyCard.active { border-color:rgba(63,255,177,.48); box-shadow:0 14px 38px rgba(0,20,70,.45),0 0 28px rgba(34,255,167,.2),inset 0 1px 0 rgba(255,255,255,.1); }
+  .mobileEnergyOrb { width:42px; height:42px; display:grid; place-items:center; border-radius:15px; color:#b9efff; background:radial-gradient(circle at 34% 24%,#effcff,#168cff 42%,#05245f 72%); box-shadow:0 0 22px rgba(0,153,255,.58),inset 0 1px 0 rgba(255,255,255,.42); font-size:18px; }
+  .mobileEnergyCard.active .mobileEnergyOrb { color:#06150f; background:radial-gradient(circle at 34% 24%,#effff8,#3cffad 45%,#08744c 78%); box-shadow:0 0 22px rgba(34,255,167,.48); }
+  .mobileEnergyCopy { min-width:0; }
+  .mobileEnergyCopy span { display:block; color:#76dcff; font-size:8px; line-height:1; font-weight:1000; letter-spacing:.22em; }
+  .mobileEnergyCopy strong { display:block; margin-top:6px; overflow:hidden; color:#f5fbff; font-size:10px; line-height:1.15; font-weight:1000; letter-spacing:.08em; white-space:nowrap; text-overflow:ellipsis; }
+  .mobileEnergyCard.active .mobileEnergyCopy span { color:#4dffb9; }
+  .mobileEnergyCard button { min-width:108px; min-height:40px; padding:0 11px; border:1px solid rgba(107,219,255,.5); border-radius:15px; color:white; background:linear-gradient(180deg,#1687ff,#0052ff 58%,#07327e); box-shadow:0 0 20px rgba(0,82,255,.4),inset 0 1px 0 rgba(255,255,255,.28); font-size:8px; font-weight:1000; letter-spacing:.09em; touch-action:manipulation; }
+  .mobileEnergyCard.active button { border-color:rgba(69,255,185,.45); color:#b8ffdf; background:rgba(23,135,89,.35); box-shadow:0 0 18px rgba(34,255,167,.18); }
+  .mobileEnergyCard button:disabled { opacity:.9; }
+  @keyframes energyCardIn { from{opacity:0;transform:translateY(-8px) scale(.98)} to{opacity:1;transform:translateY(0) scale(1)} }
+  @media(max-width:360px){ .mobileEnergyCard{grid-template-columns:36px minmax(0,1fr) auto;gap:7px;padding:8px}.mobileEnergyOrb{width:36px;height:36px;border-radius:13px}.mobileEnergyCard button{min-width:90px;padding:0 8px;font-size:7px} }
 </style>
 <div id="app">
   <div id="noise"></div>
@@ -3529,8 +3824,10 @@ else next='BATTLE!';
   },0);
 })();
 </script>
-        `,
-      }}
-    />
+          `,
+        }}
+      />
+      <MobileEnergyCard />
+    </main>
   );
 }
