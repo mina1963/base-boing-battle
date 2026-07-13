@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   useAccount,
   useConnect,
@@ -50,6 +50,7 @@ function MobileEnergyCard() {
   const [energyLeft, setEnergyLeft] = useState(0);
   const [status, setStatus] = useState("BASE WALLET REQUIRED");
   const [isActivating, setIsActivating] = useState(false);
+  const lastActionAt = useRef(0);
 
   const baseWalletConnector = useMemo(
     () =>
@@ -69,9 +70,12 @@ function MobileEnergyCard() {
 
   useEffect(() => {
     const updateVisibility = () => {
+      const usernameOpen =
+        document.getElementById("usernameModal")?.classList.contains("active") ??
+        false;
       setMenuVisible(
-        document.getElementById("menuScreen")?.classList.contains("active") ??
-          false,
+        (document.getElementById("menuScreen")?.classList.contains("active") ??
+          false) && !usernameOpen,
       );
     };
     const observer = new MutationObserver(updateVisibility);
@@ -137,6 +141,9 @@ function MobileEnergyCard() {
   }, [isBaseWallet]);
 
   const handleAction = async () => {
+    const now = Date.now();
+    if (now - lastActionAt.current < 650) return;
+    lastActionAt.current = now;
     if (!isBaseWallet) {
       if (isConnected) {
         disconnect();
@@ -190,7 +197,21 @@ function MobileEnergyCard() {
       </div>
       <button
         type="button"
-        onClick={handleAction}
+        onTouchEnd={(event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          void handleAction();
+        }}
+        onPointerUp={(event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          void handleAction();
+        }}
+        onClick={(event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          void handleAction();
+        }}
         disabled={active || isActivating || isConnecting}
       >
         {buttonLabel}
@@ -2286,6 +2307,8 @@ export default function MobilePage() {
     box-shadow:0 14px 38px rgba(0,20,70,.5),0 0 28px rgba(0,132,255,.25),inset 0 1px 0 rgba(255,255,255,.1);
     backdrop-filter:blur(16px) saturate(1.35); font-family:Arial,Helvetica,sans-serif;
     animation:energyCardIn .42s ease-out both;
+    pointer-events:auto !important;
+    isolation:isolate;
   }
   .mobileEnergyCard.active { border-color:rgba(63,255,177,.48); box-shadow:0 14px 38px rgba(0,20,70,.45),0 0 28px rgba(34,255,167,.2),inset 0 1px 0 rgba(255,255,255,.1); }
   .mobileEnergyCard.required { animation:energyRequired .65s ease both; border-color:rgba(255,190,72,.78); }
@@ -2295,7 +2318,7 @@ export default function MobilePage() {
   .mobileEnergyCopy span { display:block; color:#76dcff; font-size:8px; line-height:1; font-weight:1000; letter-spacing:.22em; }
   .mobileEnergyCopy strong { display:block; margin-top:6px; overflow:hidden; color:#f5fbff; font-size:10px; line-height:1.15; font-weight:1000; letter-spacing:.08em; white-space:nowrap; text-overflow:ellipsis; }
   .mobileEnergyCard.active .mobileEnergyCopy span { color:#4dffb9; }
-  .mobileEnergyCard button { min-width:108px; min-height:40px; padding:0 11px; border:1px solid rgba(107,219,255,.5); border-radius:15px; color:white; background:linear-gradient(180deg,#1687ff,#0052ff 58%,#07327e); box-shadow:0 0 20px rgba(0,82,255,.4),inset 0 1px 0 rgba(255,255,255,.28); font-size:8px; font-weight:1000; letter-spacing:.09em; touch-action:manipulation; }
+  .mobileEnergyCard button { position:relative; z-index:2; min-width:108px; min-height:40px; padding:0 11px; border:1px solid rgba(107,219,255,.5); border-radius:15px; color:white; background:linear-gradient(180deg,#1687ff,#0052ff 58%,#07327e); box-shadow:0 0 20px rgba(0,82,255,.4),inset 0 1px 0 rgba(255,255,255,.28); font-size:8px; font-weight:1000; letter-spacing:.09em; touch-action:manipulation; pointer-events:auto !important; cursor:pointer; -webkit-user-select:none; user-select:none; }
   .mobileEnergyCard.active button { border-color:rgba(69,255,185,.45); color:#b8ffdf; background:rgba(23,135,89,.35); box-shadow:0 0 18px rgba(34,255,167,.18); }
   .mobileEnergyCard button:disabled { opacity:.9; }
   @keyframes energyCardIn { from{opacity:0;transform:translateY(-8px) scale(.98)} to{opacity:1;transform:translateY(0) scale(1)} }
