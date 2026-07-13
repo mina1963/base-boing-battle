@@ -113,6 +113,27 @@ function MobileEnergyCard() {
     return () => window.clearInterval(timer);
   }, [refreshEnergy]);
 
+  useEffect(() => {
+    const energyWindow = window as Window & { __bbbEnergyActive?: boolean };
+    energyWindow.__bbbEnergyActive = energyLeft > 0;
+    document.documentElement.dataset.baseEnergy = energyLeft > 0 ? "active" : "locked";
+  }, [energyLeft]);
+
+  useEffect(() => {
+    const showEnergyRequired = () => {
+      setStatus(
+        isBaseWallet ? "ACTIVATE ENERGY TO UNLOCK PLAY" : "CONNECT BASE WALLET TO PLAY",
+      );
+      document.querySelector(".mobileEnergyCard")?.classList.add("required");
+      window.setTimeout(
+        () => document.querySelector(".mobileEnergyCard")?.classList.remove("required"),
+        700,
+      );
+    };
+    window.addEventListener("bbb:energy-required", showEnergyRequired);
+    return () => window.removeEventListener("bbb:energy-required", showEnergyRequired);
+  }, [isBaseWallet]);
+
   const handleAction = async () => {
     if (!isBaseWallet) {
       if (isConnected) {
@@ -2147,9 +2168,9 @@ export default function MobilePage() {
     height:56px !important;
   }
   #menuScreen .artProfile {
-    height:52px !important;
+    height:56px !important;
     max-width:245px !important;
-    padding:0 10px 0 13px !important;
+    padding:7px 9px !important;
     border:1px solid rgba(91,209,255,.55) !important;
     border-radius:22px !important;
     background:linear-gradient(120deg,rgba(4,31,78,.88),rgba(0,7,24,.76)) !important;
@@ -2157,10 +2178,28 @@ export default function MobilePage() {
     backdrop-filter:blur(16px) saturate(1.35);
   }
   #menuScreen .artProfile:before {
-    width:9px !important;
-    height:9px !important;
-    background:#3dffad !important;
-    box-shadow:0 0 13px rgba(61,255,173,.85) !important;
+    display:none !important;
+  }
+  #menuScreen .artAvatar {
+    display:grid !important;
+    place-items:center !important;
+    width:40px !important;
+    height:40px !important;
+    flex:0 0 40px !important;
+    border:1px solid rgba(154,231,255,.55) !important;
+    background:radial-gradient(circle at 32% 22%,#fff,#9fd8ff 18%,#087dff 52%,#061942 100%) !important;
+    box-shadow:0 0 19px rgba(0,153,255,.72),inset 0 1px 0 rgba(255,255,255,.45) !important;
+    color:#fff !important;
+    font-size:19px !important;
+  }
+  #menuScreen .artOnline {
+    display:block !important;
+    margin-top:5px !important;
+    color:#52ffb3 !important;
+    font-size:7px !important;
+    line-height:1 !important;
+    letter-spacing:.18em !important;
+    text-shadow:0 0 9px rgba(82,255,179,.5) !important;
   }
   #menuScreen .artPlayerName {
     color:#f3fbff !important;
@@ -2169,6 +2208,8 @@ export default function MobilePage() {
     text-shadow:0 0 14px rgba(93,214,255,.5) !important;
   }
   #menuScreen .artEdit {
+    display:grid !important;
+    place-items:center !important;
     width:30px !important;
     height:30px !important;
     border:1px solid rgba(91,209,255,.35) !important;
@@ -2245,6 +2286,7 @@ export default function MobilePage() {
     animation:energyCardIn .42s ease-out both;
   }
   .mobileEnergyCard.active { border-color:rgba(63,255,177,.48); box-shadow:0 14px 38px rgba(0,20,70,.45),0 0 28px rgba(34,255,167,.2),inset 0 1px 0 rgba(255,255,255,.1); }
+  .mobileEnergyCard.required { animation:energyRequired .65s ease both; border-color:rgba(255,190,72,.78); }
   .mobileEnergyOrb { width:42px; height:42px; display:grid; place-items:center; border-radius:15px; color:#b9efff; background:radial-gradient(circle at 34% 24%,#effcff,#168cff 42%,#05245f 72%); box-shadow:0 0 22px rgba(0,153,255,.58),inset 0 1px 0 rgba(255,255,255,.42); font-size:18px; }
   .mobileEnergyCard.active .mobileEnergyOrb { color:#06150f; background:radial-gradient(circle at 34% 24%,#effff8,#3cffad 45%,#08744c 78%); box-shadow:0 0 22px rgba(34,255,167,.48); }
   .mobileEnergyCopy { min-width:0; }
@@ -2255,6 +2297,7 @@ export default function MobilePage() {
   .mobileEnergyCard.active button { border-color:rgba(69,255,185,.45); color:#b8ffdf; background:rgba(23,135,89,.35); box-shadow:0 0 18px rgba(34,255,167,.18); }
   .mobileEnergyCard button:disabled { opacity:.9; }
   @keyframes energyCardIn { from{opacity:0;transform:translateY(-8px) scale(.98)} to{opacity:1;transform:translateY(0) scale(1)} }
+  @keyframes energyRequired { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-7px)} 50%{transform:translateX(7px)} 75%{transform:translateX(-4px)} }
   @media(max-width:360px){ .mobileEnergyCard{grid-template-columns:36px minmax(0,1fr) auto;gap:7px;padding:8px}.mobileEnergyOrb{width:36px;height:36px;border-radius:13px}.mobileEnergyCard button{min-width:90px;padding:0 8px;font-size:7px} }
 </style>
 <div id="app">
@@ -2280,7 +2323,7 @@ export default function MobilePage() {
           <div class="artAvatar">B</div>
           <div style="min-width:0;flex:1">
             <div id="profileName" class="artPlayerName">@PLAYER</div>
-            <div class="artOnline">● ONLINE</div>
+            <div class="artOnline">● BASE PLAYER</div>
           </div>
           <button id="editNameBtn" class="artEdit">✎</button>
         </div>
@@ -2497,7 +2540,7 @@ export default function MobilePage() {
     setTimeout(function(){
       if(warn && warn.textContent==='SAVED') warn.textContent='';
       closeUsernameModal();
-      if(next==='openMode'){ show('modeScreen'); }
+      if(next==='openMode'){ openModeScreen(); }
     },260);
     return true;
   }
@@ -3163,11 +3206,18 @@ else next='BATTLE!';
     socket.on('connect_error',function(){ socketReady=false; setMatchStatus('SOCKET CONNECTION FAILED • RETRYING...'); });
   }
 
+  function requireBaseEnergy(){
+    if(window.__bbbEnergyActive===true) return true;
+    try{ window.dispatchEvent(new Event('bbb:energy-required')); }catch(e){}
+    return false;
+  }
   function openModeScreen(){
+    if(!requireBaseEnergy()) return;
     if(cleanName(playerName)==='' || cleanName(playerName)==='PLAYER'){ openUsernameModal('ENTER USERNAME FIRST','openMode'); return; }
     show('modeScreen');
   }
   function chooseMode(m){
+    if(!requireBaseEnergy()){ show('menuScreen'); return; }
     pendingMode=m;
     if(m==='ai'){ show('arenaScreen'); return; }
     if(m==='online'){ startOnlineSearch(); return; }
@@ -3561,6 +3611,7 @@ else next='BATTLE!';
     try{ $('resultPanel').classList.remove('active'); }catch(e){}
   }
   function newMatch(){
+    if(!requireBaseEnergy()){ show('menuScreen'); return; }
     if(!requireName()) return;
     onlineRoomClosed=false;
     mode='ai'; isHost=false; roleKnown=false; roomCode=null;
