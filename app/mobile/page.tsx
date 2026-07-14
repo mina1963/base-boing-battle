@@ -38,6 +38,16 @@ function formatEnergyTime(seconds: number) {
   return hours > 0 ? `${hours}H ${minutes}M LEFT` : `${Math.max(1, minutes)}M LEFT`;
 }
 
+function walletErrorLabel(error: unknown) {
+  const value = error as { shortMessage?: string; message?: string; code?: number };
+  const message = `${value?.shortMessage || value?.message || "UNKNOWN WALLET ERROR"}`.toUpperCase();
+  if (value?.code === 4001 || /REJECT|DENIED|CANCEL/.test(message)) return "TRANSACTION CANCELLED";
+  if (/INSUFFICIENT|FUNDS|BALANCE/.test(message)) return "NOT ENOUGH ETH FOR GAS";
+  if (/USER OPERATION|BUNDLER/.test(message)) return "BASE SMART WALLET ERROR";
+  if (/POPUP|BLOCK/.test(message)) return "ALLOW BASE POPUP";
+  return message.slice(0, 64);
+}
+
 function MobileEnergyCard() {
   const { address, isConnected, connector } = useAccount();
   const { connectors, connect, isPending: isConnecting } = useConnect();
@@ -161,7 +171,7 @@ function MobileEnergyCard() {
         // Base Account opens a popup and iOS blocks it if it is deferred.
         connect(
           { connector: baseWalletConnector },
-          { onError: () => setStatus("TAP AGAIN OR ALLOW POPUPS") },
+          { onError: (error) => setStatus(walletErrorLabel(error)) },
         );
       } else setStatus("OPEN IN BASE APP");
       return;
@@ -180,8 +190,9 @@ function MobileEnergyCard() {
       setStatus("ACTIVATING ON BASE");
       await publicClient.waitForTransactionReceipt({ hash });
       await refreshEnergy();
-    } catch {
-      setStatus("ACTIVATION CANCELLED");
+    } catch (error) {
+      console.error("Base Energy activation failed", error);
+      setStatus(walletErrorLabel(error));
     } finally {
       setIsActivating(false);
     }
@@ -209,6 +220,13 @@ function MobileEnergyCard() {
       </div>
       <button
         type="button"
+        onTouchEnd={(event) => {
+          // iOS 15 (the newest version available on iPhone 7 Plus) can fail to
+          // synthesize click for this layered game UI. Keep the wallet request
+          // in the original touch gesture so Base is allowed to open its UI.
+          event.preventDefault();
+          void handleAction();
+        }}
         onClick={(event) => {
           event.preventDefault();
           void handleAction();
