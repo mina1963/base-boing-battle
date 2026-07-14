@@ -40,7 +40,7 @@ function formatEnergyTime(seconds: number) {
 
 function MobileEnergyCard() {
   const { address, isConnected, connector } = useAccount();
-  const { connectors, connectAsync, isPending: isConnecting } = useConnect();
+  const { connectors, connect, isPending: isConnecting } = useConnect();
   const { disconnect } = useDisconnect();
   const { data: walletClient } = useWalletClient();
   const publicClient = usePublicClient();
@@ -157,12 +157,12 @@ function MobileEnergyCard() {
         return;
       }
       if (baseWalletConnector) {
-        try {
-          setStatus("CONNECTING BASE WALLET");
-          await connectAsync({ connector: baseWalletConnector });
-        } catch {
-          setStatus("TAP AGAIN OR OPEN BASE APP");
-        }
+        // Keep the connector call directly inside the browser click task.
+        // Base Account opens a popup and iOS blocks it if it is deferred.
+        connect(
+          { connector: baseWalletConnector },
+          { onError: () => setStatus("TAP AGAIN OR ALLOW POPUPS") },
+        );
       } else setStatus("OPEN IN BASE APP");
       return;
     }
@@ -187,16 +187,6 @@ function MobileEnergyCard() {
     }
   };
 
-  useEffect(() => {
-    const energyWindow = window as Window & {
-      __bbbWalletAction?: () => void;
-    };
-    energyWindow.__bbbWalletAction = () => void handleAction();
-    return () => {
-      delete energyWindow.__bbbWalletAction;
-    };
-  });
-
   if (!menuVisible) return null;
 
   const active = energyLeft > 0;
@@ -219,19 +209,8 @@ function MobileEnergyCard() {
       </div>
       <button
         type="button"
-        onTouchEnd={(event) => {
-          event.preventDefault();
-          event.stopPropagation();
-          void handleAction();
-        }}
-        onPointerUp={(event) => {
-          event.preventDefault();
-          event.stopPropagation();
-          void handleAction();
-        }}
         onClick={(event) => {
           event.preventDefault();
-          event.stopPropagation();
           void handleAction();
         }}
         disabled={active || isActivating || isConnecting}
@@ -4025,9 +4004,8 @@ else next='BATTLE!';
     if(event.stopImmediatePropagation) event.stopImmediatePropagation();
     nativeBaseWalletFlow();
   }
-  document.addEventListener('touchend',nativeEnergyTap,true);
-  document.addEventListener('pointerup',nativeEnergyTap,true);
-  document.addEventListener('click',nativeEnergyTap,true);
+  // Do not capture the Base button here. Base Account must receive the native
+  // React click directly or iOS treats its connection popup as unsolicited.
 
   setTimeout(function(){
     canvas=$('gameCanvas');
