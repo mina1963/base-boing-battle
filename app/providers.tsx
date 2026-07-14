@@ -5,7 +5,6 @@ import "@rainbow-me/rainbowkit/styles.css";
 import {
   RainbowKitProvider,
   darkTheme,
-  getDefaultConfig,
 } from "@rainbow-me/rainbowkit";
 
 import {
@@ -13,14 +12,22 @@ import {
   QueryClientProvider,
 } from "@tanstack/react-query";
 
-import { WagmiProvider } from "wagmi";
+import { WagmiProvider, createConfig, http } from "wagmi";
 import { base } from "wagmi/chains";
+import { baseAccount } from "wagmi/connectors";
 import { useState } from "react";
 
-const config = getDefaultConfig({
-  appName: "Base Boing Battle",
-  projectId: "31299aa6a25a6b4fec5d2af2ed4a91bd",
+const config = createConfig({
   chains: [base],
+  multiInjectedProviderDiscovery: false,
+  connectors: [
+    baseAccount({
+      appName: "Base Boing Battle",
+    }),
+  ],
+  transports: {
+    [base.id]: http(),
+  },
   ssr: true,
 });
 
