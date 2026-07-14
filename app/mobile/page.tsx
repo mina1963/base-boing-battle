@@ -40,7 +40,7 @@ function formatEnergyTime(seconds: number) {
 
 function MobileEnergyCard() {
   const { address, isConnected, connector } = useAccount();
-  const { connectors, connect, isPending: isConnecting } = useConnect();
+  const { connectors, connectAsync, isPending: isConnecting } = useConnect();
   const { disconnect } = useDisconnect();
   const { data: walletClient } = useWalletClient();
   const publicClient = usePublicClient();
@@ -156,8 +156,14 @@ function MobileEnergyCard() {
         setStatus("BASE WALLET DISCONNECTED — TAP AGAIN");
         return;
       }
-      if (baseWalletConnector) connect({ connector: baseWalletConnector });
-      else setStatus("OPEN IN BASE APP");
+      if (baseWalletConnector) {
+        try {
+          setStatus("CONNECTING BASE WALLET");
+          await connectAsync({ connector: baseWalletConnector });
+        } catch {
+          setStatus("TAP AGAIN OR OPEN BASE APP");
+        }
+      } else setStatus("OPEN IN BASE APP");
       return;
     }
     if (energyLeft > 0 || !walletClient || !publicClient || !address) return;
@@ -180,6 +186,16 @@ function MobileEnergyCard() {
       setIsActivating(false);
     }
   };
+
+  useEffect(() => {
+    const energyWindow = window as Window & {
+      __bbbWalletAction?: () => void;
+    };
+    energyWindow.__bbbWalletAction = () => void handleAction();
+    return () => {
+      delete energyWindow.__bbbWalletAction;
+    };
+  });
 
   if (!menuVisible) return null;
 
@@ -2165,6 +2181,11 @@ export default function MobilePage() {
     margin-left:0 !important;
   }
 
+  /* Full-width player identity: help remains available from the later menu. */
+  #menuScreen .artTop { display:block !important; }
+  #menuScreen #profileTapArea { width:100% !important; max-width:none !important; }
+  #menuScreen #howBtnTop { display:none !important; }
+
 
   /* === PATCH: VS AI remove empty orb gap === */
   #difficultyScreen .premiumDiffOrb {
@@ -2359,7 +2380,6 @@ export default function MobilePage() {
           </div>
           <button id="editNameBtn" class="artEdit">✎</button>
         </div>
-        <button id="howBtnTop" class="artHow">?</button>
       </div>
 
       <button id="playBtn" class="artClickPlay" aria-label="Play"></button>
@@ -3923,6 +3943,12 @@ else next='BATTLE!';
     ]);
   }
   async function nativeBaseWalletFlow(){
+    // Prefer Wagmi's Coinbase/Base connector. It owns the WalletConnect / Base
+    // App return session, so Chrome can resume after approval and stay connected.
+    if(typeof window.__bbbWalletAction==='function'){
+      window.__bbbWalletAction();
+      return;
+    }
     var injected=window.ethereum;
     var provider=null;
     if(injected&&Array.isArray(injected.providers)){
