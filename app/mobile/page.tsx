@@ -8,6 +8,7 @@ import {
   usePublicClient,
   useWalletClient,
 } from "wagmi";
+import { formatEther } from "viem";
 
 const ENERGY_CONTRACT_ADDRESS =
   "0x55894e2e9b29dad1b526c7f7c5d2d5e8e1b9d7db" as const;
@@ -58,6 +59,7 @@ function MobileEnergyCard() {
   // mobile HTML as well. Some iOS webviews hydrate after the legacy menu script.
   const [menuVisible, setMenuVisible] = useState(true);
   const [energyLeft, setEnergyLeft] = useState(0);
+  const [walletBalance, setWalletBalance] = useState<string>("");
   const [status, setStatus] = useState("BASE WALLET REQUIRED");
   const [isActivating, setIsActivating] = useState(false);
   const lastActionAt = useRef(0);
@@ -109,17 +111,22 @@ function MobileEnergyCard() {
   const refreshEnergy = useCallback(async () => {
     if (!address || !publicClient || !isBaseWallet) {
       setEnergyLeft(0);
+      setWalletBalance("");
       setStatus(isConnected ? "SWITCH TO BASE WALLET" : "BASE WALLET REQUIRED");
       return;
     }
     try {
-      const left = await publicClient.readContract({
-        address: ENERGY_CONTRACT_ADDRESS,
-        abi: ENERGY_ABI,
-        functionName: "getEnergyTimeLeft",
-        args: [address],
-      });
+      const [left, balance] = await Promise.all([
+        publicClient.readContract({
+          address: ENERGY_CONTRACT_ADDRESS,
+          abi: ENERGY_ABI,
+          functionName: "getEnergyTimeLeft",
+          args: [address],
+        }),
+        publicClient.getBalance({ address }),
+      ]);
       const remaining = Number(left);
+      setWalletBalance(Number(formatEther(balance)).toFixed(6));
       setEnergyLeft(remaining);
       setStatus(remaining > 0 ? formatEnergyTime(remaining) : "READY TO ACTIVATE");
     } catch {
@@ -198,6 +205,12 @@ function MobileEnergyCard() {
     }
   };
 
+  useEffect(() => {
+    const runWalletAction = () => void handleAction();
+    window.addEventListener("bbb:wallet-action", runWalletAction);
+    return () => window.removeEventListener("bbb:wallet-action", runWalletAction);
+  });
+
   if (!menuVisible) return null;
 
   const active = energyLeft > 0;
@@ -215,18 +228,16 @@ function MobileEnergyCard() {
     <aside className={`mobileEnergyCard${active ? " active" : ""}`}>
       <div className="mobileEnergyOrb" aria-hidden="true">⚡</div>
       <div className="mobileEnergyCopy">
-        <span>BASE ENERGY</span>
+        <span>
+          {address && isBaseWallet
+            ? `${address.slice(0, 6)}…${address.slice(-4)} • ${walletBalance || "…"} ETH`
+            : "BASE ENERGY"}
+        </span>
         <strong>{status}</strong>
       </div>
       <button
+        id="mobileEnergyActionBtn"
         type="button"
-        onTouchEnd={(event) => {
-          // iOS 15 (the newest version available on iPhone 7 Plus) can fail to
-          // synthesize click for this layered game UI. Keep the wallet request
-          // in the original touch gesture so Base is allowed to open its UI.
-          event.preventDefault();
-          void handleAction();
-        }}
         onClick={(event) => {
           event.preventDefault();
           void handleAction();
@@ -3912,6 +3923,13 @@ else next='BATTLE!';
   bindTap($('restartBtn'), function(){ if(mode==='online'){ setOverlay('ONLINE RESTART DISABLED'); } else newMatch(); });
   bindTap($('playAgainBtn'), function(){ if(mode==='online' && socket && roomCode){ $('resultPanel').classList.remove('active'); setOverlay('WAITING RIVAL'); try{ socket.emit('play-again-ready',{ roomCode:roomCode, role:isHost?'host':'guest', nextMatchNo:onlineMatchNo+1 }); }catch(e){} } else newMatch(); });
   bindTap($('resultMenuBtn'), function(){ $('resultPanel').classList.remove('active'); leaveOnlineRoom(); show('menuScreen'); });
+  // Use the exact touch path that already works for Username and Settings on
+  // older iPhones, then synchronously hand the wallet action back to React.
+  setTimeout(function(){
+    bindTap($('mobileEnergyActionBtn'), function(){
+      window.dispatchEvent(new CustomEvent('bbb:wallet-action'));
+    });
+  },0);
   window.addEventListener('beforeunload', function(){ notifyLeavingOnline(); });
   window.addEventListener('pagehide', function(){ notifyLeavingOnline(); });
 
