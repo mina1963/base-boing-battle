@@ -12,22 +12,28 @@ import {
   QueryClientProvider,
 } from "@tanstack/react-query";
 
-import { WagmiProvider, createConfig, http } from "wagmi";
+import {
+  WagmiProvider,
+  createConfig,
+  createStorage,
+  cookieStorage,
+  http,
+} from "wagmi";
 import { base } from "wagmi/chains";
 import { baseAccount, injected } from "wagmi/connectors";
 import { useState } from "react";
 
 const config = createConfig({
   chains: [base],
-  multiInjectedProviderDiscovery: false,
   connectors: [
-    // Fallback for the Base App webview on iOS 15 (iPhone 7 Plus).
-    // That OS cannot complete the passkey-based Base Account flow.
-    injected({ shimDisconnect: true }),
+    injected(),
     baseAccount({
       appName: "Base Boing Battle",
     }),
   ],
+  storage: createStorage({
+    storage: cookieStorage,
+  }),
   transports: {
     [base.id]: http(),
   },
@@ -51,6 +57,7 @@ export function Providers({
             accentColor: "#0052FF",
             borderRadius: "large",
           })}
+          modalSize="wide"
         >
           {children}
         </RainbowKitProvider>

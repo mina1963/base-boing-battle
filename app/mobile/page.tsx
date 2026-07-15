@@ -1,9 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useConnectModal } from "@rainbow-me/rainbowkit";
 import {
   useAccount,
-  useConnect,
   useDisconnect,
   usePublicClient,
   useWalletClient,
@@ -29,9 +29,6 @@ const ENERGY_ABI = [
   },
 ] as const;
 
-const BUILDER_CODE_SUFFIX =
-  "0x62635f6873616772376c620b0080218021802180218021802180218021" as const;
-
 function formatEnergyTime(seconds: number) {
   const hours = Math.floor(seconds / 3600);
   const minutes = Math.floor((seconds % 3600) / 60);
@@ -49,8 +46,8 @@ function walletErrorLabel(error: unknown) {
 }
 
 function MobileEnergyCard() {
-  const { address, isConnected, connector } = useAccount();
-  const { connectors, connect, isPending: isConnecting } = useConnect();
+  const { address, isConnected } = useAccount();
+  const { openConnectModal } = useConnectModal();
   const { disconnect } = useDisconnect();
   const { data: walletClient } = useWalletClient();
   const publicClient = usePublicClient();
@@ -62,37 +59,9 @@ function MobileEnergyCard() {
   const [isActivating, setIsActivating] = useState(false);
   const lastActionAt = useRef(0);
 
-  const legacyIos = useMemo(() => {
-    if (typeof navigator === "undefined") return false;
-    const match = navigator.userAgent.match(/OS (\d+)[_\d]* like Mac OS X/i);
-    return Boolean(match && Number(match[1]) < 16);
-  }, []);
-
-  const baseWalletConnector = useMemo(
-    () => {
-      if (legacyIos) {
-        const legacy = connectors.find((item) =>
-          /injected/i.test(`${item.id} ${item.name}`),
-        );
-        if (legacy) return legacy;
-      }
-      return connectors.find((item) =>
-        /coinbase|base account|base wallet/i.test(`${item.id} ${item.name}`),
-      );
-    },
-    [connectors, legacyIos],
-  );
-
-  const isBaseWallet = Boolean(
-    isConnected &&
-      connector &&
-      (legacyIos
-        ? /coinbase|base account|base wallet|injected/i
-        : /coinbase|base account|base wallet/i
-      ).test(
-        `${connector.id} ${connector.name}`,
-      ),
-  );
+  // The provider exposes only Base-compatible choices, so any connection
+  // returned by RainbowKit is valid for the energy gate.
+  const isBaseWallet = isConnected;
 
   useEffect(() => {
     const updateVisibility = () => {
@@ -182,14 +151,7 @@ function MobileEnergyCard() {
         setStatus("BASE WALLET DISCONNECTED — TAP AGAIN");
         return;
       }
-      if (baseWalletConnector) {
-        // Keep the connector call directly inside the browser click task.
-        // Base Account opens a popup and iOS blocks it if it is deferred.
-        connect(
-          { connector: baseWalletConnector },
-          { onError: (error) => setStatus(walletErrorLabel(error)) },
-        );
-      } else setStatus("OPEN IN BASE APP");
+      openConnectModal?.();
       return;
     }
     if (energyLeft > 0 || !walletClient || !publicClient || !address) return;
@@ -214,9 +176,9 @@ function MobileEnergyCard() {
   };
 
   useEffect(() => {
-    const runLegacyWalletAction = () => void handleAction();
-    window.addEventListener("bbb:wallet-action", runLegacyWalletAction);
-    return () => window.removeEventListener("bbb:wallet-action", runLegacyWalletAction);
+    const walletWindow = window as Window & { __bbbWalletAction?: () => void };
+    walletWindow.__bbbWalletAction = () => void handleAction();
+    return () => { delete walletWindow.__bbbWalletAction; };
   });
 
   if (!menuVisible) return null;
@@ -228,9 +190,7 @@ function MobileEnergyCard() {
       ? isActivating
         ? "ACTIVATING..."
         : "ACTIVATE ENERGY"
-      : isConnecting
-        ? "CONNECTING..."
-        : "CONNECT BASE WALLET";
+      : "CONNECT BASE WALLET";
 
   return (
     <aside className={`mobileEnergyCard${active ? " active" : ""}`}>
@@ -252,7 +212,7 @@ function MobileEnergyCard() {
           event.preventDefault();
           void handleAction();
         }}
-        disabled={active || isActivating || isConnecting}
+        disabled={active || isActivating}
       >
         {buttonLabel}
       </button>
@@ -2399,8 +2359,8 @@ export default function MobilePage() {
   </div>
   <section id="menuScreen" class="screen active artworkMenu">
     <button id="iosWalletTapProxy" type="button" aria-label="Connect Base Wallet"
-      ontouchend="event.preventDefault();event.stopPropagation();window.dispatchEvent(new CustomEvent('bbb:wallet-action'))"
-      onclick="event.preventDefault();event.stopPropagation();window.dispatchEvent(new CustomEvent('bbb:wallet-action'))"></button>
+      ontouchend="event.preventDefault();event.stopPropagation();if(window.__bbbWalletAction)window.__bbbWalletAction()"
+      onclick="event.preventDefault();event.stopPropagation();if(window.__bbbWalletAction)window.__bbbWalletAction()"></button>
     <div class="artLobby">
       <div class="artHeaderMask"></div>
       <div class="artTop">
@@ -3927,7 +3887,7 @@ else next='BATTLE!';
   bindTap($('playBtn'), openModeScreen);
   bindTap($('settingsBtn'), function(){ show('settingsScreen'); });
   bindTap($('iosWalletTapProxy'), function(){
-    window.dispatchEvent(new CustomEvent('bbb:wallet-action'));
+    if(window.__bbbWalletAction) window.__bbbWalletAction();
   });
   bindTap($('settingsBackBtn'), function(){ show('menuScreen'); });
   bindTap($('soundToggleBtn'), function(){ soundEnabled=true; try{ localStorage.setItem('bbb_mobile_sound','on'); }catch(e){} syncSoundButton(); });
