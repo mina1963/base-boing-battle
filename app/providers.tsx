@@ -5,6 +5,7 @@ import "@rainbow-me/rainbowkit/styles.css";
 import {
   RainbowKitProvider,
   darkTheme,
+  getDefaultConfig,
 } from "@rainbow-me/rainbowkit";
 
 import {
@@ -12,32 +13,14 @@ import {
   QueryClientProvider,
 } from "@tanstack/react-query";
 
-import {
-  WagmiProvider,
-  cookieStorage,
-  createConfig,
-  createStorage,
-  http,
-} from "wagmi";
+import { WagmiProvider } from "wagmi";
 import { base } from "wagmi/chains";
-import { baseAccount, injected } from "wagmi/connectors";
 import { useState } from "react";
 
-const config = createConfig({
+const config = getDefaultConfig({
+  appName: "Base Boing Battle",
+  projectId: "31299aa6a25a6b4fec5d2af2ed4a91bd",
   chains: [base],
-  multiInjectedProviderDiscovery: false,
-  connectors: [
-    // Base App on older iOS exposes its wallet as an injected EIP-1193
-    // provider. Keep this first, matching the working Based Oracle client.
-    injected(),
-    baseAccount({
-      appName: "Base Boing Battle",
-    }),
-  ],
-  transports: {
-    [base.id]: http(),
-  },
-  storage: createStorage({ storage: cookieStorage }),
   ssr: true,
 });
 
@@ -58,7 +41,6 @@ export function Providers({
             accentColor: "#0052FF",
             borderRadius: "large",
           })}
-          modalSize="wide"
         >
           {children}
         </RainbowKitProvider>
