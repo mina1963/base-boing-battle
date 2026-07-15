@@ -66,6 +66,7 @@ function MobileEnergyCard() {
   const [status, setStatus] = useState("BASE WALLET REQUIRED");
   const [isActivating, setIsActivating] = useState(false);
   const lastActionAt = useRef(0);
+  const walletActionRef = useRef<() => void>(() => undefined);
 
   // The provider exposes only Base Account, so a connected account is already
   // the required Base wallet. Connector-name checks were rejecting valid
@@ -196,6 +197,31 @@ function MobileEnergyCard() {
     }
   };
 
+  // The legacy game shell contains full-screen layers. Older iOS WebKit can
+  // paint the React card above them while still hit-testing a legacy layer.
+  // Username/settings work because their bindTap listens to native touchend.
+  // Mirror that proven path at document capture level and use coordinates so
+  // the wallet opens inside the original user gesture even if an overlay was
+  // selected as event.target.
+  walletActionRef.current = () => void handleAction();
+  useEffect(() => {
+    const onTouchEnd = (event: TouchEvent) => {
+      const button = document.getElementById("baseWalletActionBtn");
+      const touch = event.changedTouches?.[0];
+      if (!button || !touch || button.hasAttribute("disabled")) return;
+      const rect = button.getBoundingClientRect();
+      if (
+        touch.clientX < rect.left || touch.clientX > rect.right ||
+        touch.clientY < rect.top || touch.clientY > rect.bottom
+      ) return;
+      event.preventDefault();
+      event.stopPropagation();
+      walletActionRef.current();
+    };
+    document.addEventListener("touchend", onTouchEnd, { capture: true, passive: false });
+    return () => document.removeEventListener("touchend", onTouchEnd, true);
+  }, []);
+
   if (!menuVisible) return null;
 
   const active = energyLeft > 0;
@@ -217,6 +243,7 @@ function MobileEnergyCard() {
         <strong>{status}</strong>
       </div>
       <button
+        id="baseWalletActionBtn"
         type="button"
         onClick={(event) => {
           event.preventDefault();
