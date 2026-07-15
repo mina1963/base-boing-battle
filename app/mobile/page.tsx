@@ -68,6 +68,7 @@ function MobileEnergyCard() {
   const [status, setStatus] = useState("BASE WALLET REQUIRED");
   const [isActivating, setIsActivating] = useState(false);
   const lastActionAt = useRef(0);
+  const walletActionRef = useRef<() => void>(() => undefined);
 
   // The provider exposes only Base Account, so a connected account is already
   // the required Base wallet. Connector-name checks were rejecting valid
@@ -218,6 +219,13 @@ function MobileEnergyCard() {
     }
   };
 
+  walletActionRef.current = () => void handleAction();
+  useEffect(() => {
+    const onWalletAction = () => walletActionRef.current();
+    window.addEventListener("bbb:wallet-action", onWalletAction);
+    return () => window.removeEventListener("bbb:wallet-action", onWalletAction);
+  }, []);
+
   const active = energyLeft > 0;
   const buttonLabel = active
     ? "ENERGY ACTIVE"
@@ -241,16 +249,7 @@ function MobileEnergyCard() {
     button.disabled = active || isActivating || isConnecting;
   }, [active, buttonLabel, isActivating, isConnecting, menuVisible, status]);
 
-  return (
-    <button
-      id="reactWalletBridge"
-      type="button"
-      tabIndex={-1}
-      aria-hidden="true"
-      style={{ display: "none" }}
-      onClick={() => void handleAction()}
-    />
-  );
+  return null;
 }
 
 export default function MobilePage() {
@@ -3913,14 +3912,9 @@ else next='BATTLE!';
   document.querySelectorAll('.difficulty').forEach(function(btn){ bindTap(btn,function(){ difficulty=btn.getAttribute('data-difficulty')||'normal'; document.querySelectorAll('.difficulty').forEach(function(b){b.classList.remove('selected')}); btn.classList.add('selected'); }); });
   bindTap($('playBtn'), openModeScreen);
   bindTap($('baseWalletActionBtn'), function(){
-    var bridge=$('reactWalletBridge');
     var walletCopy=$('legacyEnergyStatus');
-    if(bridge){
-      if(walletCopy) walletCopy.textContent='CONNECT REQUEST';
-      bridge.click();
-    }else if(walletCopy){
-      walletCopy.textContent='WALLET CONTROLLER NOT READY';
-    }
+    if(walletCopy) walletCopy.textContent='CONNECT REQUEST';
+    window.dispatchEvent(new CustomEvent('bbb:wallet-action'));
   });
   bindTap($('settingsBtn'), function(){ show('settingsScreen'); });
   bindTap($('settingsBackBtn'), function(){ show('menuScreen'); });
