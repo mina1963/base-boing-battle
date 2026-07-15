@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
 import {
   useAccount,
   useConnect,
@@ -68,7 +67,6 @@ function MobileEnergyCard() {
   const [energyLeft, setEnergyLeft] = useState(0);
   const [status, setStatus] = useState("BASE WALLET REQUIRED");
   const [isActivating, setIsActivating] = useState(false);
-  const [portalMount, setPortalMount] = useState<HTMLElement | null>(null);
   const lastActionAt = useRef(0);
 
   // The provider exposes only Base Account, so a connected account is already
@@ -79,10 +77,6 @@ function MobileEnergyCard() {
   const baseConnector = connectors.find((item) =>
     /coinbase|base/i.test(`${item.id} ${item.name}`),
   );
-
-  useEffect(() => {
-    setPortalMount(document.getElementById("energyReactMount"));
-  }, []);
 
   useEffect(() => {
     const updateVisibility = () => {
@@ -235,8 +229,8 @@ function MobileEnergyCard() {
         ? "CONNECTING..."
         : "CONNECT BASE WALLET";
 
-  if (!portalMount || !menuVisible) return null;
-  return createPortal(
+  if (!menuVisible) return null;
+  return (
     <aside className={`mobileEnergyCard${active ? " active" : ""}`}>
       <div className="mobileEnergyOrb" aria-hidden="true">⚡</div>
       <div className="mobileEnergyCopy">
@@ -250,8 +244,7 @@ function MobileEnergyCard() {
       >
         {buttonLabel}
       </button>
-    </aside>,
-    portalMount,
+    </aside>
   );
 }
 
@@ -2336,7 +2329,7 @@ export default function MobilePage() {
 
   /* Base-only energy control rendered by React above the legacy game shell. */
   .mobileEnergyCard {
-    position:fixed; z-index:110;
+    position:fixed; z-index:10000;
     top:calc(env(safe-area-inset-top) + 80px);
     left:max(16px,calc((100vw - 430px)/2 + 16px));
     right:max(16px,calc((100vw - 430px)/2 + 16px));
@@ -2368,7 +2361,6 @@ export default function MobilePage() {
 </style>
 <div id="app">
   <div id="noise"></div>
-  <div id="energyReactMount"></div>
 
   <div id="usernameModal" aria-hidden="true">
     <div class="usernameModalCard">
