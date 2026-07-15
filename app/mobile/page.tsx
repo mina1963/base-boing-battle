@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   useAccount,
+  useConnect,
   usePublicClient,
   useWalletClient,
 } from "wagmi";
@@ -56,6 +57,7 @@ function walletErrorLabel(error: unknown) {
 
 function MobileEnergyCard() {
   const { address, isConnected } = useAccount();
+  const { connectors, connect, isPending: isConnecting } = useConnect();
   const { openConnectModal } = useConnectModal();
   const { data: walletClient } = useWalletClient();
   const publicClient = usePublicClient();
@@ -72,7 +74,9 @@ function MobileEnergyCard() {
   // the required Base wallet. Connector-name checks were rejecting valid
   // Base App sessions because their labels differ between iOS and Android.
   const isBaseWallet = isConnected;
-  const isConnecting = false;
+  const injectedConnector =
+    connectors.find((item) => item.id === "injected") ??
+    connectors.find((item) => /coinbase|base/i.test(`${item.id} ${item.name}`));
 
   useEffect(() => {
     const updateVisibility = () => {
@@ -168,9 +172,25 @@ function MobileEnergyCard() {
     if (now - lastActionAt.current < 650) return;
     lastActionAt.current = now;
     if (!isBaseWallet) {
-      // This is the exact connection path used by the working Based Oracle
-      // client. RainbowKit opens Base Account synchronously from this gesture.
-      setStatus("OPENING BASE WALLET");
+      const browserWindow = window as Window & {
+        ethereum?: { request?: (...args: unknown[]) => unknown };
+      };
+      const isIOS = /iPad|iPhone|iPod/i.test(navigator.userAgent);
+      // Older iOS Base App webviews expose an injected EIP-1193 provider but
+      // do not present RainbowKit's modal reliably. Connect that provider
+      // directly while still inside the native touch gesture.
+      if (isIOS && browserWindow.ethereum?.request && injectedConnector) {
+        setStatus("CONNECTING BASE WALLET");
+        connect(
+          { connector: injectedConnector },
+          {
+            onSuccess: () => setStatus("CHECKING BASE ENERGY"),
+            onError: (error) => setStatus(walletErrorLabel(error)),
+          },
+        );
+        return;
+      }
+      setStatus("OPENING WALLET LIST");
       if (openConnectModal) openConnectModal();
       else setStatus("WALLET UI NOT READY — RELOAD");
       return;
