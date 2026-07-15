@@ -14,29 +14,27 @@ import {
 
 import {
   WagmiProvider,
+  cookieStorage,
   createConfig,
   createStorage,
-  cookieStorage,
   http,
 } from "wagmi";
 import { base } from "wagmi/chains";
-import { baseAccount, injected } from "wagmi/connectors";
+import { baseAccount } from "wagmi/connectors";
 import { useState } from "react";
 
 const config = createConfig({
   chains: [base],
+  multiInjectedProviderDiscovery: false,
   connectors: [
-    injected(),
     baseAccount({
       appName: "Base Boing Battle",
     }),
   ],
-  storage: createStorage({
-    storage: cookieStorage,
-  }),
   transports: {
     [base.id]: http(),
   },
+  storage: createStorage({ storage: cookieStorage }),
   ssr: true,
 });
 

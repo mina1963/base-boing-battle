@@ -1,13 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useConnectModal } from "@rainbow-me/rainbowkit";
 import {
   useAccount,
-  useDisconnect,
   usePublicClient,
   useWalletClient,
 } from "wagmi";
+import { useConnectModal } from "@rainbow-me/rainbowkit";
 
 const ENERGY_CONTRACT_ADDRESS =
   "0x55894e2e9b29dad1b526c7f7c5d2d5e8e1b9d7db" as const;
@@ -22,12 +21,22 @@ const ENERGY_ABI = [
   },
   {
     type: "function",
-    name: "getEnergyTimeLeft",
+    name: "isEnergyActive",
     stateMutability: "view",
-    inputs: [{ name: "user", type: "address" }],
+    inputs: [{ name: "player", type: "address" }],
+    outputs: [{ name: "", type: "bool" }],
+  },
+  {
+    type: "function",
+    name: "nextActivation",
+    stateMutability: "view",
+    inputs: [{ name: "player", type: "address" }],
     outputs: [{ name: "", type: "uint256" }],
   },
 ] as const;
+
+const BUILDER_CODE_SUFFIX =
+  "0x62635f6873616772376c620b0080218021802180218021802180218021" as const;
 
 function formatEnergyTime(seconds: number) {
   const hours = Math.floor(seconds / 3600);
@@ -48,7 +57,6 @@ function walletErrorLabel(error: unknown) {
 function MobileEnergyCard() {
   const { address, isConnected } = useAccount();
   const { openConnectModal } = useConnectModal();
-  const { disconnect } = useDisconnect();
   const { data: walletClient } = useWalletClient();
   const publicClient = usePublicClient();
   // Start visible so the Base Wallet gate is present in the server-rendered
@@ -59,9 +67,11 @@ function MobileEnergyCard() {
   const [isActivating, setIsActivating] = useState(false);
   const lastActionAt = useRef(0);
 
-  // The provider exposes only Base-compatible choices, so any connection
-  // returned by RainbowKit is valid for the energy gate.
+  // The provider exposes only Base Account, so a connected account is already
+  // the required Base wallet. Connector-name checks were rejecting valid
+  // Base App sessions because their labels differ between iOS and Android.
   const isBaseWallet = isConnected;
+  const isConnecting = false;
 
   useEffect(() => {
     const updateVisibility = () => {
@@ -98,10 +108,21 @@ function MobileEnergyCard() {
       return;
     }
     try {
+      const active = await publicClient.readContract({
+        address: ENERGY_CONTRACT_ADDRESS,
+        abi: ENERGY_ABI,
+        functionName: "isEnergyActive",
+        args: [address],
+      });
+      if (!active) {
+        setEnergyLeft(0);
+        setStatus("READY TO ACTIVATE");
+        return;
+      }
       const left = await publicClient.readContract({
         address: ENERGY_CONTRACT_ADDRESS,
         abi: ENERGY_ABI,
-        functionName: "getEnergyTimeLeft",
+        functionName: "nextActivation",
         args: [address],
       });
       const remaining = Number(left);
@@ -146,12 +167,10 @@ function MobileEnergyCard() {
     if (now - lastActionAt.current < 650) return;
     lastActionAt.current = now;
     if (!isBaseWallet) {
-      if (isConnected) {
-        disconnect();
-        setStatus("BASE WALLET DISCONNECTED — TAP AGAIN");
-        return;
-      }
-      openConnectModal?.();
+      // This is the exact connection path used by the working Based Oracle
+      // client. RainbowKit opens Base Account synchronously from this gesture.
+      if (openConnectModal) openConnectModal();
+      else setStatus("WALLET UI NOT READY — RELOAD");
       return;
     }
     if (energyLeft > 0 || !walletClient || !publicClient || !address) return;
@@ -163,9 +182,11 @@ function MobileEnergyCard() {
         abi: ENERGY_ABI,
         functionName: "activateEnergy",
         account: address,
+        dataSuffix: BUILDER_CODE_SUFFIX,
       });
       setStatus("ACTIVATING ON BASE");
-      await publicClient.waitForTransactionReceipt({ hash });
+      const receipt = await publicClient.waitForTransactionReceipt({ hash });
+      if (receipt.status !== "success") throw new Error("TRANSACTION REVERTED");
       await refreshEnergy();
     } catch (error) {
       console.error("Base Energy activation failed", error);
@@ -174,12 +195,6 @@ function MobileEnergyCard() {
       setIsActivating(false);
     }
   };
-
-  useEffect(() => {
-    const walletWindow = window as Window & { __bbbWalletAction?: () => void };
-    walletWindow.__bbbWalletAction = () => void handleAction();
-    return () => { delete walletWindow.__bbbWalletAction; };
-  });
 
   if (!menuVisible) return null;
 
@@ -190,7 +205,9 @@ function MobileEnergyCard() {
       ? isActivating
         ? "ACTIVATING..."
         : "ACTIVATE ENERGY"
-      : "CONNECT BASE WALLET";
+      : isConnecting
+        ? "CONNECTING..."
+        : "CONNECT BASE WALLET";
 
   return (
     <aside className={`mobileEnergyCard${active ? " active" : ""}`}>
@@ -201,18 +218,11 @@ function MobileEnergyCard() {
       </div>
       <button
         type="button"
-        onTouchEnd={(event) => {
-          // iOS 15 (the newest version available on iPhone 7 Plus) can fail to
-          // synthesize click for this layered game UI. Keep the wallet request
-          // in the original touch gesture so Base is allowed to open its UI.
-          event.preventDefault();
-          void handleAction();
-        }}
         onClick={(event) => {
           event.preventDefault();
           void handleAction();
         }}
-        disabled={active || isActivating}
+        disabled={active || isActivating || isConnecting}
       >
         {buttonLabel}
       </button>
@@ -2327,17 +2337,6 @@ export default function MobilePage() {
   .mobileEnergyCard.active button { border-color:rgba(69,255,185,.45); color:#b8ffdf; background:rgba(23,135,89,.35); box-shadow:0 0 18px rgba(34,255,167,.18); }
   .mobileEnergyCard button:disabled { opacity:.9; }
   html[data-username-modal="open"] .mobileEnergyCard { display:none !important; pointer-events:none !important; }
-  #iosWalletTapProxy {
-    position:fixed; z-index:140;
-    top:calc(env(safe-area-inset-top) + 80px);
-    left:max(16px,calc((100vw - 430px)/2 + 16px));
-    right:max(16px,calc((100vw - 430px)/2 + 16px));
-    width:auto; height:64px; border:0; padding:0; margin:0;
-    opacity:.001; background:#fff; color:transparent;
-    display:block; pointer-events:auto; touch-action:manipulation;
-    -webkit-appearance:none; appearance:none;
-  }
-  html[data-username-modal="open"] #iosWalletTapProxy { display:none !important; pointer-events:none !important; }
   @keyframes energyCardIn { from{opacity:0;transform:translateY(-8px) scale(.98)} to{opacity:1;transform:translateY(0) scale(1)} }
   @keyframes energyRequired { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-7px)} 50%{transform:translateX(7px)} 75%{transform:translateX(-4px)} }
   @media(max-width:360px){ .mobileEnergyCard{grid-template-columns:36px minmax(0,1fr) auto;gap:7px;padding:8px}.mobileEnergyOrb{width:36px;height:36px;border-radius:13px}.mobileEnergyCard button{min-width:90px;padding:0 8px;font-size:7px} }
@@ -2358,9 +2357,6 @@ export default function MobilePage() {
     </div>
   </div>
   <section id="menuScreen" class="screen active artworkMenu">
-    <button id="iosWalletTapProxy" type="button" aria-label="Connect Base Wallet"
-      ontouchend="event.preventDefault();event.stopPropagation();if(window.__bbbWalletAction)window.__bbbWalletAction()"
-      onclick="event.preventDefault();event.stopPropagation();if(window.__bbbWalletAction)window.__bbbWalletAction()"></button>
     <div class="artLobby">
       <div class="artHeaderMask"></div>
       <div class="artTop">
@@ -3886,9 +3882,6 @@ else next='BATTLE!';
   document.querySelectorAll('.difficulty').forEach(function(btn){ bindTap(btn,function(){ difficulty=btn.getAttribute('data-difficulty')||'normal'; document.querySelectorAll('.difficulty').forEach(function(b){b.classList.remove('selected')}); btn.classList.add('selected'); }); });
   bindTap($('playBtn'), openModeScreen);
   bindTap($('settingsBtn'), function(){ show('settingsScreen'); });
-  bindTap($('iosWalletTapProxy'), function(){
-    if(window.__bbbWalletAction) window.__bbbWalletAction();
-  });
   bindTap($('settingsBackBtn'), function(){ show('menuScreen'); });
   bindTap($('soundToggleBtn'), function(){ soundEnabled=true; try{ localStorage.setItem('bbb_mobile_sound','on'); }catch(e){} syncSoundButton(); });
   bindTap($('soundOffBtn'), function(){ soundEnabled=false; try{ localStorage.setItem('bbb_mobile_sound','off'); }catch(e){} syncSoundButton(); });
@@ -3912,116 +3905,6 @@ else next='BATTLE!';
   bindTap($('resultMenuBtn'), function(){ $('resultPanel').classList.remove('active'); leaveOnlineRoom(); show('menuScreen'); });
   window.addEventListener('beforeunload', function(){ notifyLeavingOnline(); });
   window.addEventListener('pagehide', function(){ notifyLeavingOnline(); });
-
-  // Native wallet bridge for older iOS browsers. The page contains a large
-  // legacy game shell, so React hydration can arrive too late for the first tap.
-  // This delegated handler works even when the React wallet card is replaced.
-  var nativeWalletTapAt=0;
-  var ENERGY_CONTRACT='0x55894e2e9b29dad1b526c7f7c5d2d5e8e1b9d7db';
-  var ENERGY_BUILDER_SUFFIX='62635f6873616772376c620b0080218021802180218021802180218021';
-  function nativeEnergyUi(message,active){
-    var copy=document.querySelector('.mobileEnergyCopy strong');
-    var button=document.querySelector('.mobileEnergyCard button');
-    var card=document.querySelector('.mobileEnergyCard');
-    if(copy) copy.textContent=message;
-    if(button) button.textContent=active?'ENERGY ACTIVE':message==='READY TO ACTIVATE'?'ACTIVATE ENERGY':'CONNECT BASE WALLET';
-    if(card) card.classList.toggle('active',!!active);
-    window.__bbbEnergyActive=!!active;
-  }
-  function nativeHexAddressData(address){
-    return '0x19c3994b'+String(address||'').toLowerCase().replace(/^0x/,'').padStart(64,'0');
-  }
-  function nativeRequestWithTimeout(provider,payload,timeoutMs){
-    return Promise.race([
-      provider.request(payload),
-      new Promise(function(_,reject){ setTimeout(function(){ reject(new Error('WALLET_TIMEOUT')); },timeoutMs); })
-    ]);
-  }
-  async function nativeBaseWalletFlow(){
-    // Prefer Wagmi's Coinbase/Base connector. It owns the WalletConnect / Base
-    // App return session, so Chrome can resume after approval and stay connected.
-    if(typeof window.__bbbWalletAction==='function'){
-      window.__bbbWalletAction();
-      return;
-    }
-    var injected=window.ethereum;
-    var provider=null;
-    if(injected&&Array.isArray(injected.providers)){
-      provider=injected.providers.find(function(item){ return item&&(item.isCoinbaseWallet||item.isBaseWallet); })||null;
-    }else if(injected&&(injected.isCoinbaseWallet||injected.isBaseWallet)){
-      provider=injected;
-    }
-    if(!provider || typeof provider.request!=='function'){
-      nativeEnergyUi('OPENING BASE APP',false);
-      var returnUrl=window.location.href.split('#')[0];
-      window.location.href='https://go.cb-w.com/dapp?cb_url='+encodeURIComponent(returnUrl);
-      return;
-    }
-    try{
-      nativeEnergyUi('CONNECTING BASE WALLET',false);
-      // Base App generally exposes its active account already. Asking again can
-      // leave older iOS webviews waiting forever without showing a prompt.
-      var accounts=[];
-      try{ accounts=await nativeRequestWithTimeout(provider,{method:'eth_accounts'},3500)||[]; }catch(accountReadError){}
-      if(!accounts.length){
-        accounts=await nativeRequestWithTimeout(provider,{method:'eth_requestAccounts'},12000);
-      }
-      var account=accounts&&accounts[0];
-      if(!account) throw new Error('NO_ACCOUNT');
-      try{
-        await provider.request({method:'wallet_switchEthereumChain',params:[{chainId:'0x2105'}]});
-      }catch(chainError){
-        try{
-          await provider.request({method:'wallet_addEthereumChain',params:[{
-            chainId:'0x2105',chainName:'Base',nativeCurrency:{name:'Ether',symbol:'ETH',decimals:18},
-            rpcUrls:['https://mainnet.base.org'],blockExplorerUrls:['https://basescan.org']
-          }]});
-        }catch(addError){}
-      }
-      var leftHex=await provider.request({method:'eth_call',params:[{
-        to:ENERGY_CONTRACT,data:nativeHexAddressData(account)
-      },'latest']});
-      var left=0;
-      try{ left=Number(BigInt(leftHex||'0x0')); }catch(parseError){}
-      if(left>0){
-        var hours=Math.floor(left/3600),minutes=Math.floor((left%3600)/60);
-        nativeEnergyUi('ENERGY ACTIVE • '+(hours?hours+'H ':'')+minutes+'M LEFT',true);
-        return;
-      }
-      nativeEnergyUi('CONFIRM IN BASE WALLET',false);
-      var txHash=await provider.request({method:'eth_sendTransaction',params:[{
-        from:account,to:ENERGY_CONTRACT,value:'0x0',data:'0xf5d7e22f'+ENERGY_BUILDER_SUFFIX
-      }]});
-      nativeEnergyUi('ACTIVATING ON BASE',false);
-      var attempts=0;
-      var receiptTimer=setInterval(async function(){
-        attempts++;
-        try{
-          var receipt=await provider.request({method:'eth_getTransactionReceipt',params:[txHash]});
-          if(receipt){
-            clearInterval(receiptTimer);
-            if(receipt.status==='0x1') nativeEnergyUi('ENERGY ACTIVE • 24H UNLOCKED',true);
-            else nativeEnergyUi('ACTIVATION FAILED',false);
-          }else if(attempts>60){ clearInterval(receiptTimer); nativeEnergyUi('CHECK TRANSACTION STATUS',false); }
-        }catch(receiptError){ if(attempts>60) clearInterval(receiptTimer); }
-      },2000);
-    }catch(error){
-      nativeEnergyUi('TAP TO CONNECT BASE WALLET',false);
-    }
-  }
-  function nativeEnergyTap(event){
-    var target=event.target&&event.target.closest?event.target.closest('.mobileEnergyCard button'):null;
-    if(!target) return;
-    var now=Date.now();
-    if(now-nativeWalletTapAt<700) return;
-    nativeWalletTapAt=now;
-    event.preventDefault();
-    event.stopPropagation();
-    if(event.stopImmediatePropagation) event.stopImmediatePropagation();
-    nativeBaseWalletFlow();
-  }
-  // Do not capture the Base button here. Base Account must receive the native
-  // React click directly or iOS treats its connection popup as unsolicited.
 
   setTimeout(function(){
     canvas=$('gameCanvas');
