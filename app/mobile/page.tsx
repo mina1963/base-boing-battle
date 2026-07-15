@@ -68,6 +68,8 @@ function MobileEnergyCard() {
   const [status, setStatus] = useState("BASE WALLET REQUIRED");
   const [isActivating, setIsActivating] = useState(false);
   const lastActionAt = useRef(0);
+  const walletButtonRef = useRef<HTMLButtonElement>(null);
+  const walletActionRef = useRef<() => void>(() => undefined);
 
   // The provider exposes only Base Account, so a connected account is already
   // the required Base wallet. Connector-name checks were rejecting valid
@@ -218,6 +220,19 @@ function MobileEnergyCard() {
     }
   };
 
+  walletActionRef.current = () => void handleAction();
+  useEffect(() => {
+    const button = walletButtonRef.current;
+    if (!button) return;
+    const onTouchEnd = (event: TouchEvent) => {
+      event.preventDefault();
+      event.stopPropagation();
+      walletActionRef.current();
+    };
+    button.addEventListener("touchend", onTouchEnd, { passive: false });
+    return () => button.removeEventListener("touchend", onTouchEnd);
+  }, [menuVisible]);
+
   const active = energyLeft > 0;
   const buttonLabel = active
     ? "ENERGY ACTIVE"
@@ -238,6 +253,7 @@ function MobileEnergyCard() {
         <strong>{status}</strong>
       </div>
       <button
+        ref={walletButtonRef}
         type="button"
         disabled={active || isActivating || isConnecting}
         onClick={() => void handleAction()}
