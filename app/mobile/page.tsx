@@ -210,28 +210,11 @@ function MobileEnergyCard() {
     walletWindow.__bbbWalletAction = () => walletActionRef.current();
     const onLegacyWalletTap = () => walletActionRef.current();
     window.addEventListener("bbb:wallet-tap", onLegacyWalletTap);
-    const onTouchEnd = (event: TouchEvent) => {
-      const button = document.getElementById("baseWalletActionBtn");
-      const touch = event.changedTouches?.[0];
-      if (!button || !touch || button.hasAttribute("disabled")) return;
-      const rect = button.getBoundingClientRect();
-      if (
-        touch.clientX < rect.left || touch.clientX > rect.right ||
-        touch.clientY < rect.top || touch.clientY > rect.bottom
-      ) return;
-      event.preventDefault();
-      event.stopPropagation();
-      walletActionRef.current();
-    };
-    document.addEventListener("touchend", onTouchEnd, { capture: true, passive: false });
     return () => {
-      document.removeEventListener("touchend", onTouchEnd, true);
       window.removeEventListener("bbb:wallet-tap", onLegacyWalletTap);
       delete walletWindow.__bbbWalletAction;
     };
   }, []);
-
-  if (!menuVisible) return null;
 
   const active = energyLeft > 0;
   const buttonLabel = active
@@ -244,26 +227,19 @@ function MobileEnergyCard() {
         ? "CONNECTING..."
         : "CONNECT BASE WALLET";
 
-  return (
-    <aside className={`mobileEnergyCard${active ? " active" : ""}`}>
-      <div className="mobileEnergyOrb" aria-hidden="true">⚡</div>
-      <div className="mobileEnergyCopy">
-        <span>BASE ENERGY</span>
-        <strong>{status}</strong>
-      </div>
-      <button
-        id="baseWalletActionBtn"
-        type="button"
-        onClick={(event) => {
-          event.preventDefault();
-          void handleAction();
-        }}
-        disabled={active || isActivating || isConnecting}
-      >
-        {buttonLabel}
-      </button>
-    </aside>
-  );
+  useEffect(() => {
+    const card = document.getElementById("legacyEnergyCard");
+    const copy = document.getElementById("legacyEnergyStatus");
+    const button = document.getElementById("baseWalletActionBtn") as HTMLButtonElement | null;
+    if (!card || !copy || !button) return;
+    card.style.display = menuVisible ? "grid" : "none";
+    card.classList.toggle("active", active);
+    copy.textContent = status;
+    button.textContent = buttonLabel;
+    button.disabled = active || isActivating || isConnecting;
+  }, [active, buttonLabel, isActivating, isConnecting, menuVisible, status]);
+
+  return null;
 }
 
 export default function MobilePage() {
@@ -2372,25 +2348,21 @@ export default function MobilePage() {
   .mobileEnergyCard button { position:relative; z-index:2; min-width:108px; min-height:40px; padding:0 11px; border:1px solid rgba(107,219,255,.5); border-radius:15px; color:white; background:linear-gradient(180deg,#1687ff,#0052ff 58%,#07327e); box-shadow:0 0 20px rgba(0,82,255,.4),inset 0 1px 0 rgba(255,255,255,.28); font-size:8px; font-weight:1000; letter-spacing:.09em; touch-action:manipulation; pointer-events:auto !important; cursor:pointer; -webkit-user-select:none; user-select:none; }
   .mobileEnergyCard.active button { border-color:rgba(69,255,185,.45); color:#b8ffdf; background:rgba(23,135,89,.35); box-shadow:0 0 18px rgba(34,255,167,.18); }
   .mobileEnergyCard button:disabled { opacity:.9; }
-  #iosBaseWalletTap {
-    position:fixed; z-index:10000;
-    top:calc(env(safe-area-inset-top) + 80px);
-    left:max(16px,calc((100vw - 430px)/2 + 16px));
-    right:max(16px,calc((100vw - 430px)/2 + 16px));
-    width:auto; height:64px; margin:0; padding:0; border:0;
-    opacity:1; background:transparent; color:transparent;
-    pointer-events:auto !important; touch-action:manipulation;
-    -webkit-appearance:none; appearance:none;
-  }
   html[data-username-modal="open"] .mobileEnergyCard { display:none !important; pointer-events:none !important; }
-  html[data-username-modal="open"] #iosBaseWalletTap { display:none !important; pointer-events:none !important; }
   @keyframes energyCardIn { from{opacity:0;transform:translateY(-8px) scale(.98)} to{opacity:1;transform:translateY(0) scale(1)} }
   @keyframes energyRequired { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-7px)} 50%{transform:translateX(7px)} 75%{transform:translateX(-4px)} }
   @media(max-width:360px){ .mobileEnergyCard{grid-template-columns:36px minmax(0,1fr) auto;gap:7px;padding:8px}.mobileEnergyOrb{width:36px;height:36px;border-radius:13px}.mobileEnergyCard button{min-width:90px;padding:0 8px;font-size:7px} }
 </style>
 <div id="app">
   <div id="noise"></div>
-  <button id="iosBaseWalletTap" type="button" aria-label="Connect Base Wallet"></button>
+  <aside id="legacyEnergyCard" class="mobileEnergyCard">
+    <div class="mobileEnergyOrb" aria-hidden="true">⚡</div>
+    <div class="mobileEnergyCopy">
+      <span>BASE ENERGY</span>
+      <strong id="legacyEnergyStatus">BASE WALLET REQUIRED</strong>
+    </div>
+    <button id="baseWalletActionBtn" type="button">CONNECT BASE WALLET</button>
+  </aside>
 
   <div id="usernameModal" aria-hidden="true">
     <div class="usernameModalCard">
@@ -3929,9 +3901,9 @@ else next='BATTLE!';
   document.querySelectorAll('.arena').forEach(function(btn){ bindTap(btn,function(){ arena=btn.getAttribute('data-arena')||'classic'; document.querySelectorAll('.arena').forEach(function(b){b.classList.remove('selected')}); btn.classList.add('selected'); }); });
   document.querySelectorAll('.difficulty').forEach(function(btn){ bindTap(btn,function(){ difficulty=btn.getAttribute('data-difficulty')||'normal'; document.querySelectorAll('.difficulty').forEach(function(b){b.classList.remove('selected')}); btn.classList.add('selected'); }); });
   bindTap($('playBtn'), openModeScreen);
-  bindTap($('iosBaseWalletTap'), function(){
-    var walletCopy=document.querySelector('.mobileEnergyCopy strong');
-    if(walletCopy) walletCopy.textContent='TOUCH RECEIVED';
+  bindTap($('baseWalletActionBtn'), function(){
+    var walletCopy=$('legacyEnergyStatus');
+    if(walletCopy) walletCopy.textContent='OPENING BASE WALLET';
     if(typeof window.__bbbWalletAction==='function') window.__bbbWalletAction();
     else window.dispatchEvent(new CustomEvent('bbb:wallet-tap'));
   });
