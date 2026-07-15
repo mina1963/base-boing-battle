@@ -74,9 +74,10 @@ function MobileEnergyCard() {
   // the required Base wallet. Connector-name checks were rejecting valid
   // Base App sessions because their labels differ between iOS and Android.
   const isBaseWallet = isConnected;
-  const injectedConnector =
-    connectors.find((item) => item.id === "injected") ??
-    connectors.find((item) => /coinbase|base/i.test(`${item.id} ${item.name}`));
+  const injectedConnector = connectors.find((item) => item.id === "injected");
+  const baseConnector = connectors.find((item) =>
+    /coinbase|base/i.test(`${item.id} ${item.name}`),
+  );
 
   useEffect(() => {
     const updateVisibility = () => {
@@ -172,17 +173,17 @@ function MobileEnergyCard() {
     if (now - lastActionAt.current < 650) return;
     lastActionAt.current = now;
     if (!isBaseWallet) {
-      const browserWindow = window as Window & {
-        ethereum?: { request?: (...args: unknown[]) => unknown };
-      };
       const isIOS = /iPad|iPhone|iPod/i.test(navigator.userAgent);
-      // Older iOS Base App webviews expose an injected EIP-1193 provider but
-      // do not present RainbowKit's modal reliably. Connect that provider
-      // directly while still inside the native touch gesture.
-      if (isIOS && browserWindow.ethereum?.request && injectedConnector) {
+      const browserWindow = window as Window & { ethereum?: unknown };
+      const iosConnector = browserWindow.ethereum
+        ? (injectedConnector ?? baseConnector)
+        : (baseConnector ?? injectedConnector);
+      // iOS Base App may not publish window.ethereum. In that case use the
+      // Coinbase/Base SDK connector directly instead of waiting for a modal.
+      if (isIOS && iosConnector) {
         setStatus("CONNECTING BASE WALLET");
         connect(
-          { connector: injectedConnector },
+          { connector: iosConnector },
           {
             onSuccess: () => setStatus("CHECKING BASE ENERGY"),
             onError: (error) => setStatus(walletErrorLabel(error)),
@@ -3922,8 +3923,6 @@ else next='BATTLE!';
   document.querySelectorAll('.difficulty').forEach(function(btn){ bindTap(btn,function(){ difficulty=btn.getAttribute('data-difficulty')||'normal'; document.querySelectorAll('.difficulty').forEach(function(b){b.classList.remove('selected')}); btn.classList.add('selected'); }); });
   bindTap($('playBtn'), openModeScreen);
   bindTap($('baseWalletActionBtn'), function(){
-    var walletCopy=$('legacyEnergyStatus');
-    if(walletCopy) walletCopy.textContent='OPENING BASE WALLET';
     if(typeof window.__bbbWalletAction==='function') window.__bbbWalletAction();
     else window.dispatchEvent(new CustomEvent('bbb:wallet-tap'));
   });
