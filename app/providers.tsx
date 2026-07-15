@@ -20,13 +20,16 @@ import {
   http,
 } from "wagmi";
 import { base } from "wagmi/chains";
-import { baseAccount } from "wagmi/connectors";
+import { baseAccount, injected } from "wagmi/connectors";
 import { useState } from "react";
 
 const config = createConfig({
   chains: [base],
   multiInjectedProviderDiscovery: false,
   connectors: [
+    // Base App on older iOS exposes its wallet as an injected EIP-1193
+    // provider. Keep this first, matching the working Based Oracle client.
+    injected(),
     baseAccount({
       appName: "Base Boing Battle",
     }),
