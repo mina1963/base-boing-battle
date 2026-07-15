@@ -208,6 +208,8 @@ function MobileEnergyCard() {
   useEffect(() => {
     const walletWindow = window as Window & { __bbbWalletAction?: () => void };
     walletWindow.__bbbWalletAction = () => walletActionRef.current();
+    const onLegacyWalletTap = () => walletActionRef.current();
+    window.addEventListener("bbb:wallet-tap", onLegacyWalletTap);
     const onTouchEnd = (event: TouchEvent) => {
       const button = document.getElementById("baseWalletActionBtn");
       const touch = event.changedTouches?.[0];
@@ -224,6 +226,7 @@ function MobileEnergyCard() {
     document.addEventListener("touchend", onTouchEnd, { capture: true, passive: false });
     return () => {
       document.removeEventListener("touchend", onTouchEnd, true);
+      window.removeEventListener("bbb:wallet-tap", onLegacyWalletTap);
       delete walletWindow.__bbbWalletAction;
     };
   }, []);
@@ -2370,12 +2373,12 @@ export default function MobilePage() {
   .mobileEnergyCard.active button { border-color:rgba(69,255,185,.45); color:#b8ffdf; background:rgba(23,135,89,.35); box-shadow:0 0 18px rgba(34,255,167,.18); }
   .mobileEnergyCard button:disabled { opacity:.9; }
   #iosBaseWalletTap {
-    position:fixed; z-index:119;
+    position:fixed; z-index:10000;
     top:calc(env(safe-area-inset-top) + 80px);
     left:max(16px,calc((100vw - 430px)/2 + 16px));
     right:max(16px,calc((100vw - 430px)/2 + 16px));
     width:auto; height:64px; margin:0; padding:0; border:0;
-    opacity:.001; background:#fff; color:transparent;
+    opacity:1; background:transparent; color:transparent;
     pointer-events:auto !important; touch-action:manipulation;
     -webkit-appearance:none; appearance:none;
   }
@@ -3927,7 +3930,10 @@ else next='BATTLE!';
   document.querySelectorAll('.difficulty').forEach(function(btn){ bindTap(btn,function(){ difficulty=btn.getAttribute('data-difficulty')||'normal'; document.querySelectorAll('.difficulty').forEach(function(b){b.classList.remove('selected')}); btn.classList.add('selected'); }); });
   bindTap($('playBtn'), openModeScreen);
   bindTap($('iosBaseWalletTap'), function(){
+    var walletCopy=document.querySelector('.mobileEnergyCopy strong');
+    if(walletCopy) walletCopy.textContent='TOUCH RECEIVED';
     if(typeof window.__bbbWalletAction==='function') window.__bbbWalletAction();
+    else window.dispatchEvent(new CustomEvent('bbb:wallet-tap'));
   });
   bindTap($('settingsBtn'), function(){ show('settingsScreen'); });
   bindTap($('settingsBackBtn'), function(){ show('menuScreen'); });
