@@ -62,18 +62,34 @@ function MobileEnergyCard() {
   const [isActivating, setIsActivating] = useState(false);
   const lastActionAt = useRef(0);
 
+  const legacyIos = useMemo(() => {
+    if (typeof navigator === "undefined") return false;
+    const match = navigator.userAgent.match(/OS (\d+)[_\d]* like Mac OS X/i);
+    return Boolean(match && Number(match[1]) < 16);
+  }, []);
+
   const baseWalletConnector = useMemo(
-    () =>
-      connectors.find((item) =>
+    () => {
+      if (legacyIos) {
+        const legacy = connectors.find((item) =>
+          /injected/i.test(`${item.id} ${item.name}`),
+        );
+        if (legacy) return legacy;
+      }
+      return connectors.find((item) =>
         /coinbase|base account|base wallet/i.test(`${item.id} ${item.name}`),
-      ),
-    [connectors],
+      );
+    },
+    [connectors, legacyIos],
   );
 
   const isBaseWallet = Boolean(
     isConnected &&
       connector &&
-      /coinbase|base account|base wallet/i.test(
+      (legacyIos
+        ? /coinbase|base account|base wallet|injected/i
+        : /coinbase|base account|base wallet/i
+      ).test(
         `${connector.id} ${connector.name}`,
       ),
   );
@@ -185,6 +201,7 @@ function MobileEnergyCard() {
         abi: ENERGY_ABI,
         functionName: "activateEnergy",
         account: address,
+        dataSuffix: BUILDER_CODE_SUFFIX,
       });
       setStatus("ACTIVATING ON BASE");
       await publicClient.waitForTransactionReceipt({ hash });
@@ -196,12 +213,6 @@ function MobileEnergyCard() {
       setIsActivating(false);
     }
   };
-
-  useEffect(() => {
-    const handleLegacyWalletTap = () => void handleAction();
-    window.addEventListener("bbb:wallet-action", handleLegacyWalletTap);
-    return () => window.removeEventListener("bbb:wallet-action", handleLegacyWalletTap);
-  });
 
   if (!menuVisible) return null;
 
@@ -2351,16 +2362,6 @@ export default function MobilePage() {
   .mobileEnergyCard.active button { border-color:rgba(69,255,185,.45); color:#b8ffdf; background:rgba(23,135,89,.35); box-shadow:0 0 18px rgba(34,255,167,.18); }
   .mobileEnergyCard button:disabled { opacity:.9; }
   html[data-username-modal="open"] .mobileEnergyCard { display:none !important; pointer-events:none !important; }
-  #iosWalletTapProxy {
-    position:fixed; z-index:140;
-    top:calc(env(safe-area-inset-top) + 91px);
-    right:max(26px,calc((100vw - 430px)/2 + 26px));
-    width:122px; height:44px; border:0; padding:0; margin:0;
-    opacity:.001; background:#fff; color:transparent;
-    display:block; pointer-events:auto; touch-action:manipulation;
-    -webkit-appearance:none; appearance:none;
-  }
-  html[data-username-modal="open"] #iosWalletTapProxy { display:none !important; pointer-events:none !important; }
   @keyframes energyCardIn { from{opacity:0;transform:translateY(-8px) scale(.98)} to{opacity:1;transform:translateY(0) scale(1)} }
   @keyframes energyRequired { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-7px)} 50%{transform:translateX(7px)} 75%{transform:translateX(-4px)} }
   @media(max-width:360px){ .mobileEnergyCard{grid-template-columns:36px minmax(0,1fr) auto;gap:7px;padding:8px}.mobileEnergyOrb{width:36px;height:36px;border-radius:13px}.mobileEnergyCard button{min-width:90px;padding:0 8px;font-size:7px} }
@@ -2381,7 +2382,6 @@ export default function MobilePage() {
     </div>
   </div>
   <section id="menuScreen" class="screen active artworkMenu">
-    <button id="iosWalletTapProxy" type="button" aria-label="Connect Base Wallet"></button>
     <div class="artLobby">
       <div class="artHeaderMask"></div>
       <div class="artTop">
@@ -3907,9 +3907,6 @@ else next='BATTLE!';
   document.querySelectorAll('.difficulty').forEach(function(btn){ bindTap(btn,function(){ difficulty=btn.getAttribute('data-difficulty')||'normal'; document.querySelectorAll('.difficulty').forEach(function(b){b.classList.remove('selected')}); btn.classList.add('selected'); }); });
   bindTap($('playBtn'), openModeScreen);
   bindTap($('settingsBtn'), function(){ show('settingsScreen'); });
-  bindTap($('iosWalletTapProxy'), function(){
-    window.dispatchEvent(new CustomEvent('bbb:wallet-action'));
-  });
   bindTap($('settingsBackBtn'), function(){ show('menuScreen'); });
   bindTap($('soundToggleBtn'), function(){ soundEnabled=true; try{ localStorage.setItem('bbb_mobile_sound','on'); }catch(e){} syncSoundButton(); });
   bindTap($('soundOffBtn'), function(){ soundEnabled=false; try{ localStorage.setItem('bbb_mobile_sound','off'); }catch(e){} syncSoundButton(); });

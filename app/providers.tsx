@@ -14,13 +14,16 @@ import {
 
 import { WagmiProvider, createConfig, http } from "wagmi";
 import { base } from "wagmi/chains";
-import { baseAccount } from "wagmi/connectors";
+import { baseAccount, injected } from "wagmi/connectors";
 import { useState } from "react";
 
 const config = createConfig({
   chains: [base],
   multiInjectedProviderDiscovery: false,
   connectors: [
+    // Fallback for the Base App webview on iOS 15 (iPhone 7 Plus).
+    // That OS cannot complete the passkey-based Base Account flow.
+    injected({ shimDisconnect: true }),
     baseAccount({
       appName: "Base Boing Battle",
     }),
