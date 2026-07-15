@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   useAccount,
   useConnect,
@@ -67,8 +68,8 @@ function MobileEnergyCard() {
   const [energyLeft, setEnergyLeft] = useState(0);
   const [status, setStatus] = useState("BASE WALLET REQUIRED");
   const [isActivating, setIsActivating] = useState(false);
+  const [portalMount, setPortalMount] = useState<HTMLElement | null>(null);
   const lastActionAt = useRef(0);
-  const walletActionRef = useRef<() => void>(() => undefined);
 
   // The provider exposes only Base Account, so a connected account is already
   // the required Base wallet. Connector-name checks were rejecting valid
@@ -78,6 +79,10 @@ function MobileEnergyCard() {
   const baseConnector = connectors.find((item) =>
     /coinbase|base/i.test(`${item.id} ${item.name}`),
   );
+
+  useEffect(() => {
+    setPortalMount(document.getElementById("energyReactMount"));
+  }, []);
 
   useEffect(() => {
     const updateVisibility = () => {
@@ -219,13 +224,6 @@ function MobileEnergyCard() {
     }
   };
 
-  walletActionRef.current = () => void handleAction();
-  useEffect(() => {
-    const onWalletAction = () => walletActionRef.current();
-    window.addEventListener("bbb:wallet-action", onWalletAction);
-    return () => window.removeEventListener("bbb:wallet-action", onWalletAction);
-  }, []);
-
   const active = energyLeft > 0;
   const buttonLabel = active
     ? "ENERGY ACTIVE"
@@ -237,19 +235,24 @@ function MobileEnergyCard() {
         ? "CONNECTING..."
         : "CONNECT BASE WALLET";
 
-  useEffect(() => {
-    const card = document.getElementById("legacyEnergyCard");
-    const copy = document.getElementById("legacyEnergyStatus");
-    const button = document.getElementById("baseWalletActionBtn") as HTMLButtonElement | null;
-    if (!card || !copy || !button) return;
-    card.style.display = menuVisible ? "grid" : "none";
-    card.classList.toggle("active", active);
-    copy.textContent = status;
-    button.textContent = buttonLabel;
-    button.disabled = active || isActivating || isConnecting;
-  }, [active, buttonLabel, isActivating, isConnecting, menuVisible, status]);
-
-  return null;
+  if (!portalMount || !menuVisible) return null;
+  return createPortal(
+    <aside className={`mobileEnergyCard${active ? " active" : ""}`}>
+      <div className="mobileEnergyOrb" aria-hidden="true">⚡</div>
+      <div className="mobileEnergyCopy">
+        <span>BASE ENERGY</span>
+        <strong>{status}</strong>
+      </div>
+      <button
+        type="button"
+        disabled={active || isActivating || isConnecting}
+        onClick={() => void handleAction()}
+      >
+        {buttonLabel}
+      </button>
+    </aside>,
+    portalMount,
+  );
 }
 
 export default function MobilePage() {
@@ -2365,14 +2368,7 @@ export default function MobilePage() {
 </style>
 <div id="app">
   <div id="noise"></div>
-  <aside id="legacyEnergyCard" class="mobileEnergyCard">
-    <div class="mobileEnergyOrb" aria-hidden="true">⚡</div>
-    <div class="mobileEnergyCopy">
-      <span>BASE ENERGY</span>
-      <strong id="legacyEnergyStatus">BASE WALLET REQUIRED</strong>
-    </div>
-    <button id="baseWalletActionBtn" type="button">CONNECT BASE WALLET</button>
-  </aside>
+  <div id="energyReactMount"></div>
 
   <div id="usernameModal" aria-hidden="true">
     <div class="usernameModalCard">
@@ -3911,11 +3907,6 @@ else next='BATTLE!';
   document.querySelectorAll('.arena').forEach(function(btn){ bindTap(btn,function(){ arena=btn.getAttribute('data-arena')||'classic'; document.querySelectorAll('.arena').forEach(function(b){b.classList.remove('selected')}); btn.classList.add('selected'); }); });
   document.querySelectorAll('.difficulty').forEach(function(btn){ bindTap(btn,function(){ difficulty=btn.getAttribute('data-difficulty')||'normal'; document.querySelectorAll('.difficulty').forEach(function(b){b.classList.remove('selected')}); btn.classList.add('selected'); }); });
   bindTap($('playBtn'), openModeScreen);
-  bindTap($('baseWalletActionBtn'), function(){
-    var walletCopy=$('legacyEnergyStatus');
-    if(walletCopy) walletCopy.textContent='CONNECT REQUEST';
-    window.dispatchEvent(new CustomEvent('bbb:wallet-action'));
-  });
   bindTap($('settingsBtn'), function(){ show('settingsScreen'); });
   bindTap($('settingsBackBtn'), function(){ show('menuScreen'); });
   bindTap($('soundToggleBtn'), function(){ soundEnabled=true; try{ localStorage.setItem('bbb_mobile_sound','on'); }catch(e){} syncSoundButton(); });
