@@ -170,6 +170,7 @@ function MobileEnergyCard() {
     if (!isBaseWallet) {
       // This is the exact connection path used by the working Based Oracle
       // client. RainbowKit opens Base Account synchronously from this gesture.
+      setStatus("OPENING BASE WALLET");
       if (openConnectModal) openConnectModal();
       else setStatus("WALLET UI NOT READY — RELOAD");
       return;
@@ -2370,9 +2371,10 @@ export default function MobilePage() {
   .mobileEnergyCard button:disabled { opacity:.9; }
   #iosBaseWalletTap {
     position:fixed; z-index:119;
-    top:calc(env(safe-area-inset-top) + 92px);
-    right:max(26px,calc((100vw - 430px)/2 + 26px));
-    width:108px; height:40px; margin:0; padding:0; border:0;
+    top:calc(env(safe-area-inset-top) + 80px);
+    left:max(16px,calc((100vw - 430px)/2 + 16px));
+    right:max(16px,calc((100vw - 430px)/2 + 16px));
+    width:auto; height:64px; margin:0; padding:0; border:0;
     opacity:.001; background:#fff; color:transparent;
     pointer-events:auto !important; touch-action:manipulation;
     -webkit-appearance:none; appearance:none;
@@ -2381,10 +2383,11 @@ export default function MobilePage() {
   html[data-username-modal="open"] #iosBaseWalletTap { display:none !important; pointer-events:none !important; }
   @keyframes energyCardIn { from{opacity:0;transform:translateY(-8px) scale(.98)} to{opacity:1;transform:translateY(0) scale(1)} }
   @keyframes energyRequired { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-7px)} 50%{transform:translateX(7px)} 75%{transform:translateX(-4px)} }
-  @media(max-width:360px){ .mobileEnergyCard{grid-template-columns:36px minmax(0,1fr) auto;gap:7px;padding:8px}.mobileEnergyOrb{width:36px;height:36px;border-radius:13px}.mobileEnergyCard button{min-width:90px;padding:0 8px;font-size:7px}#iosBaseWalletTap{width:90px;right:max(24px,calc((100vw - 430px)/2 + 24px))} }
+  @media(max-width:360px){ .mobileEnergyCard{grid-template-columns:36px minmax(0,1fr) auto;gap:7px;padding:8px}.mobileEnergyOrb{width:36px;height:36px;border-radius:13px}.mobileEnergyCard button{min-width:90px;padding:0 8px;font-size:7px} }
 </style>
 <div id="app">
   <div id="noise"></div>
+  <button id="iosBaseWalletTap" type="button" aria-label="Connect Base Wallet"></button>
 
   <div id="usernameModal" aria-hidden="true">
     <div class="usernameModalCard">
@@ -2414,7 +2417,6 @@ export default function MobilePage() {
 
       <button id="playBtn" class="artClickPlay" aria-label="Play"></button>
       <button id="settingsBtn" class="artClickSettings" aria-label="Settings"></button>
-      <button id="iosBaseWalletTap" type="button" aria-label="Connect Base Wallet"></button>
     </div>
   </section>
 
