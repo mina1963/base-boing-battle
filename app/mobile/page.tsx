@@ -2366,6 +2366,9 @@ export default function MobilePage() {
   .mobileEnergyCard button { position:relative; z-index:2; min-width:108px; min-height:40px; padding:0 11px; border:1px solid rgba(107,219,255,.5); border-radius:15px; color:white; background:linear-gradient(180deg,#1687ff,#0052ff 58%,#07327e); box-shadow:0 0 20px rgba(0,82,255,.4),inset 0 1px 0 rgba(255,255,255,.28); font-size:8px; font-weight:1000; letter-spacing:.09em; touch-action:manipulation; pointer-events:auto !important; cursor:pointer; -webkit-user-select:none; user-select:none; }
   .mobileEnergyCard.active button { border-color:rgba(69,255,185,.45); color:#b8ffdf; background:rgba(23,135,89,.35); box-shadow:0 0 18px rgba(34,255,167,.18); }
   .mobileEnergyCard button:disabled { opacity:.9; }
+  /* The React card is visual only on mobile. The native anchor directly below
+     owns the hit target, which remains reliable on older iOS Base webviews. */
+  .mobileEnergyCard, .mobileEnergyCard * { pointer-events:none !important; }
   #legacyWalletTouch {
     position:fixed; z-index:10001;
     top:calc(env(safe-area-inset-top) + 80px);
