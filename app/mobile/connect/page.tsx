@@ -1,7 +1,7 @@
 "use client";
 
 import "@rainbow-me/rainbowkit/styles.css";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { RainbowKitProvider, darkTheme, useConnectModal } from "@rainbow-me/rainbowkit";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
@@ -40,6 +40,7 @@ function WalletAction() {
   const [status, setStatus] = useState("CONNECT BASE WALLET");
   const [busy, setBusy] = useState(false);
   const [active, setActive] = useState(false);
+  const lastRunAt = useRef(0);
 
   useEffect(() => {
     if (!address || !publicClient) return;
@@ -49,6 +50,9 @@ function WalletAction() {
   }, [address, publicClient]);
 
   const run = async () => {
+    const now = Date.now();
+    if (now - lastRunAt.current < 600) return;
+    lastRunAt.current = now;
     if (!isConnected) {
       openConnectModal?.();
       return;
@@ -76,25 +80,23 @@ function WalletAction() {
   };
 
   return (
-    <main className="walletPage">
-      <section className="walletCard">
-        <div className="orb">⚡</div>
-        <p>BASE BOING BATTLE</p>
-        <h1>BASE ENERGY</h1>
-        <span>{status}</span>
-        <button type="button" disabled={busy} onClick={() => void run()}>
+    <main style={{position:"fixed",inset:0,display:"grid",placeItems:"center",padding:24,background:"radial-gradient(circle at 50% 20%,#073b9b 0,#020817 42%,#000 100%)",color:"#fff",fontFamily:"Arial,sans-serif"}}>
+      <section style={{width:"min(100%,390px)",padding:"32px 22px",border:"1px solid #168cff",borderRadius:30,textAlign:"center",background:"rgba(2,13,38,.94)",boxShadow:"0 0 60px rgba(0,82,255,.45)"}}>
+        <div style={{width:70,height:70,margin:"0 auto 18px",display:"grid",placeItems:"center",borderRadius:22,background:"linear-gradient(#36b8ff,#0052ff)",fontSize:30,boxShadow:"0 0 30px #087dff"}}>⚡</div>
+        <p style={{margin:0,color:"#69dfff",fontSize:10,fontWeight:900,letterSpacing:".25em"}}>BASE BOING BATTLE</p>
+        <h1 style={{margin:"10px 0",fontSize:30,letterSpacing:".12em"}}>BASE ENERGY</h1>
+        <span style={{display:"block",minHeight:38,color:"#b9d7ff",fontSize:12,fontWeight:900,letterSpacing:".08em"}}>{status}</span>
+        <button
+          type="button"
+          disabled={busy}
+          onTouchEnd={(event) => { event.preventDefault(); void run(); }}
+          onClick={() => void run()}
+          style={{width:"100%",minHeight:64,marginTop:18,border:"1px solid #65d7ff",borderRadius:22,background:"linear-gradient(#168cff,#0052ff)",color:"#fff",fontSize:14,fontWeight:900,letterSpacing:".1em",touchAction:"manipulation"}}
+        >
           {busy ? "PLEASE WAIT" : isConnected ? active ? "RETURN TO GAME" : "ACTIVATE ENERGY" : "CONNECT BASE WALLET"}
         </button>
-        <a href="/mobile">BACK TO GAME</a>
+        <a href="/mobile" style={{display:"block",marginTop:22,color:"#72cfff",fontSize:11,fontWeight:900,letterSpacing:".12em",textDecoration:"none"}}>BACK TO GAME</a>
       </section>
-      <style jsx>{`
-        .walletPage{position:fixed;inset:0;display:grid;place-items:center;padding:24px;background:radial-gradient(circle at 50% 20%,#073b9b 0,#020817 42%,#000 100%);color:#fff;font-family:Arial,sans-serif}
-        .walletCard{width:min(100%,390px);padding:32px 22px;border:1px solid #168cff;border-radius:30px;text-align:center;background:rgba(2,13,38,.94);box-shadow:0 0 60px rgba(0,82,255,.45)}
-        .orb{width:70px;height:70px;margin:0 auto 18px;display:grid;place-items:center;border-radius:22px;background:linear-gradient(#36b8ff,#0052ff);font-size:30px;box-shadow:0 0 30px #087dff}
-        p{margin:0;color:#69dfff;font-size:10px;font-weight:900;letter-spacing:.25em}h1{margin:10px 0;font-size:30px;letter-spacing:.12em}span{display:block;min-height:38px;color:#b9d7ff;font-size:12px;font-weight:900;letter-spacing:.08em}
-        button{width:100%;min-height:64px;margin-top:18px;border:1px solid #65d7ff;border-radius:22px;background:linear-gradient(#168cff,#0052ff);color:#fff;font-size:14px;font-weight:1000;letter-spacing:.1em;touch-action:manipulation}
-        a{display:block;margin-top:22px;color:#72cfff;font-size:11px;font-weight:900;letter-spacing:.12em;text-decoration:none}
-      `}</style>
     </main>
   );
 }
