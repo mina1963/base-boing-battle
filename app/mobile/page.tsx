@@ -2,12 +2,30 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
+  WagmiProvider,
+  cookieStorage,
+  createConfig,
+  createStorage,
+  http,
   useAccount,
-  useConnect,
   usePublicClient,
   useWalletClient,
 } from "wagmi";
-import { useConnectModal } from "@rainbow-me/rainbowkit";
+import { RainbowKitProvider, darkTheme, useConnectModal } from "@rainbow-me/rainbowkit";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { base } from "wagmi/chains";
+import { baseAccount, injected } from "wagmi/connectors";
+
+const mobileWalletConfig = createConfig({
+  chains: [base],
+  connectors: [
+    injected(),
+    baseAccount({ appName: "Base Boing Battle" }),
+  ],
+  storage: createStorage({ storage: cookieStorage }),
+  ssr: true,
+  transports: { [base.id]: http() },
+});
 
 const ENERGY_CONTRACT_ADDRESS =
   "0x55894e2e9b29dad1b526c7f7c5d2d5e8e1b9d7db" as const;
@@ -57,7 +75,6 @@ function walletErrorLabel(error: unknown) {
 
 function MobileEnergyCard() {
   const { address, isConnected } = useAccount();
-  const { connectors, connect, isPending: isConnecting } = useConnect();
   const { openConnectModal } = useConnectModal();
   const { data: walletClient } = useWalletClient();
   const publicClient = usePublicClient();
@@ -75,10 +92,7 @@ function MobileEnergyCard() {
   // the required Base wallet. Connector-name checks were rejecting valid
   // Base App sessions because their labels differ between iOS and Android.
   const isBaseWallet = isConnected;
-  const injectedConnector = connectors.find((item) => item.id === "injected");
-  const baseConnector = connectors.find((item) =>
-    /coinbase|base/i.test(`${item.id} ${item.name}`),
-  );
+  const isConnecting = false;
 
   useEffect(() => {
     const updateVisibility = () => {
@@ -174,25 +188,7 @@ function MobileEnergyCard() {
     if (now - lastActionAt.current < 650) return;
     lastActionAt.current = now;
     if (!isBaseWallet) {
-      const isIOS = /iPad|iPhone|iPod/i.test(navigator.userAgent);
-      const browserWindow = window as Window & { ethereum?: unknown };
-      const iosConnector = browserWindow.ethereum
-        ? (injectedConnector ?? baseConnector)
-        : (baseConnector ?? injectedConnector);
-      // iOS Base App may not publish window.ethereum. In that case use the
-      // Coinbase/Base SDK connector directly instead of waiting for a modal.
-      if (isIOS && iosConnector) {
-        setStatus("CONNECTING BASE WALLET");
-        connect(
-          { connector: iosConnector },
-          {
-            onSuccess: () => setStatus("CHECKING BASE ENERGY"),
-            onError: (error) => setStatus(walletErrorLabel(error)),
-          },
-        );
-        return;
-      }
-      setStatus("OPENING WALLET LIST");
+      setStatus("OPENING BASE WALLET");
       if (openConnectModal) openConnectModal();
       else setStatus("WALLET UI NOT READY — RELOAD");
       return;
@@ -268,6 +264,22 @@ function MobileEnergyCard() {
         {buttonLabel}
       </button>
     </aside>
+  );
+}
+
+function MobileWalletRoot() {
+  const [queryClient] = useState(() => new QueryClient());
+  return (
+    <WagmiProvider config={mobileWalletConfig}>
+      <QueryClientProvider client={queryClient}>
+        <RainbowKitProvider
+          theme={darkTheme({ accentColor: "#0052FF", borderRadius: "large" })}
+          modalSize="wide"
+        >
+          <MobileEnergyCard />
+        </RainbowKitProvider>
+      </QueryClientProvider>
+    </WagmiProvider>
   );
 }
 
@@ -3983,7 +3995,7 @@ else next='BATTLE!';
           `,
         }}
       />
-      <MobileEnergyCard />
+      <MobileWalletRoot />
     </main>
   );
 }
