@@ -3250,15 +3250,7 @@ else next='BATTLE!';
   }
 
   function requireBaseEnergy(){
-    if(window.__bbbEnergyActive===true) return true;
-    try{
-      if(Number(localStorage.getItem('bbb_energy_verified_until')||0)>Date.now()){
-        window.__bbbEnergyActive=true;
-        return true;
-      }
-    }catch(e){}
-    try{ window.dispatchEvent(new Event('bbb:energy-required')); }catch(e){}
-    return false;
+    return true;
   }
   function openModeScreen(){
     if(!requireBaseEnergy()) return;
@@ -4037,7 +4029,6 @@ else next='BATTLE!';
           `,
         }}
       />
-      <MobileEnergyCard />
     </main>
   );
 }
