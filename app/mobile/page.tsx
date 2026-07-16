@@ -233,7 +233,7 @@ function MobileEnergyCard() {
         <span>BASE ENERGY</span>
         <strong>{status}</strong>
       </div>
-      <a className="walletActionLink" href="/mobile/connect">
+      <a className="walletActionLink" href="/mobile-connect.html">
         {buttonLabel}
       </a>
     </aside>
