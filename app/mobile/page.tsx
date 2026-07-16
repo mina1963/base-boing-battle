@@ -137,8 +137,12 @@ function MobileEnergyCard() {
 
   useEffect(() => {
     const energyWindow = window as Window & { __bbbEnergyActive?: boolean };
-    energyWindow.__bbbEnergyActive = energyLeft > 0;
-    document.documentElement.dataset.baseEnergy = energyLeft > 0 ? "active" : "locked";
+    let recentlyVerified = false;
+    try {
+      recentlyVerified = Number(localStorage.getItem("bbb_energy_verified_until") || 0) > Date.now();
+    } catch {}
+    energyWindow.__bbbEnergyActive = energyLeft > 0 || recentlyVerified;
+    document.documentElement.dataset.baseEnergy = energyLeft > 0 || recentlyVerified ? "active" : "locked";
   }, [energyLeft]);
 
   useEffect(() => {
@@ -3247,6 +3251,12 @@ else next='BATTLE!';
 
   function requireBaseEnergy(){
     if(window.__bbbEnergyActive===true) return true;
+    try{
+      if(Number(localStorage.getItem('bbb_energy_verified_until')||0)>Date.now()){
+        window.__bbbEnergyActive=true;
+        return true;
+      }
+    }catch(e){}
     try{ window.dispatchEvent(new Event('bbb:energy-required')); }catch(e){}
     return false;
   }
