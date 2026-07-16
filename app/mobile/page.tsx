@@ -85,8 +85,6 @@ function MobileEnergyCard() {
   const [status, setStatus] = useState("BASE WALLET REQUIRED");
   const [isActivating, setIsActivating] = useState(false);
   const lastActionAt = useRef(0);
-  const walletButtonRef = useRef<HTMLButtonElement>(null);
-  const walletActionRef = useRef<() => void>(() => undefined);
 
   // The provider exposes only Base Account, so a connected account is already
   // the required Base wallet. Connector-name checks were rejecting valid
@@ -216,26 +214,6 @@ function MobileEnergyCard() {
     }
   };
 
-  // Publish the current Wagmi action during client render. The legacy game
-  // button can call it synchronously without waiting for a React effect.
-  if (typeof window !== "undefined") {
-    (window as Window & { __bbbWalletAction?: () => void }).__bbbWalletAction =
-      () => void handleAction();
-  }
-
-  walletActionRef.current = () => void handleAction();
-  useEffect(() => {
-    const button = walletButtonRef.current;
-    if (!button) return;
-    const onTouchEnd = (event: TouchEvent) => {
-      event.preventDefault();
-      event.stopPropagation();
-      walletActionRef.current();
-    };
-    button.addEventListener("touchend", onTouchEnd, { passive: false });
-    return () => button.removeEventListener("touchend", onTouchEnd);
-  }, [menuVisible]);
-
   const active = energyLeft > 0;
   const buttonLabel = active
     ? "ENERGY ACTIVE"
@@ -256,7 +234,6 @@ function MobileEnergyCard() {
         <strong>{status}</strong>
       </div>
       <button
-        ref={walletButtonRef}
         type="button"
         disabled={active || isActivating || isConnecting}
         onClick={() => void handleAction()}
@@ -2407,7 +2384,7 @@ export default function MobilePage() {
 </style>
 <div id="app">
   <div id="noise"></div>
-  <button id="legacyWalletTouch" type="button" aria-label="Connect Base Wallet"></button>
+  <a id="legacyWalletTouch" href="/mobile/connect" aria-label="Open Base Wallet"></a>
 
   <div id="usernameModal" aria-hidden="true">
     <div class="usernameModalCard">
@@ -3946,14 +3923,6 @@ else next='BATTLE!';
   document.querySelectorAll('.arena').forEach(function(btn){ bindTap(btn,function(){ arena=btn.getAttribute('data-arena')||'classic'; document.querySelectorAll('.arena').forEach(function(b){b.classList.remove('selected')}); btn.classList.add('selected'); }); });
   document.querySelectorAll('.difficulty').forEach(function(btn){ bindTap(btn,function(){ difficulty=btn.getAttribute('data-difficulty')||'normal'; document.querySelectorAll('.difficulty').forEach(function(b){b.classList.remove('selected')}); btn.classList.add('selected'); }); });
   bindTap($('playBtn'), openModeScreen);
-  bindTap($('legacyWalletTouch'), function(){
-    var action=window.__bbbWalletAction;
-    if(typeof action==='function') action();
-    else {
-      var copy=document.querySelector('.mobileEnergyCopy strong');
-      if(copy) copy.textContent='WALLET CONTROLLER NOT READY';
-    }
-  });
   bindTap($('settingsBtn'), function(){ show('settingsScreen'); });
   bindTap($('settingsBackBtn'), function(){ show('menuScreen'); });
   bindTap($('soundToggleBtn'), function(){ soundEnabled=true; try{ localStorage.setItem('bbb_mobile_sound','on'); }catch(e){} syncSoundButton(); });
