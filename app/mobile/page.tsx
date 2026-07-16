@@ -220,6 +220,13 @@ function MobileEnergyCard() {
     }
   };
 
+  // Publish the current Wagmi action during client render. The legacy game
+  // button can call it synchronously without waiting for a React effect.
+  if (typeof window !== "undefined") {
+    (window as Window & { __bbbWalletAction?: () => void }).__bbbWalletAction =
+      () => void handleAction();
+  }
+
   walletActionRef.current = () => void handleAction();
   useEffect(() => {
     const button = walletButtonRef.current;
@@ -2370,13 +2377,25 @@ export default function MobilePage() {
   .mobileEnergyCard button { position:relative; z-index:2; min-width:108px; min-height:40px; padding:0 11px; border:1px solid rgba(107,219,255,.5); border-radius:15px; color:white; background:linear-gradient(180deg,#1687ff,#0052ff 58%,#07327e); box-shadow:0 0 20px rgba(0,82,255,.4),inset 0 1px 0 rgba(255,255,255,.28); font-size:8px; font-weight:1000; letter-spacing:.09em; touch-action:manipulation; pointer-events:auto !important; cursor:pointer; -webkit-user-select:none; user-select:none; }
   .mobileEnergyCard.active button { border-color:rgba(69,255,185,.45); color:#b8ffdf; background:rgba(23,135,89,.35); box-shadow:0 0 18px rgba(34,255,167,.18); }
   .mobileEnergyCard button:disabled { opacity:.9; }
+  #legacyWalletTouch {
+    position:fixed; z-index:10001;
+    top:calc(env(safe-area-inset-top) + 80px);
+    left:max(16px,calc((100vw - 430px)/2 + 16px));
+    right:max(16px,calc((100vw - 430px)/2 + 16px));
+    height:64px; border:0; margin:0; padding:0;
+    background:transparent; color:transparent; opacity:1;
+    pointer-events:auto !important; touch-action:manipulation;
+    -webkit-appearance:none; appearance:none;
+  }
   html[data-username-modal="open"] .mobileEnergyCard { display:none !important; pointer-events:none !important; }
+  html[data-username-modal="open"] #legacyWalletTouch { display:none !important; pointer-events:none !important; }
   @keyframes energyCardIn { from{opacity:0;transform:translateY(-8px) scale(.98)} to{opacity:1;transform:translateY(0) scale(1)} }
   @keyframes energyRequired { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-7px)} 50%{transform:translateX(7px)} 75%{transform:translateX(-4px)} }
   @media(max-width:360px){ .mobileEnergyCard{grid-template-columns:36px minmax(0,1fr) auto;gap:7px;padding:8px}.mobileEnergyOrb{width:36px;height:36px;border-radius:13px}.mobileEnergyCard button{min-width:90px;padding:0 8px;font-size:7px} }
 </style>
 <div id="app">
   <div id="noise"></div>
+  <button id="legacyWalletTouch" type="button" aria-label="Connect Base Wallet"></button>
 
   <div id="usernameModal" aria-hidden="true">
     <div class="usernameModalCard">
@@ -3915,6 +3934,14 @@ else next='BATTLE!';
   document.querySelectorAll('.arena').forEach(function(btn){ bindTap(btn,function(){ arena=btn.getAttribute('data-arena')||'classic'; document.querySelectorAll('.arena').forEach(function(b){b.classList.remove('selected')}); btn.classList.add('selected'); }); });
   document.querySelectorAll('.difficulty').forEach(function(btn){ bindTap(btn,function(){ difficulty=btn.getAttribute('data-difficulty')||'normal'; document.querySelectorAll('.difficulty').forEach(function(b){b.classList.remove('selected')}); btn.classList.add('selected'); }); });
   bindTap($('playBtn'), openModeScreen);
+  bindTap($('legacyWalletTouch'), function(){
+    var action=window.__bbbWalletAction;
+    if(typeof action==='function') action();
+    else {
+      var copy=document.querySelector('.mobileEnergyCopy strong');
+      if(copy) copy.textContent='WALLET CONTROLLER NOT READY';
+    }
+  });
   bindTap($('settingsBtn'), function(){ show('settingsScreen'); });
   bindTap($('settingsBackBtn'), function(){ show('menuScreen'); });
   bindTap($('soundToggleBtn'), function(){ soundEnabled=true; try{ localStorage.setItem('bbb_mobile_sound','on'); }catch(e){} syncSoundButton(); });
