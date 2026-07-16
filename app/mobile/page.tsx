@@ -1,31 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  WagmiProvider,
-  cookieStorage,
-  createConfig,
-  createStorage,
-  http,
   useAccount,
+  useConnect,
+  useDisconnect,
   usePublicClient,
   useWalletClient,
 } from "wagmi";
-import { RainbowKitProvider, darkTheme, useConnectModal } from "@rainbow-me/rainbowkit";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { base } from "wagmi/chains";
-import { baseAccount, injected } from "wagmi/connectors";
-
-const mobileWalletConfig = createConfig({
-  chains: [base],
-  connectors: [
-    injected(),
-    baseAccount({ appName: "Base Boing Battle" }),
-  ],
-  storage: createStorage({ storage: cookieStorage }),
-  ssr: true,
-  transports: { [base.id]: http() },
-});
 
 const ENERGY_CONTRACT_ADDRESS =
   "0x55894e2e9b29dad1b526c7f7c5d2d5e8e1b9d7db" as const;
@@ -40,16 +22,9 @@ const ENERGY_ABI = [
   },
   {
     type: "function",
-    name: "isEnergyActive",
+    name: "getEnergyTimeLeft",
     stateMutability: "view",
-    inputs: [{ name: "player", type: "address" }],
-    outputs: [{ name: "", type: "bool" }],
-  },
-  {
-    type: "function",
-    name: "nextActivation",
-    stateMutability: "view",
-    inputs: [{ name: "player", type: "address" }],
+    inputs: [{ name: "user", type: "address" }],
     outputs: [{ name: "", type: "uint256" }],
   },
 ] as const;
@@ -74,8 +49,9 @@ function walletErrorLabel(error: unknown) {
 }
 
 function MobileEnergyCard() {
-  const { address, isConnected } = useAccount();
-  const { openConnectModal } = useConnectModal();
+  const { address, isConnected, connector } = useAccount();
+  const { connectors, connect, isPending: isConnecting } = useConnect();
+  const { disconnect } = useDisconnect();
   const { data: walletClient } = useWalletClient();
   const publicClient = usePublicClient();
   // Start visible so the Base Wallet gate is present in the server-rendered
@@ -86,11 +62,21 @@ function MobileEnergyCard() {
   const [isActivating, setIsActivating] = useState(false);
   const lastActionAt = useRef(0);
 
-  // The provider exposes only Base Account, so a connected account is already
-  // the required Base wallet. Connector-name checks were rejecting valid
-  // Base App sessions because their labels differ between iOS and Android.
-  const isBaseWallet = isConnected;
-  const isConnecting = false;
+  const baseWalletConnector = useMemo(
+    () =>
+      connectors.find((item) =>
+        /coinbase|base account|base wallet/i.test(`${item.id} ${item.name}`),
+      ),
+    [connectors],
+  );
+
+  const isBaseWallet = Boolean(
+    isConnected &&
+      connector &&
+      /coinbase|base account|base wallet/i.test(
+        `${connector.id} ${connector.name}`,
+      ),
+  );
 
   useEffect(() => {
     const updateVisibility = () => {
@@ -127,21 +113,10 @@ function MobileEnergyCard() {
       return;
     }
     try {
-      const active = await publicClient.readContract({
-        address: ENERGY_CONTRACT_ADDRESS,
-        abi: ENERGY_ABI,
-        functionName: "isEnergyActive",
-        args: [address],
-      });
-      if (!active) {
-        setEnergyLeft(0);
-        setStatus("READY TO ACTIVATE");
-        return;
-      }
       const left = await publicClient.readContract({
         address: ENERGY_CONTRACT_ADDRESS,
         abi: ENERGY_ABI,
-        functionName: "nextActivation",
+        functionName: "getEnergyTimeLeft",
         args: [address],
       });
       const remaining = Number(left);
@@ -186,9 +161,19 @@ function MobileEnergyCard() {
     if (now - lastActionAt.current < 650) return;
     lastActionAt.current = now;
     if (!isBaseWallet) {
-      setStatus("OPENING BASE WALLET");
-      if (openConnectModal) openConnectModal();
-      else setStatus("WALLET UI NOT READY — RELOAD");
+      if (isConnected) {
+        disconnect();
+        setStatus("BASE WALLET DISCONNECTED — TAP AGAIN");
+        return;
+      }
+      if (baseWalletConnector) {
+        // Keep the connector call directly inside the browser click task.
+        // Base Account opens a popup and iOS blocks it if it is deferred.
+        connect(
+          { connector: baseWalletConnector },
+          { onError: (error) => setStatus(walletErrorLabel(error)) },
+        );
+      } else setStatus("OPEN IN BASE APP");
       return;
     }
     if (energyLeft > 0 || !walletClient || !publicClient || !address) return;
@@ -203,8 +188,7 @@ function MobileEnergyCard() {
         dataSuffix: BUILDER_CODE_SUFFIX,
       });
       setStatus("ACTIVATING ON BASE");
-      const receipt = await publicClient.waitForTransactionReceipt({ hash });
-      if (receipt.status !== "success") throw new Error("TRANSACTION REVERTED");
+      await publicClient.waitForTransactionReceipt({ hash });
       await refreshEnergy();
     } catch (error) {
       console.error("Base Energy activation failed", error);
@@ -213,6 +197,8 @@ function MobileEnergyCard() {
       setIsActivating(false);
     }
   };
+
+  if (!menuVisible) return null;
 
   const active = energyLeft > 0;
   const buttonLabel = active
@@ -225,7 +211,6 @@ function MobileEnergyCard() {
         ? "CONNECTING..."
         : "CONNECT BASE WALLET";
 
-  if (!menuVisible) return null;
   return (
     <aside className={`mobileEnergyCard${active ? " active" : ""}`}>
       <div className="mobileEnergyOrb" aria-hidden="true">⚡</div>
@@ -233,26 +218,10 @@ function MobileEnergyCard() {
         <span>BASE ENERGY</span>
         <strong>{status}</strong>
       </div>
-      <a className="walletActionLink" href="/mobile-connect.html">
+      <a href="/mobile-connect.html" aria-disabled={active}>
         {buttonLabel}
       </a>
     </aside>
-  );
-}
-
-function MobileWalletRoot() {
-  const [queryClient] = useState(() => new QueryClient());
-  return (
-    <WagmiProvider config={mobileWalletConfig}>
-      <QueryClientProvider client={queryClient}>
-        <RainbowKitProvider
-          theme={darkTheme({ accentColor: "#0052FF", borderRadius: "large" })}
-          modalSize="wide"
-        >
-          <MobileEnergyCard />
-        </RainbowKitProvider>
-      </QueryClientProvider>
-    </WagmiProvider>
   );
 }
 
@@ -2337,7 +2306,7 @@ export default function MobilePage() {
 
   /* Base-only energy control rendered by React above the legacy game shell. */
   .mobileEnergyCard {
-    position:fixed; z-index:10000;
+    position:fixed; z-index:110;
     top:calc(env(safe-area-inset-top) + 80px);
     left:max(16px,calc((100vw - 430px)/2 + 16px));
     right:max(16px,calc((100vw - 430px)/2 + 16px));
@@ -2359,12 +2328,13 @@ export default function MobilePage() {
   .mobileEnergyCopy span { display:block; color:#76dcff; font-size:8px; line-height:1; font-weight:1000; letter-spacing:.22em; }
   .mobileEnergyCopy strong { display:block; margin-top:6px; overflow:hidden; color:#f5fbff; font-size:10px; line-height:1.15; font-weight:1000; letter-spacing:.08em; white-space:nowrap; text-overflow:ellipsis; }
   .mobileEnergyCard.active .mobileEnergyCopy span { color:#4dffb9; }
-  .walletActionLink { position:relative; z-index:2; min-width:108px; min-height:40px; padding:0 11px; border:1px solid rgba(107,219,255,.5); border-radius:15px; color:white; background:linear-gradient(180deg,#1687ff,#0052ff 58%,#07327e); box-shadow:0 0 20px rgba(0,82,255,.4),inset 0 1px 0 rgba(255,255,255,.28); font-size:8px; font-weight:1000; letter-spacing:.09em; touch-action:manipulation; pointer-events:auto !important; cursor:pointer; -webkit-user-select:none; user-select:none; display:grid; place-items:center; text-decoration:none; }
-  .mobileEnergyCard.active .walletActionLink { border-color:rgba(69,255,185,.45); color:#b8ffdf; background:rgba(23,135,89,.35); box-shadow:0 0 18px rgba(34,255,167,.18); }
+  .mobileEnergyCard button,.mobileEnergyCard a { position:relative; z-index:2; min-width:108px; min-height:40px; padding:0 11px; border:1px solid rgba(107,219,255,.5); border-radius:15px; color:white; background:linear-gradient(180deg,#1687ff,#0052ff 58%,#07327e); box-shadow:0 0 20px rgba(0,82,255,.4),inset 0 1px 0 rgba(255,255,255,.28); font-size:8px; font-weight:1000; letter-spacing:.09em; touch-action:manipulation; pointer-events:auto !important; cursor:pointer; -webkit-user-select:none; user-select:none; display:flex; align-items:center; justify-content:center; text-decoration:none; box-sizing:border-box; }
+  .mobileEnergyCard.active button { border-color:rgba(69,255,185,.45); color:#b8ffdf; background:rgba(23,135,89,.35); box-shadow:0 0 18px rgba(34,255,167,.18); }
+  .mobileEnergyCard button:disabled { opacity:.9; }
   html[data-username-modal="open"] .mobileEnergyCard { display:none !important; pointer-events:none !important; }
   @keyframes energyCardIn { from{opacity:0;transform:translateY(-8px) scale(.98)} to{opacity:1;transform:translateY(0) scale(1)} }
   @keyframes energyRequired { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-7px)} 50%{transform:translateX(7px)} 75%{transform:translateX(-4px)} }
-  @media(max-width:360px){ .mobileEnergyCard{grid-template-columns:36px minmax(0,1fr) auto;gap:7px;padding:8px}.mobileEnergyOrb{width:36px;height:36px;border-radius:13px}.walletActionLink{min-width:90px;padding:0 8px;font-size:7px} }
+  @media(max-width:360px){ .mobileEnergyCard{grid-template-columns:36px minmax(0,1fr) auto;gap:7px;padding:8px}.mobileEnergyOrb{width:36px;height:36px;border-radius:13px}.mobileEnergyCard button,.mobileEnergyCard a{min-width:90px;padding:0 8px;font-size:7px} }
 </style>
 <div id="app">
   <div id="noise"></div>
@@ -3931,6 +3901,116 @@ else next='BATTLE!';
   window.addEventListener('beforeunload', function(){ notifyLeavingOnline(); });
   window.addEventListener('pagehide', function(){ notifyLeavingOnline(); });
 
+  // Native wallet bridge for older iOS browsers. The page contains a large
+  // legacy game shell, so React hydration can arrive too late for the first tap.
+  // This delegated handler works even when the React wallet card is replaced.
+  var nativeWalletTapAt=0;
+  var ENERGY_CONTRACT='0x55894e2e9b29dad1b526c7f7c5d2d5e8e1b9d7db';
+  var ENERGY_BUILDER_SUFFIX='62635f6873616772376c620b0080218021802180218021802180218021';
+  function nativeEnergyUi(message,active){
+    var copy=document.querySelector('.mobileEnergyCopy strong');
+    var button=document.querySelector('.mobileEnergyCard button');
+    var card=document.querySelector('.mobileEnergyCard');
+    if(copy) copy.textContent=message;
+    if(button) button.textContent=active?'ENERGY ACTIVE':message==='READY TO ACTIVATE'?'ACTIVATE ENERGY':'CONNECT BASE WALLET';
+    if(card) card.classList.toggle('active',!!active);
+    window.__bbbEnergyActive=!!active;
+  }
+  function nativeHexAddressData(address){
+    return '0x19c3994b'+String(address||'').toLowerCase().replace(/^0x/,'').padStart(64,'0');
+  }
+  function nativeRequestWithTimeout(provider,payload,timeoutMs){
+    return Promise.race([
+      provider.request(payload),
+      new Promise(function(_,reject){ setTimeout(function(){ reject(new Error('WALLET_TIMEOUT')); },timeoutMs); })
+    ]);
+  }
+  async function nativeBaseWalletFlow(){
+    // Prefer Wagmi's Coinbase/Base connector. It owns the WalletConnect / Base
+    // App return session, so Chrome can resume after approval and stay connected.
+    if(typeof window.__bbbWalletAction==='function'){
+      window.__bbbWalletAction();
+      return;
+    }
+    var injected=window.ethereum;
+    var provider=null;
+    if(injected&&Array.isArray(injected.providers)){
+      provider=injected.providers.find(function(item){ return item&&(item.isCoinbaseWallet||item.isBaseWallet); })||null;
+    }else if(injected&&(injected.isCoinbaseWallet||injected.isBaseWallet)){
+      provider=injected;
+    }
+    if(!provider || typeof provider.request!=='function'){
+      nativeEnergyUi('OPENING BASE APP',false);
+      var returnUrl=window.location.href.split('#')[0];
+      window.location.href='https://go.cb-w.com/dapp?cb_url='+encodeURIComponent(returnUrl);
+      return;
+    }
+    try{
+      nativeEnergyUi('CONNECTING BASE WALLET',false);
+      // Base App generally exposes its active account already. Asking again can
+      // leave older iOS webviews waiting forever without showing a prompt.
+      var accounts=[];
+      try{ accounts=await nativeRequestWithTimeout(provider,{method:'eth_accounts'},3500)||[]; }catch(accountReadError){}
+      if(!accounts.length){
+        accounts=await nativeRequestWithTimeout(provider,{method:'eth_requestAccounts'},12000);
+      }
+      var account=accounts&&accounts[0];
+      if(!account) throw new Error('NO_ACCOUNT');
+      try{
+        await provider.request({method:'wallet_switchEthereumChain',params:[{chainId:'0x2105'}]});
+      }catch(chainError){
+        try{
+          await provider.request({method:'wallet_addEthereumChain',params:[{
+            chainId:'0x2105',chainName:'Base',nativeCurrency:{name:'Ether',symbol:'ETH',decimals:18},
+            rpcUrls:['https://mainnet.base.org'],blockExplorerUrls:['https://basescan.org']
+          }]});
+        }catch(addError){}
+      }
+      var leftHex=await provider.request({method:'eth_call',params:[{
+        to:ENERGY_CONTRACT,data:nativeHexAddressData(account)
+      },'latest']});
+      var left=0;
+      try{ left=Number(BigInt(leftHex||'0x0')); }catch(parseError){}
+      if(left>0){
+        var hours=Math.floor(left/3600),minutes=Math.floor((left%3600)/60);
+        nativeEnergyUi('ENERGY ACTIVE • '+(hours?hours+'H ':'')+minutes+'M LEFT',true);
+        return;
+      }
+      nativeEnergyUi('CONFIRM IN BASE WALLET',false);
+      var txHash=await provider.request({method:'eth_sendTransaction',params:[{
+        from:account,to:ENERGY_CONTRACT,value:'0x0',data:'0xf5d7e22f'+ENERGY_BUILDER_SUFFIX
+      }]});
+      nativeEnergyUi('ACTIVATING ON BASE',false);
+      var attempts=0;
+      var receiptTimer=setInterval(async function(){
+        attempts++;
+        try{
+          var receipt=await provider.request({method:'eth_getTransactionReceipt',params:[txHash]});
+          if(receipt){
+            clearInterval(receiptTimer);
+            if(receipt.status==='0x1') nativeEnergyUi('ENERGY ACTIVE • 24H UNLOCKED',true);
+            else nativeEnergyUi('ACTIVATION FAILED',false);
+          }else if(attempts>60){ clearInterval(receiptTimer); nativeEnergyUi('CHECK TRANSACTION STATUS',false); }
+        }catch(receiptError){ if(attempts>60) clearInterval(receiptTimer); }
+      },2000);
+    }catch(error){
+      nativeEnergyUi('TAP TO CONNECT BASE WALLET',false);
+    }
+  }
+  function nativeEnergyTap(event){
+    var target=event.target&&event.target.closest?event.target.closest('.mobileEnergyCard button'):null;
+    if(!target) return;
+    var now=Date.now();
+    if(now-nativeWalletTapAt<700) return;
+    nativeWalletTapAt=now;
+    event.preventDefault();
+    event.stopPropagation();
+    if(event.stopImmediatePropagation) event.stopImmediatePropagation();
+    nativeBaseWalletFlow();
+  }
+  // Do not capture the Base button here. Base Account must receive the native
+  // React click directly or iOS treats its connection popup as unsolicited.
+
   setTimeout(function(){
     canvas=$('gameCanvas');
     if(canvas){
@@ -3947,7 +4027,7 @@ else next='BATTLE!';
           `,
         }}
       />
-      <MobileWalletRoot />
+      <MobileEnergyCard />
     </main>
   );
 }
