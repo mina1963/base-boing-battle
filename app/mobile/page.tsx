@@ -218,7 +218,7 @@ function MobileEnergyCard() {
         <span>BASE ENERGY</span>
         <strong>{status}</strong>
       </div>
-      <a href="/mobile-connect.html" aria-disabled={active}>
+      <a href="/mobile-connect" aria-disabled={active}>
         {buttonLabel}
       </a>
     </aside>
