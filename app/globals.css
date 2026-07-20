@@ -22,8 +22,61 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
 }
+
+button { cursor: pointer; }
+button:disabled { cursor: not-allowed; }
+
+.desktop-menu::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 16%, rgba(0,82,255,.22), transparent 28%), linear-gradient(180deg, rgba(2,4,10,.2), #02040a 78%);
+  pointer-events: none;
+}
+
+.desktop-menu-panel {
+  width: min(520px, calc(100vw - 40px));
+  padding: 48px 52px 42px;
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 32px;
+  background: linear-gradient(180deg, rgba(12,17,31,.88), rgba(4,7,14,.94));
+  box-shadow: 0 30px 100px rgba(0,0,0,.65), inset 0 1px rgba(255,255,255,.06);
+  backdrop-filter: blur(24px);
+}
+
+.desktop-menu-panel::before {
+  content: "BASE NETWORK  /  LIVE";
+  position: absolute;
+  top: 20px;
+  left: 26px;
+  color: rgba(255,255,255,.34);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .2em;
+}
+
+.desktop-menu-title {
+  letter-spacing: -.065em !important;
+  line-height: .9;
+  font-size: clamp(3.5rem, 6vw, 5.5rem) !important;
+}
+
+.desktop-menu-primary, .desktop-menu-secondary {
+  width: 100% !important;
+  border-radius: 18px !important;
+  transition: transform .18s ease, background .18s ease, border-color .18s ease, box-shadow .18s ease !important;
+}
+
+.desktop-menu-primary:not(:disabled):hover, .desktop-menu-secondary:not(:disabled):hover { transform: translateY(-2px); }
+button:focus-visible { outline: 2px solid white; outline-offset: 3px; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; }
+}
+
+@media (max-height: 760px) { .desktop-menu-panel { transform: scale(.88); } }
 
 @keyframes goalShake {
   0% { transform: translateX(0px) scale(1); }

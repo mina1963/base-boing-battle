@@ -2163,7 +2163,7 @@ const playSound = (
       )}
 
       {!showSplash && screen === "menu" && (
-        <div className="absolute inset-0 z-50 flex items-center justify-center overflow-hidden">
+        <div className="desktop-menu absolute inset-0 z-50 flex items-center justify-center overflow-hidden">
           <img
             src="/splash.png"
             alt=""
@@ -2186,7 +2186,7 @@ const playSound = (
 </div>
 
 
-          <div className="relative z-10 flex flex-col items-center text-center">
+          <div className="desktop-menu-panel relative z-10 flex flex-col items-center text-center">
 
 <div className="mb-4 relative">
   <div className="w-28 h-28 rounded-full border-2 border-[#0052FF]/60 animate-pulse" />
@@ -2208,8 +2208,8 @@ const playSound = (
 </div>
 </div>
 
-            <h1 className="text-white text-5xl font-black tracking-[0.2em]">
-              BASE BOING
+            <h1 className="desktop-menu-title text-white text-5xl font-black tracking-[0.2em]">
+              BOING
             </h1>
 
             <div className="text-[#0052FF] text-xl font-black tracking-[0.45em] mt-2">
@@ -2234,7 +2234,7 @@ const playSound = (
 
     setShowDifficulty(true);
   }}
-  className={`mt-12 w-[240px] h-[58px] rounded-full font-black tracking-[0.2em] transition ${
+  className={`desktop-menu-primary mt-12 w-[240px] h-[58px] rounded-full font-black tracking-[0.2em] transition ${
     baseEnergyActive
       ? "bg-[#0052FF] text-white shadow-[0_0_30px_rgba(0,82,255,0.35)]"
       : "bg-white/5 border border-white/10 text-white/35"
@@ -2335,7 +2335,7 @@ const playSound = (
 
                 setShowOnlineSoon(true);
               }}
-              className={`mt-4 w-[240px] h-[58px] rounded-full border font-black tracking-[0.2em] transition ${
+              className={`desktop-menu-secondary mt-4 w-[240px] h-[58px] rounded-full border font-black tracking-[0.2em] transition ${
                 baseEnergyActive
                   ? "border-[#0052FF]/50 text-[#0052FF] hover:bg-[#0052FF]/10"
                   : "border-white/10 text-white/35"
