@@ -55,6 +55,23 @@ type Spark = {
 
 type Arena = "classic" | "base" | "space" | "temple";
 type SocketRegion = "EU" | "US";
+type ServerGameState = {
+  host_score?: unknown;
+  hostScore?: unknown;
+  guest_score?: unknown;
+  guestScore?: unknown;
+  phase?: "waiting" | "countdown" | "playing" | "finished";
+  ball_x?: unknown;
+  ball_y?: unknown;
+  ball_vx?: unknown;
+  ball_vy?: unknown;
+  ball?: Partial<{ x: unknown; y: unknown; vx: unknown; vy: unknown }>;
+  round_start_at?: unknown;
+  roundStartAt?: unknown;
+  serverNow?: unknown;
+  server_now?: unknown;
+  winner?: unknown;
+};
 
 type ArenaTheme = {
   readyText: string;
@@ -183,7 +200,7 @@ export default function Home() {
     }
   }, [router]);
 
-  const socketRef = useRef<any>(null);
+  const socketRef = useRef<ReturnType<typeof io> | null>(null);
   const { address, isConnected } = useAccount();
 const { openConnectModal } = useConnectModal();
 const publicClient = usePublicClient();
@@ -451,6 +468,7 @@ const BALL_RESET_VY = 1.8;
 const MAX_BALL_SPEED = 10;
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
   const linesRef = useRef<Line[]>([]);
   const sparksRef = useRef<Spark[]>([]);
   const trailRef = useRef<{ x: number; y: number }[]>([]);
@@ -491,7 +509,7 @@ const MAX_BALL_SPEED = 10;
     vy: BALL_START_VY,
   });
 
-  const targetBallUpdatedAtRef = useRef(Date.now());
+  const targetBallUpdatedAtRef = useRef(0);
 
   const clearCountdownTimers = () => {
     if (countdownDelayTimerRef.current) {
@@ -550,7 +568,35 @@ const startCountdown = (startAtMs: number) => {
   tick();
 };
 
-  const applySocketState = (state: any) => {
+  function playSound(type: "hit" | "wall" | "goal") {
+    const AudioContextClass = window.AudioContext;
+    const audioCtx = audioContextRef.current ?? new AudioContextClass();
+    audioContextRef.current = audioCtx;
+    if (audioCtx.state === "suspended") void audioCtx.resume();
+
+    const oscillator = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    oscillator.connect(gain);
+    gain.connect(audioCtx.destination);
+
+    if (type === "hit") {
+      oscillator.frequency.value = 520;
+      gain.gain.value = 0.05;
+    } else if (type === "wall") {
+      oscillator.frequency.value = 220;
+      gain.gain.value = 0.04;
+    } else {
+      oscillator.frequency.value = 120;
+      gain.gain.value = 0.08;
+    }
+
+    oscillator.type = "square";
+    oscillator.start();
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.12);
+    oscillator.stop(audioCtx.currentTime + 0.12);
+  }
+
+  const applySocketState = (state: ServerGameState) => {
     const hostScore = Number(state.host_score ?? state.hostScore ?? 0);
     const guestScore = Number(state.guest_score ?? state.guestScore ?? 0);
     const serverPhase = state.phase ?? serverPhaseRef.current;
@@ -647,7 +693,9 @@ const startCountdown = (startAtMs: number) => {
         const serverStartAt =
           typeof roundStartRaw === "number"
             ? roundStartRaw
-            : new Date(roundStartRaw).getTime();
+            : typeof roundStartRaw === "string"
+            ? new Date(roundStartRaw).getTime()
+            : Number.NaN;
 
         const serverNow =
           typeof serverNowRaw === "number"
@@ -718,6 +766,7 @@ const startCountdown = (startAtMs: number) => {
 
 
 useEffect(() => {
+  const syncUsername = () => {
   if (!address) {
     setUsername("");
     setUsernameInput("");
@@ -738,16 +787,23 @@ useEffect(() => {
     setUsernameInput("");
     setUsernameWarning(null);
   }
+  };
+
+  const timer = window.setTimeout(syncUsername, 0);
+  return () => window.clearTimeout(timer);
 }, [address]);
 
 useEffect(() => {
-  checkBaseEnergy();
+  const initialTimer = window.setTimeout(() => void checkBaseEnergy(), 0);
 
   const timer = setInterval(() => {
-    checkBaseEnergy();
+    void checkBaseEnergy();
   }, 60_000);
 
-  return () => clearInterval(timer);
+  return () => {
+    window.clearTimeout(initialTimer);
+    clearInterval(timer);
+  };
 }, [address, publicClient]);
 
 useEffect(() => {
@@ -759,7 +815,7 @@ const SOCKET_URL =
 const socket = io(
   SOCKET_URL || process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:4000",
   {
-    transports: ["websocket"],
+    transports: ["websocket", "polling"],
   }
 );
   socketRef.current = socket;
@@ -1004,6 +1060,8 @@ const socket = io(
   }, []);
 
   useEffect(() => {
+    if (screen !== "game") return;
+
     const canvas = canvasRef.current;
     if (!canvas) return;
 
@@ -1016,6 +1074,42 @@ const socket = io(
     const W = 400;
     const H = 700;
     const MAX_LINE_LENGTH = 160;
+
+    const baseBackground = ctx.createLinearGradient(0, 0, 0, H);
+    baseBackground.addColorStop(0, "#020716");
+    baseBackground.addColorStop(0.28, "#031d5a");
+    baseBackground.addColorStop(0.52, "#003bbd");
+    baseBackground.addColorStop(0.76, "#031d5a");
+    baseBackground.addColorStop(1, "#020716");
+    const baseGlow = ctx.createRadialGradient(W / 2, H / 2, 20, W / 2, H / 2, H / 1.05);
+    baseGlow.addColorStop(0, "rgba(255,255,255,0.10)");
+    baseGlow.addColorStop(0.3, "rgba(0,82,255,0.18)");
+    baseGlow.addColorStop(0.72, "rgba(0,82,255,0.04)");
+    baseGlow.addColorStop(1, "rgba(0,0,0,0.45)");
+
+    const spaceBackground = ctx.createLinearGradient(0, 0, 0, H);
+    spaceBackground.addColorStop(0, "#02040d");
+    spaceBackground.addColorStop(0.42, "#061536");
+    spaceBackground.addColorStop(0.72, "#030918");
+    spaceBackground.addColorStop(1, "#000000");
+    const spaceGlow = ctx.createRadialGradient(W / 2, H / 2, 20, W / 2, H / 2, H / 1.1);
+    spaceGlow.addColorStop(0, "rgba(34,211,238,0.22)");
+    spaceGlow.addColorStop(0.35, "rgba(0,82,255,0.10)");
+    spaceGlow.addColorStop(1, "rgba(0,0,0,0)");
+
+    const templeBackground = ctx.createLinearGradient(0, 0, 0, H);
+    templeBackground.addColorStop(0, "#140b02");
+    templeBackground.addColorStop(0.5, "#241403");
+    templeBackground.addColorStop(1, "#050301");
+    const templeGlow = ctx.createRadialGradient(W / 2, H / 2, 18, W / 2, H / 2, H / 1.08);
+    templeGlow.addColorStop(0, "rgba(251,191,36,0.22)");
+    templeGlow.addColorStop(0.45, "rgba(120,53,15,0.14)");
+    templeGlow.addColorStop(1, "rgba(0,0,0,0.25)");
+
+    const classicGlow = ctx.createRadialGradient(W / 2, H / 2, 40, W / 2, H / 2, H / 1.2);
+    classicGlow.addColorStop(0, "rgba(0,82,255,0.16)");
+    classicGlow.addColorStop(0.45, "rgba(0,82,255,0.05)");
+    classicGlow.addColorStop(1, "rgba(0,0,0,0)");
 
     const limitLine = (
       start: { x: number; y: number },
@@ -1143,53 +1237,33 @@ if (
     canvas.addEventListener("pointerup", up);
 
     let frame = 0;
+    let lastFrameAt = performance.now();
+    let aiElapsedFrames = 0;
     let animation = 0;
 
-    const loop = () => {
+    const loop = (now = performance.now()) => {
+      const dtMs = Math.min(50, Math.max(0, now - lastFrameAt));
+      const dtScale = dtMs / 16.67;
+      lastFrameAt = now;
       frame++;
 
       if (winnerRef.current) {
-  animation = requestAnimationFrame(loop);
-  return;
-}
-
-
-      if (winner) {
-  animation = requestAnimationFrame(loop);
-  return;
-}
+        return;
+      }
 const roundActive = gameStartedRef.current && !pauseRef.current;
 const activeArena = arenaRef.current;
 
-      if (energyRef.current.value < 100 && frame % 5 === 0) {
-        energyRef.current.value += 1;
+      if (energyRef.current.value < 100) {
+        energyRef.current.value = Math.min(100, energyRef.current.value + 0.2 * dtScale);
       }
 
       ctx.clearRect(0, 0, W, H);
 
       if (activeArena === "base") {
-        const baseBg = ctx.createLinearGradient(0, 0, 0, H);
-        baseBg.addColorStop(0, "#020716");
-        baseBg.addColorStop(0.28, "#031d5a");
-        baseBg.addColorStop(0.52, "#003bbd");
-        baseBg.addColorStop(0.76, "#031d5a");
-        baseBg.addColorStop(1, "#020716");
-        ctx.fillStyle = baseBg;
+        ctx.fillStyle = baseBackground;
         ctx.fillRect(0, 0, W, H);
 
-        const stadiumGlow = ctx.createRadialGradient(
-          W / 2,
-          H / 2,
-          20,
-          W / 2,
-          H / 2,
-          H / 1.05
-        );
-        stadiumGlow.addColorStop(0, "rgba(255,255,255,0.10)");
-        stadiumGlow.addColorStop(0.3, "rgba(0,82,255,0.18)");
-        stadiumGlow.addColorStop(0.72, "rgba(0,82,255,0.04)");
-        stadiumGlow.addColorStop(1, "rgba(0,0,0,0.45)");
-        ctx.fillStyle = stadiumGlow;
+        ctx.fillStyle = baseGlow;
         ctx.fillRect(0, 0, W, H);
 
         ctx.strokeStyle = "rgba(255,255,255,0.045)";
@@ -1259,19 +1333,10 @@ const activeArena = arenaRef.current;
         ctx.shadowBlur = 0;
         ctx.restore();
       } else if (activeArena === "space") {
-        const spaceBg = ctx.createLinearGradient(0, 0, 0, H);
-        spaceBg.addColorStop(0, "#02040d");
-        spaceBg.addColorStop(0.42, "#061536");
-        spaceBg.addColorStop(0.72, "#030918");
-        spaceBg.addColorStop(1, "#000000");
-        ctx.fillStyle = spaceBg;
+        ctx.fillStyle = spaceBackground;
         ctx.fillRect(0, 0, W, H);
 
-        const orbitGlow = ctx.createRadialGradient(W / 2, H / 2, 20, W / 2, H / 2, H / 1.1);
-        orbitGlow.addColorStop(0, "rgba(34,211,238,0.22)");
-        orbitGlow.addColorStop(0.35, "rgba(0,82,255,0.10)");
-        orbitGlow.addColorStop(1, "rgba(0,0,0,0)");
-        ctx.fillStyle = orbitGlow;
+        ctx.fillStyle = spaceGlow;
         ctx.fillRect(0, 0, W, H);
 
         for (let i = 0; i < 110; i++) {
@@ -1323,18 +1388,10 @@ const activeArena = arenaRef.current;
         ctx.stroke();
         ctx.restore();
       } else if (activeArena === "temple") {
-        const templeBg = ctx.createLinearGradient(0, 0, 0, H);
-        templeBg.addColorStop(0, "#140b02");
-        templeBg.addColorStop(0.5, "#241403");
-        templeBg.addColorStop(1, "#050301");
-        ctx.fillStyle = templeBg;
+        ctx.fillStyle = templeBackground;
         ctx.fillRect(0, 0, W, H);
 
-        const goldGlow = ctx.createRadialGradient(W / 2, H / 2, 18, W / 2, H / 2, H / 1.08);
-        goldGlow.addColorStop(0, "rgba(251,191,36,0.22)");
-        goldGlow.addColorStop(0.45, "rgba(120,53,15,0.14)");
-        goldGlow.addColorStop(1, "rgba(0,0,0,0.25)");
-        ctx.fillStyle = goldGlow;
+        ctx.fillStyle = templeGlow;
         ctx.fillRect(0, 0, W, H);
 
         ctx.strokeStyle = "rgba(251,191,36,0.09)";
@@ -1389,20 +1446,7 @@ const activeArena = arenaRef.current;
         ctx.fillStyle = "#020204";
         ctx.fillRect(0, 0, W, H);
 
-        const gradient = ctx.createRadialGradient(
-          W / 2,
-          H / 2,
-          40,
-          W / 2,
-          H / 2,
-          H / 1.2
-        );
-
-        gradient.addColorStop(0, "rgba(0,82,255,0.16)");
-        gradient.addColorStop(0.45, "rgba(0,82,255,0.05)");
-        gradient.addColorStop(1, "rgba(0,0,0,0)");
-
-        ctx.fillStyle = gradient;
+        ctx.fillStyle = classicGlow;
         ctx.fillRect(0, 0, W, H);
 
         ctx.strokeStyle = "rgba(0,82,255,0.08)";
@@ -1577,12 +1621,14 @@ const aiInterval =
     : aiDifficultyRef.current === "hard"
     ? 24
     : 45;
+aiElapsedFrames += dtScale;
      if (
   gameModeRef.current === "ai" &&
-  frame % aiInterval === 0 &&
+  aiElapsedFrames >= aiInterval &&
   ball.y < H / 2 - 20 &&
   ball.vy < 0
 ) {
+  aiElapsedFrames = 0;
   const aiY1 = Math.max(35, ball.y - 35);
   const aiY2 = Math.max(35, ball.y - 10);
 
@@ -1636,18 +1682,21 @@ if (roundActive) {
       ball.x = predictedX;
       ball.y = predictedY;
     } else {
-      ball.x += dx * 0.32;
-      ball.y += dy * 0.32;
+      const follow = 1 - Math.pow(0.68, dtScale);
+      ball.x += dx * follow;
+      ball.y += dy * follow;
     }
 
     ball.vx = targetBallRef.current.vx;
     ball.vy = targetBallRef.current.vy;
   } else {
     // AI/local mode physics.
-    const speedBeforeMove = Math.hypot(ball.vx, ball.vy);
+    const moveVx = ball.vx * dtScale;
+    const moveVy = ball.vy * dtScale;
+    const speedBeforeMove = Math.hypot(moveVx, moveVy);
     const steps = Math.max(1, Math.ceil(speedBeforeMove / 2));
-    const stepVx = ball.vx / steps;
-    const stepVy = ball.vy / steps;
+    const stepVx = moveVx / steps;
+    const stepVy = moveVy / steps;
 
     let hitLine: Line | null = null;
 
@@ -1857,7 +1906,7 @@ if (score.ai >= 7) {
       linesRef.current = linesRef.current
         .map((line) => ({
           ...line,
-          life: line.life - 1,
+          life: line.life - dtScale,
         }))
         .filter((line) => line.life > 0);
 
@@ -1930,11 +1979,11 @@ if (score.ai >= 7) {
       sparksRef.current = sparksRef.current
         .map((s) => ({
           ...s,
-          x: s.x + s.vx,
-          y: s.y + s.vy,
-          vx: s.vx * 0.96,
-          vy: s.vy * 0.96,
-          life: s.life - 1,
+          x: s.x + s.vx * dtScale,
+          y: s.y + s.vy * dtScale,
+          vx: s.vx * Math.pow(0.96, dtScale),
+          vy: s.vy * Math.pow(0.96, dtScale),
+          life: s.life - dtScale,
         }))
         .filter((s) => s.life > 0);
 
@@ -1978,7 +2027,7 @@ if (score.ai >= 7) {
       animation = requestAnimationFrame(loop);
     };
 
-    loop();
+    animation = requestAnimationFrame(loop);
 
     return () => {
       cancelAnimationFrame(animation);
@@ -1986,54 +2035,17 @@ if (score.ai >= 7) {
       canvas.removeEventListener("pointermove", move);
       canvas.removeEventListener("pointerup", up);
     };
-  }, []);
+  }, [screen]);
 
-
-const playSound = (
-  type: "hit" | "wall" | "goal"
-) => {
-  const AudioContextClass =
-    window.AudioContext;
-
-  const audioCtx = new AudioContextClass();
-
-  const oscillator =
-    audioCtx.createOscillator();
-
-  const gain =
-    audioCtx.createGain();
-
-  oscillator.connect(gain);
-  gain.connect(audioCtx.destination);
-
-  if (type === "hit") {
-    oscillator.frequency.value = 520;
-    gain.gain.value = 0.05;
-  }
-
-  if (type === "wall") {
-    oscillator.frequency.value = 220;
-    gain.gain.value = 0.04;
-  }
-
-  if (type === "goal") {
-    oscillator.frequency.value = 120;
-    gain.gain.value = 0.08;
-  }
-
-  oscillator.type = "square";
-
-  oscillator.start();
-
-  gain.gain.exponentialRampToValueAtTime(
-    0.001,
-    audioCtx.currentTime + 0.12
-  );
-
-  oscillator.stop(
-    audioCtx.currentTime + 0.12
-  );
-};
+useEffect(() => {
+  return () => {
+    const audioContext = audioContextRef.current;
+    audioContextRef.current = null;
+    if (audioContext && audioContext.state !== "closed") {
+      void audioContext.close();
+    }
+  };
+}, []);
 
   const startGame = () => {
     scoreRef.current.player = 0;
@@ -3139,8 +3151,8 @@ socketRef.current?.emit("create-room", {
                 const selected = votedArena === item.key;
                 const hostVoted = arenaVotes.host === item.key;
                 const guestVoted = arenaVotes.guest === item.key;
-                const myVote = isHostRef.current ? arenaVotes.host : arenaVotes.guest;
-                const rivalVote = isHostRef.current ? arenaVotes.guest : arenaVotes.host;
+                const myVote = isHost ? arenaVotes.host : arenaVotes.guest;
+                const rivalVote = isHost ? arenaVotes.guest : arenaVotes.host;
                 const meVotedThis = myVote === item.key;
                 const rivalVotedThis = rivalVote === item.key;
 
@@ -3242,7 +3254,7 @@ socketRef.current?.emit("create-room", {
           <h1 className="text-4xl font-black text-white mb-2">{winner}</h1>
 
           <div className="mb-3 max-w-[90vw] text-center text-white/80 text-lg font-black tracking-[0.08em]">
-            {gameMode === "online" ? rivalDisplayName : "AI"} {finalScore?.ai ?? scoreRef.current.ai} ◇ {finalScore?.player ?? scoreRef.current.player} {gameMode === "online" ? playerDisplayName : "YOU"}
+            {gameMode === "online" ? rivalDisplayName : "AI"} {finalScore?.ai ?? 0} ◇ {finalScore?.player ?? 0} {gameMode === "online" ? playerDisplayName : "YOU"}
           </div>
 
           <p className="mb-8 text-[#0052FF] text-xs font-black tracking-[0.35em]">
