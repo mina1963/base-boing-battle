@@ -466,6 +466,9 @@ const BALL_RESET_VX = 1.2;
 const BALL_RESET_VY = 1.8;
 
 const MAX_BALL_SPEED = 10;
+const ENERGY_REGEN_PER_FRAME = 0.2;
+const ENERGY_MAX_SPEED_BONUS_PER_FRAME = 0.22;
+const ENERGY_SPEED_BONUS_START = 3.5;
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -1254,7 +1257,27 @@ const roundActive = gameStartedRef.current && !pauseRef.current;
 const activeArena = arenaRef.current;
 
       if (energyRef.current.value < 100) {
-        energyRef.current.value = Math.min(100, energyRef.current.value + 0.2 * dtScale);
+        const energyBall =
+          gameModeRef.current === "online"
+            ? targetBallRef.current
+            : ballRef.current;
+        const ballSpeed = Math.hypot(energyBall.vx, energyBall.vy);
+        const speedRatio = Math.max(
+          0,
+          Math.min(
+            1,
+            (ballSpeed - ENERGY_SPEED_BONUS_START) /
+              (MAX_BALL_SPEED - ENERGY_SPEED_BONUS_START)
+          )
+        );
+        const regenPerFrame =
+          ENERGY_REGEN_PER_FRAME +
+          ENERGY_MAX_SPEED_BONUS_PER_FRAME * speedRatio;
+
+        energyRef.current.value = Math.min(
+          100,
+          energyRef.current.value + regenPerFrame * dtScale
+        );
       }
 
       ctx.clearRect(0, 0, W, H);
