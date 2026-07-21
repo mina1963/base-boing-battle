@@ -4,17 +4,45 @@ const cors = require("cors");
 const { Server } = require("socket.io");
 
 const app = express();
-app.use(cors());
+const configuredOrigins = String(process.env.ALLOWED_ORIGINS || "")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+const defaultOrigins = [
+  "https://www.baseboingbattle.online",
+  "https://baseboingbattle.online",
+  "http://localhost:3000",
+];
+const allowedOrigins = new Set([...defaultOrigins, ...configuredOrigins]);
+const corsOrigin = (origin, callback) => {
+  const allowed =
+    !origin ||
+    allowedOrigins.has(origin) ||
+    /^https:\/\/[a-z0-9-]+\.vercel\.app$/i.test(origin);
+  callback(allowed ? null : new Error("ORIGIN_NOT_ALLOWED"), allowed);
+};
+
+app.use(cors({ origin: corsOrigin }));
 
 app.get("/", (_, res) => {
   res.send("Base Boing Battle socket server running");
+});
+
+app.get("/health", (_, res) => {
+  res.json({
+    ok: true,
+    uptimeSeconds: Math.round(process.uptime()),
+    connectedSockets: io.engine?.clientsCount || 0,
+    activeRooms: rooms.size,
+    waitingPlayers: waitingPlayers.length,
+  });
 });
 
 const server = http.createServer(app);
 
 const io = new Server(server, {
   cors: {
-    origin: "*",
+    origin: corsOrigin,
     methods: ["GET", "POST"],
   },
 });
@@ -113,6 +141,7 @@ const createRoomObject = ({
   matchId: `${code}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
 
   lastTickAt: Date.now(),
+  physicsAccumulator: 0,
   lastEmitAt: 0,
   lastDrawAt: {
     host: 0,
@@ -348,12 +377,39 @@ setInterval(() => {
   const now = Date.now();
 
   for (const room of rooms.values()) {
-    const dt = Math.min(50, now - (room.lastTickAt || now));
+    const elapsed = Math.min(250, Math.max(0, now - (room.lastTickAt || now)));
     room.lastTickAt = now;
+    room.physicsAccumulator = Math.min(250, (room.physicsAccumulator || 0) + elapsed);
 
-    tickRoomPhysics(room, dt / 16.67);
+    let steps = 0;
+    while (room.physicsAccumulator >= TICK_MS && steps < 8) {
+      tickRoomPhysics(room, 1);
+      room.physicsAccumulator -= TICK_MS;
+      steps += 1;
+    }
   }
 }, TICK_MS);
+
+const allowSocketEvent = (socket, eventName, limit, windowMs) => {
+  const now = Date.now();
+  socket.data.rateLimits ||= new Map();
+  const bucket = socket.data.rateLimits.get(eventName);
+
+  if (!bucket || now - bucket.startedAt >= windowMs) {
+    socket.data.rateLimits.set(eventName, { startedAt: now, count: 1 });
+    return true;
+  }
+
+  bucket.count += 1;
+  return bucket.count <= limit;
+};
+
+const getAuthorizedRoom = (socket, roomCode) => {
+  const room = rooms.get(roomCode);
+  if (!room) return null;
+  if (room.hostSocketId !== socket.id && room.guestSocketId !== socket.id) return null;
+  return room;
+};
 
 const cleanupRoomForSocket = (socket) => {
   const roomCode = socketRooms.get(socket.id);
@@ -625,6 +681,7 @@ io.on("connection", (socket) => {
   console.log("CONNECTED:", socket.id);
 
   socket.on("create-room", ({ roomCode, address, username } = {}, ack) => {
+    if (!allowSocketEvent(socket, "create-room", 4, 10_000)) return;
     detachSocketFromCurrentRoom(socket, { notifyOpponent: true });
 
     let safeRoomCode = String(roomCode || makeRoomCode())
@@ -659,6 +716,7 @@ io.on("connection", (socket) => {
   });
 
   socket.on("join-room", ({ roomCode, address, username } = {}, ack) => {
+    if (!allowSocketEvent(socket, "join-room", 8, 10_000)) return;
     const safeRoomCode = String(roomCode || "")
       .trim()
       .toUpperCase()
@@ -736,6 +794,7 @@ io.on("connection", (socket) => {
   });
 
   socket.on("find-match", ({ address, username }) => {
+    if (!allowSocketEvent(socket, "find-match", 5, 10_000)) return;
     console.log("FIND MATCH:", socket.id);
 
     if (socketRooms.has(socket.id)) {
@@ -789,7 +848,8 @@ io.on("connection", (socket) => {
   });
 
   socket.on("client-ready", ({ roomCode, role, platform, matchId }) => {
-    const room = rooms.get(roomCode);
+    if (!allowSocketEvent(socket, "client-ready", 12, 10_000)) return;
+    const room = getAuthorizedRoom(socket, roomCode);
     if (!room) return;
     if (platform === "mobile" && matchId !== room.matchId) return;
 
@@ -812,7 +872,8 @@ io.on("connection", (socket) => {
   });
 
   socket.on("vote-arena", ({ roomCode, arena }) => {
-    const room = rooms.get(roomCode);
+    if (!allowSocketEvent(socket, "vote-arena", 8, 10_000)) return;
+    const room = getAuthorizedRoom(socket, roomCode);
     if (!room) return;
 
     handleArenaVote(room, socket.id, arena);
@@ -827,7 +888,8 @@ io.on("connection", (socket) => {
   });
 
   socket.on("host-state", ({ roomCode }) => {
-    const room = rooms.get(roomCode);
+    if (!allowSocketEvent(socket, "host-state", 10, 10_000)) return;
+    const room = getAuthorizedRoom(socket, roomCode);
     if (!room) return;
     emitStateToRoom(room);
   });
@@ -841,7 +903,7 @@ io.on("connection", (socket) => {
   });
 
   socket.on("draw-line", ({ roomCode, line }) => {
-    const room = rooms.get(roomCode);
+    const room = getAuthorizedRoom(socket, roomCode);
     if (!room) return;
 
     const owner =
@@ -891,7 +953,8 @@ io.on("connection", (socket) => {
   });
 
   socket.on("play-again-ready", ({ roomCode, role }) => {
-    const room = rooms.get(roomCode);
+    if (!allowSocketEvent(socket, "play-again-ready", 8, 10_000)) return;
+    const room = getAuthorizedRoom(socket, roomCode);
     if (!room) return;
 
     if (role === "host" && socket.id === room.hostSocketId) {
