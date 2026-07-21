@@ -3799,7 +3799,11 @@ else next='BATTLE!';
     lastDtScale=dtScale;
 
     frame++;
-    if(energy<100) energy=Math.min(100,energy+(0.30*dtScale));
+    if(energy<100){
+      var rallySpeed=Math.hypot(ball.vx,ball.vy);
+      var rallyBoost=Math.max(0,Math.min(1,(rallySpeed-3.5)/(10-3.5)));
+      energy=Math.min(100,energy+((0.30+(0.16*rallyBoost))*dtScale));
+    }
     if(!started||paused) return;
     if(mode==='online'){
       if(!onlineServerPlaying) return;
