@@ -1,6 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type MouseEvent as ReactMouseEvent,
+} from "react";
 import {
   useAccount,
   useConnect,
@@ -232,24 +239,89 @@ function MobileEnergyCard() {
   );
 }
 
+type StoreLegacyApi = {
+  show: (screen: string) => void;
+  chooseMode: (mode: "online" | "create" | "join") => void;
+  openUsernameModal: () => void;
+  selectArena: (arena: string) => void;
+};
+
+function bootStoreRuntime() {
+  const storeWindow = window as Window & {
+    __bbbStoreApi?: StoreLegacyApi;
+  };
+  if (storeWindow.__bbbStoreApi) return storeWindow.__bbbStoreApi;
+
+  const source = document.getElementById(
+    "storeLegacyGameSource",
+  ) as HTMLScriptElement | null;
+  if (!source) return undefined;
+
+  source.dataset.booted = "true";
+  const runner = document.createElement("script");
+  runner.dataset.storeLegacyRunner = "true";
+  runner.textContent = source.textContent;
+  document.body.appendChild(runner);
+  runner.remove();
+  return storeWindow.__bbbStoreApi;
+}
+
 export default function MobilePage() {
   useEffect(() => {
-    const source = document.getElementById(
-      "storeLegacyGameSource",
-    ) as HTMLScriptElement | null;
-    if (!source || source.dataset.booted === "true") return;
-
-    source.dataset.booted = "true";
-    const runner = document.createElement("script");
-    runner.dataset.storeLegacyRunner = "true";
-    runner.textContent = source.textContent;
-    document.body.appendChild(runner);
-    runner.remove();
+    bootStoreRuntime();
   }, []);
+
+  const handleStoreClick = (event: ReactMouseEvent<HTMLDivElement>) => {
+    const target = event.target as HTMLElement;
+    const control = target.closest<HTMLElement>(
+      "button, #storeProfileTapArea, [data-store-arena]",
+    );
+    if (!control || !control.closest(".storeCosmic")) return;
+
+    const api = bootStoreRuntime();
+    if (!api) return;
+
+    const arena = control.dataset.storeArena;
+    if (arena) {
+      event.preventDefault();
+      event.stopPropagation();
+      api.selectArena(arena);
+      return;
+    }
+
+    const action = control.id;
+    if (!action) return;
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (action === "storePlayBtn") api.show("difficultyScreen");
+    else if (action === "storeOnlineBtn") api.chooseMode("online");
+    else if (action === "storeCreateBtn") api.chooseMode("create");
+    else if (action === "storeJoinBtn") api.chooseMode("join");
+    else if (action === "storeProfileTapArea" || action === "storeProfileNav")
+      api.openUsernameModal();
+    else if (action === "storeSettingsNav") api.show("settingsScreen");
+    else if (action === "storeFeedbackNav") {
+      const subject = "Boing Battle - Feedback / Bug Report";
+      const details = [
+        "Please describe the issue or suggestion:",
+        "",
+        "",
+        "--- Device information ---",
+        `Platform: ${navigator.platform || "Unknown"}`,
+        `Browser/App: ${navigator.userAgent}`,
+        `Screen: ${window.innerWidth}x${window.innerHeight}`,
+      ].join("\n");
+      window.location.href = `mailto:doberman01963@gmail.com?subject=${encodeURIComponent(
+        subject,
+      )}&body=${encodeURIComponent(details)}`;
+    }
+  };
 
   return (
     <main>
       <div
+        onClickCapture={handleStoreClick}
         dangerouslySetInnerHTML={{
           __html: `
 <style>
@@ -4053,6 +4125,19 @@ else next='BATTLE!';
   bindTap($('resultMenuBtn'), function(){ $('resultPanel').classList.remove('active'); leaveOnlineRoom(); show('menuScreen'); });
   window.addEventListener('beforeunload', function(){ notifyLeavingOnline(); });
   window.addEventListener('pagehide', function(){ notifyLeavingOnline(); });
+
+  window.__bbbStoreApi={
+    show:show,
+    chooseMode:chooseMode,
+    openUsernameModal:function(){ openUsernameModal(); },
+    selectArena:function(nextArena){
+      arena=nextArena||'base';
+      document.querySelectorAll('.storeArena').forEach(function(btn){
+        btn.classList.toggle('selected',btn.getAttribute('data-store-arena')===arena);
+      });
+    }
+  };
+  document.documentElement.setAttribute('data-store-runtime','ready');
 
   // Native wallet bridge for older iOS browsers. The page contains a large
   // legacy game shell, so React hydration can arrive too late for the first tap.
