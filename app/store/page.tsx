@@ -2365,9 +2365,14 @@ export default function MobilePage() {
   .storeCore { position:absolute; top:92px; left:50%; width:88px; height:88px; transform:translateX(-50%); border-radius:50%; will-change:transform,filter; background:radial-gradient(circle at 35% 27%,#fff 0 5%,#49e8ff 9%,#7c3aed 28%,#12123d 59%,#03040d 100%); box-shadow:0 0 24px rgba(34,211,238,.72),0 0 58px rgba(139,92,246,.55); animation:storeWorldFloat 3.4s ease-in-out infinite; }
   .storeCore:before { content:""; position:absolute; inset:-10px; border:1px solid rgba(106,238,255,.38); border-radius:50%; box-shadow:0 0 22px rgba(34,211,238,.24); animation:storeCoreHalo 2.2s ease-in-out infinite; }
   .storeCore:after { content:"↗"; position:absolute; inset:0; display:grid; place-items:center; color:white; font-size:27px; font-weight:1000; }
-  .storePortalStatus { position:absolute; top:190px; padding:5px 13px; border:1px solid rgba(34,211,238,.30); border-radius:999px; color:#9ef5ff; background:rgba(3,9,28,.82); font-size:7px; font-weight:1000; letter-spacing:.25em; }
+  .storePortalStatus { position:absolute; top:188px; isolation:isolate; overflow:hidden; display:inline-flex; align-items:center; gap:7px; padding:7px 14px; border:1px solid rgba(96,235,255,.52); border-radius:999px; color:#d9fcff; background:linear-gradient(110deg,rgba(5,13,38,.94),rgba(24,20,67,.92)); box-shadow:0 0 22px rgba(34,211,238,.22),inset 0 1px 0 rgba(255,255,255,.15),inset 0 0 18px rgba(34,211,238,.06); font-size:7px; font-weight:1000; letter-spacing:.22em; text-shadow:0 0 10px rgba(111,239,255,.9); }
+  .storePortalStatus:before { content:""; width:6px; height:6px; flex:0 0 auto; border-radius:50%; background:#63ffd1; box-shadow:0 0 7px #63ffd1,0 0 16px rgba(99,255,209,.75); animation:storeStatusLive 1.45s ease-in-out infinite; }
+  .storePortalStatus:after { content:""; position:absolute; z-index:-1; inset:-40% auto -40% -45%; width:42%; transform:skewX(-22deg); background:linear-gradient(90deg,transparent,rgba(255,255,255,.22),transparent); animation:storeStatusScan 3.2s ease-in-out infinite; }
   .storePortal h1 { position:absolute; top:217px; margin:0; color:#f7f7ff; font-size:15px; letter-spacing:.29em; text-shadow:0 0 18px rgba(139,92,246,.48); }
-  .storePortal p { position:absolute; top:244px; margin:0; padding:7px 12px; border:1px solid rgba(112,236,255,.18); border-radius:999px; color:#dffcff; background:linear-gradient(90deg,transparent,rgba(84,45,190,.22),transparent); font-size:7px; font-weight:1000; letter-spacing:.27em; text-shadow:0 0 7px #22d3ee,0 0 16px rgba(139,92,246,.9); box-shadow:0 0 20px rgba(34,211,238,.08); animation:storeTagPulse 2.6s ease-in-out infinite; }
+  .storePortalTag { position:absolute; top:241px; margin:0; display:flex; align-items:center; gap:7px; padding:8px 12px; border:1px solid rgba(125,143,255,.25); border-radius:999px; background:linear-gradient(100deg,rgba(7,12,35,.78),rgba(37,24,83,.72),rgba(7,12,35,.78)); box-shadow:0 9px 28px rgba(0,0,0,.28),0 0 24px rgba(112,75,255,.12),inset 0 1px 0 rgba(255,255,255,.1); backdrop-filter:blur(10px); animation:storeTagPulse 2.6s ease-in-out infinite; }
+  .storePortalTag span { color:#effdff; font-size:7px; font-weight:1000; letter-spacing:.18em; text-shadow:0 0 8px rgba(34,211,238,.8); }
+  .storePortalTag span:nth-of-type(2) { color:#d9c6ff; text-shadow:0 0 9px rgba(139,92,246,.9); }
+  .storePortalTag i { width:3px; height:3px; border-radius:50%; background:#60eaff; box-shadow:0 0 7px #60eaff; }
   .storeActions { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; }
   #storePlayBtn,#storeOnlineBtn,#storeCreateBtn,#storeJoinBtn { position:relative; width:100%; border-radius:16px; font-family:Arial,Helvetica,sans-serif; font-weight:1000; letter-spacing:.10em; touch-action:manipulation; }
   #storePlayBtn { grid-column:1/-1; height:58px; border:0; color:white; background:linear-gradient(105deg,#7c3aed 0%,#8b5cf6 45%,#22d3ee 100%); box-shadow:0 0 30px rgba(139,92,246,.35),inset 0 1px 0 rgba(255,255,255,.28); font-size:13px; }
@@ -2419,9 +2424,11 @@ export default function MobilePage() {
   @keyframes storeWorldFloat { 0%,100%{transform:translateX(-50%) translateY(4px) rotate(-2deg) scale(.97);filter:brightness(.95)} 50%{transform:translateX(-50%) translateY(-11px) rotate(2deg) scale(1.07);filter:brightness(1.16)} }
   @keyframes storeCoreHalo { 0%,100%{transform:scale(.9);opacity:.25} 50%{transform:scale(1.16);opacity:.9} }
   @keyframes storeTagPulse { 0%,100%{opacity:.72;transform:scale(.98)} 50%{opacity:1;transform:scale(1.035)} }
+  @keyframes storeStatusLive { 0%,100%{opacity:.45;transform:scale(.72)} 50%{opacity:1;transform:scale(1.18)} }
+  @keyframes storeStatusScan { 0%,30%{left:-45%;opacity:0} 48%{opacity:1} 70%,100%{left:112%;opacity:0} }
   @keyframes feedbackFadeIn { from{opacity:0} to{opacity:1} }
   @media(max-height:760px) { .storeCosmic{padding-top:calc(env(safe-area-inset-top) + 12px)} .storePortal{height:252px;transform:scale(.88);margin:-13px 0} .storeArenas{margin-top:13px} .storeArena{min-height:100px} .storeArenaVisual{height:54px} }
-  @media(prefers-reduced-motion:reduce) { .storeOrbit,.storeOrbit:before,.storeOrbit:after,.storeCore,.storeCore:before,.storePortal p,.storeCosmic:before,.storeCosmic:after { animation:none; } }
+  @media(prefers-reduced-motion:reduce) { .storeOrbit{animation-duration:5.5s} .storeOrbit:before{animation-duration:12s} .storeOrbit:after{animation-duration:10s} .storeCore{animation-duration:5.5s} .storeCore:before{animation-duration:4s} .storeCosmic:before{animation-duration:22s,5s} .storeCosmic:after{animation-duration:12s} .storePortalTag{animation-duration:4.5s} }
 </style>
 <div id="app">
   <div id="noise"></div>
@@ -2483,7 +2490,7 @@ export default function MobilePage() {
         <div class="storeOrbit"></div>
         <div class="storeCore"></div>
         <div class="storePortalStatus">PORTAL ONLINE</div>
-        <p>DEFLECT · OUTPLAY · DOMINATE</p>
+        <p class="storePortalTag"><span>DEFLECT</span><i></i><span>OUTPLAY</span><i></i><span>DOMINATE</span></p>
       </div>
       <div class="storeActions">
         <button id="storePlayBtn" aria-label="Play versus AI">PLAY VS AI<small>INSTANT MATCH</small></button>
