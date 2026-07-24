@@ -2380,7 +2380,7 @@ export default function MobilePage() {
   .storeArenaVisual { position:relative; display:block; height:65px; border:1px solid rgba(113,205,255,.38); border-radius:10px; background:radial-gradient(circle at 50% 50%,#fff 0 4px,rgba(139,92,246,.72) 5px,rgba(13,18,50,.8) 34%,#050713 70%); box-shadow:inset 0 0 18px rgba(139,92,246,.24); }
   .storeArenaVisual:before { content:""; position:absolute; inset:14px 9px; border:1px solid rgba(34,211,238,.26); border-radius:50%; transform:scaleY(.48) rotate(-14deg); }
   .storeArena strong { display:block; margin-top:8px; font-size:7px; line-height:1.2; letter-spacing:.05em; }
-  .storeNav { position:absolute; left:20px; right:20px; bottom:calc(env(safe-area-inset-bottom) + 14px); height:58px; display:grid; grid-template-columns:repeat(3,1fr); border:1px solid rgba(139,92,246,.22); border-radius:17px; background:rgba(8,8,28,.88); backdrop-filter:blur(16px); }
+  .storeNav { position:absolute; left:20px; right:20px; bottom:calc(env(safe-area-inset-bottom) + 14px); height:58px; display:grid; grid-template-columns:repeat(4,1fr); border:1px solid rgba(139,92,246,.22); border-radius:17px; background:rgba(8,8,28,.88); backdrop-filter:blur(16px); }
   .storeNav button { border:0; color:rgba(222,223,246,.48); background:transparent; font-size:7px; font-weight:1000; letter-spacing:.12em; }
   .storeNav button:first-child { color:#7ff2ff; }
   @keyframes storePortalBreath { 0%,100%{transform:translateX(-50%) scale(.98);opacity:.78} 50%{transform:translateX(-50%) scale(1.04);opacity:1} }
@@ -2435,6 +2435,7 @@ export default function MobilePage() {
         <button type="button">PLAY</button>
         <button id="storeProfileNav" type="button">PROFILE</button>
         <button id="storeSettingsNav" type="button">SETTINGS</button>
+        <button id="storeFeedbackNav" type="button" aria-label="Report feedback or a bug">FEEDBACK</button>
       </div>
     </div>
     <div class="artLobby">
@@ -2605,6 +2606,7 @@ export default function MobilePage() {
   var arena='base', difficulty='normal', socketRegion='EU', mode='ai';
   var canvas, ctx, raf=0, arenaPaint=null;
   var ball, lines, trail, sparks, score, energy, rallyElapsedSeconds=0, started=false, paused=false, drawing=null, goalLocked=false;
+  var MAX_ACTIVE_LINES_PER_SIDE=2;
   var frame=0, lastFrameAt=Date.now(), lastDtScale=1, audioUnlocked=false, soundEnabled=true, lastWallSound=0, lastOnlineScoreTotal=null, lastOnlineRoundKey=null, onlineCountdownTimer=null, onlineBattleTimer=null, onlineRoomClosed=false, onlineServerPlaying=false, activeAudioContexts=[];
   var socket=null, socketReady=false, isHost=false, roleKnown=false, roomCode=null, mobileId='mobile_'+Math.random().toString(16).slice(2,10), onlineTarget={x:200,y:350,vx:1.2,vy:1.8}, onlineStateAt=Date.now();
   var onlineStartState=null;
@@ -3774,7 +3776,7 @@ else next='BATTLE!';
     var max=160, l=Math.min(max,len), a=Math.atan2(dy,dx);
     var count=0;
     lines=lines.filter(function(line){
-      if(line.owner===owner){ count++; return count<2; }
+      if(line.owner===owner){ count++; return count<MAX_ACTIVE_LINES_PER_SIDE; }
       return true;
     });
     var createdLine={x1:start.x,y1:start.y,x2:start.x+Math.cos(a)*l,y2:start.y+Math.sin(a)*l,life:50,owner:owner};
@@ -3984,6 +3986,19 @@ else next='BATTLE!';
   bindTap($('storePlayBtn'), function(){ pendingMode='ai'; show('difficultyScreen'); });
   bindTap($('storeOnlineBtn'), function(){ chooseMode('online'); });
   bindTap($('storeSettingsNav'), function(){ show('settingsScreen'); });
+  bindTap($('storeFeedbackNav'), function(){
+    var subject='Boing Battle - Feedback / Bug Report';
+    var details=[
+      'Please describe the issue or suggestion:',
+      '',
+      '',
+      '--- Device information ---',
+      'Platform: '+(navigator.platform||'Unknown'),
+      'Browser/App: '+navigator.userAgent,
+      'Screen: '+window.innerWidth+'x'+window.innerHeight
+    ].join('\n');
+    window.location.href='mailto:oguzzy19@gmail.com?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(details);
+  });
   bindTap($('settingsBtn'), function(){ show('settingsScreen'); });
   bindTap($('settingsBackBtn'), function(){ show('menuScreen'); });
   bindTap($('soundToggleBtn'), function(){ soundEnabled=true; try{ localStorage.setItem('bbb_mobile_sound','on'); }catch(e){} syncSoundButton(); });
