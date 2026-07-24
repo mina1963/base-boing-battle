@@ -2348,6 +2348,9 @@ export default function MobilePage() {
   .storeCosmic { position:relative; width:100%; min-height:100dvh; max-width:430px; margin:0 auto; overflow:hidden; padding:calc(env(safe-area-inset-top) + 20px) 20px calc(env(safe-area-inset-bottom) + 92px); display:flex; flex-direction:column; background:radial-gradient(circle at 50% 30%,rgba(139,92,246,.24),transparent 29%),radial-gradient(circle at 84% 8%,rgba(34,211,238,.10),transparent 20%),linear-gradient(180deg,#080a20 0%,#050713 58%,#03040c 100%); }
   .storeCosmic:before { content:""; position:absolute; inset:0; opacity:.46; pointer-events:none; background-image:radial-gradient(circle at 12% 16%,rgba(255,255,255,.8) 0 1px,transparent 1.5px),radial-gradient(circle at 83% 22%,rgba(123,231,255,.7) 0 1px,transparent 1.5px),radial-gradient(circle at 31% 67%,rgba(255,255,255,.55) 0 1px,transparent 1.5px),radial-gradient(circle at 73% 75%,rgba(139,92,246,.7) 0 1px,transparent 1.5px); background-size:83px 91px,117px 129px,139px 151px,101px 113px; }
   .storeTop,.storePortal,.storeActions,.storeArenas,.storeNav { position:relative; z-index:2; }
+  .storePortal { pointer-events:none; }
+  .storeTop,.storeActions,.storeArenas,.storeNav { pointer-events:auto !important; }
+  .storeCosmic button,#storeProfileTapArea { position:relative; z-index:5; pointer-events:auto !important; cursor:pointer; touch-action:manipulation; }
   .storeTop { display:flex; align-items:center; justify-content:space-between; }
   .storeBrand small { display:block; color:rgba(205,205,232,.58); font-size:8px; font-weight:1000; letter-spacing:.34em; }
   .storeBrand strong { display:block; margin-top:6px; color:#fff; font-size:20px; font-weight:1000; letter-spacing:.07em; }
@@ -2365,11 +2368,11 @@ export default function MobilePage() {
   .storePortalStatus { position:absolute; top:190px; padding:5px 13px; border:1px solid rgba(34,211,238,.30); border-radius:999px; color:#9ef5ff; background:rgba(3,9,28,.82); font-size:7px; font-weight:1000; letter-spacing:.25em; }
   .storePortal h1 { position:absolute; top:217px; margin:0; color:#f7f7ff; font-size:15px; letter-spacing:.29em; text-shadow:0 0 18px rgba(139,92,246,.48); }
   .storePortal p { position:absolute; top:247px; margin:0; color:rgba(218,218,241,.42); font-size:6px; font-weight:1000; letter-spacing:.30em; }
-  .storeActions { display:grid; gap:10px; }
-  #storePlayBtn,#storeOnlineBtn { position:relative; width:100%; border-radius:16px; font-family:Arial,Helvetica,sans-serif; font-weight:1000; letter-spacing:.16em; touch-action:manipulation; }
-  #storePlayBtn { height:58px; border:0; color:white; background:linear-gradient(105deg,#7c3aed 0%,#8b5cf6 45%,#22d3ee 100%); box-shadow:0 0 30px rgba(139,92,246,.35),inset 0 1px 0 rgba(255,255,255,.28); font-size:13px; }
+  .storeActions { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; }
+  #storePlayBtn,#storeOnlineBtn,#storeCreateBtn,#storeJoinBtn { position:relative; width:100%; border-radius:16px; font-family:Arial,Helvetica,sans-serif; font-weight:1000; letter-spacing:.10em; touch-action:manipulation; }
+  #storePlayBtn { grid-column:1/-1; height:58px; border:0; color:white; background:linear-gradient(105deg,#7c3aed 0%,#8b5cf6 45%,#22d3ee 100%); box-shadow:0 0 30px rgba(139,92,246,.35),inset 0 1px 0 rgba(255,255,255,.28); font-size:13px; }
   #storePlayBtn small { display:block; margin-top:4px; color:rgba(255,255,255,.72); font-size:6px; letter-spacing:.24em; }
-  #storeOnlineBtn { height:50px; border:1px solid rgba(34,211,238,.34); color:#dffcff; background:linear-gradient(110deg,rgba(34,211,238,.07),rgba(139,92,246,.13)); }
+  #storeOnlineBtn,#storeCreateBtn,#storeJoinBtn { min-height:48px; padding:0 5px; border:1px solid rgba(34,211,238,.34); color:#dffcff; background:linear-gradient(110deg,rgba(34,211,238,.07),rgba(139,92,246,.13)); font-size:7px; }
   .storeArenas { margin-top:20px; }
   .storeArenaHead { display:flex; align-items:center; justify-content:space-between; margin-bottom:11px; }
   .storeArenaHead strong { color:#fff; font-size:11px; letter-spacing:.20em; }
@@ -2422,6 +2425,8 @@ export default function MobilePage() {
       <div class="storeActions">
         <button id="storePlayBtn" aria-label="Play versus AI">PLAY VS AI<small>INSTANT MATCH</small></button>
         <button id="storeOnlineBtn">ONLINE 1V1</button>
+        <button id="storeCreateBtn">CREATE ROOM</button>
+        <button id="storeJoinBtn">JOIN ROOM</button>
       </div>
       <div class="storeArenas">
         <div class="storeArenaHead"><strong>ARENAS</strong><span>3 DIMENSIONS</span></div>
@@ -2773,11 +2778,20 @@ export default function MobilePage() {
     // Android ghost-click fix:
     // Do not change screens on touchstart/pointerdown. Wait for touchend,
     // otherwise the released finger can hit a button on the newly opened screen.
-    el.addEventListener('touchend', function(e){
-      touched=true;
-      run(e);
-      setTimeout(function(){ touched=false; }, 420);
-    }, {passive:false});
+    if(window.PointerEvent){
+      el.addEventListener('pointerup', function(e){
+        if(e.pointerType!=='touch' && e.pointerType!=='pen') return;
+        touched=true;
+        run(e);
+        setTimeout(function(){ touched=false; }, 420);
+      }, {passive:false});
+    }else{
+      el.addEventListener('touchend', function(e){
+        touched=true;
+        run(e);
+        setTimeout(function(){ touched=false; }, 420);
+      }, {passive:false});
+    }
 
     el.addEventListener('click', function(e){
       if(touched){
@@ -3985,6 +3999,8 @@ else next='BATTLE!';
   bindTap($('playBtn'), openModeScreen);
   bindTap($('storePlayBtn'), function(){ pendingMode='ai'; show('difficultyScreen'); });
   bindTap($('storeOnlineBtn'), function(){ chooseMode('online'); });
+  bindTap($('storeCreateBtn'), function(){ chooseMode('create'); });
+  bindTap($('storeJoinBtn'), function(){ chooseMode('join'); });
   bindTap($('storeSettingsNav'), function(){ show('settingsScreen'); });
   bindTap($('storeFeedbackNav'), function(){
     var subject='Boing Battle - Feedback / Bug Report';
@@ -3997,7 +4013,7 @@ else next='BATTLE!';
       'Browser/App: '+navigator.userAgent,
       'Screen: '+window.innerWidth+'x'+window.innerHeight
     ].join('\n');
-    window.location.href='mailto:oguzzy19@gmail.com?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(details);
+    window.location.href='mailto:doberman01963@gmail.com?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(details);
   });
   bindTap($('settingsBtn'), function(){ show('settingsScreen'); });
   bindTap($('settingsBackBtn'), function(){ show('menuScreen'); });
