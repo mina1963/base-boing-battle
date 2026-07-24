@@ -2346,7 +2346,8 @@ export default function MobilePage() {
   #menuScreen.storeCosmicScreen { padding:0 !important; overflow:hidden !important; background:#050713 !important; }
   #menuScreen.storeCosmicScreen > .artLobby { display:none !important; }
   .storeCosmic { position:relative; width:100%; min-height:100dvh; max-width:430px; margin:0 auto; overflow:hidden; padding:calc(env(safe-area-inset-top) + 20px) 20px calc(env(safe-area-inset-bottom) + 92px); display:flex; flex-direction:column; background:radial-gradient(circle at 50% 30%,rgba(139,92,246,.24),transparent 29%),radial-gradient(circle at 84% 8%,rgba(34,211,238,.10),transparent 20%),linear-gradient(180deg,#080a20 0%,#050713 58%,#03040c 100%); }
-  .storeCosmic:before { content:""; position:absolute; inset:0; opacity:.46; pointer-events:none; background-image:radial-gradient(circle at 12% 16%,rgba(255,255,255,.8) 0 1px,transparent 1.5px),radial-gradient(circle at 83% 22%,rgba(123,231,255,.7) 0 1px,transparent 1.5px),radial-gradient(circle at 31% 67%,rgba(255,255,255,.55) 0 1px,transparent 1.5px),radial-gradient(circle at 73% 75%,rgba(139,92,246,.7) 0 1px,transparent 1.5px); background-size:83px 91px,117px 129px,139px 151px,101px 113px; }
+  .storeCosmic:before { content:""; position:absolute; inset:-9%; opacity:.54; pointer-events:none; background-image:radial-gradient(circle at 12% 16%,rgba(255,255,255,.9) 0 1px,transparent 1.7px),radial-gradient(circle at 83% 22%,rgba(123,231,255,.8) 0 1px,transparent 1.7px),radial-gradient(circle at 31% 67%,rgba(255,255,255,.62) 0 1px,transparent 1.7px),radial-gradient(circle at 73% 75%,rgba(139,92,246,.8) 0 1px,transparent 1.7px); background-size:83px 91px,117px 129px,139px 151px,101px 113px; animation:storeStarDrift 18s linear infinite; }
+  .storeCosmic:after { content:""; position:absolute; inset:0; pointer-events:none; background:radial-gradient(circle at 50% 26%,rgba(34,211,238,.13),transparent 21%),linear-gradient(110deg,transparent 30%,rgba(139,92,246,.05) 48%,transparent 64%); animation:storeNebula 7s ease-in-out infinite; }
   .storeTop,.storePortal,.storeActions,.storeArenas,.storeNav { position:relative; z-index:2; }
   .storeTop { display:flex; align-items:center; justify-content:space-between; }
   .storeBrand small { display:block; color:rgba(205,205,232,.58); font-size:8px; font-weight:1000; letter-spacing:.34em; }
@@ -2359,8 +2360,9 @@ export default function MobilePage() {
   .storeDimension { position:absolute; top:25px; left:0; color:rgba(210,211,239,.64); font-size:7px; font-weight:1000; letter-spacing:.32em; }
   .storeOrbit { position:absolute; top:45px; left:50%; width:176px; height:176px; transform:translateX(-50%); border:1px solid rgba(34,211,238,.75); border-radius:50%; box-shadow:0 0 28px rgba(34,211,238,.18),inset 0 0 34px rgba(139,92,246,.16); animation:storePortalBreath 3.2s ease-in-out infinite; }
   .storeOrbit:before,.storeOrbit:after { content:""; position:absolute; inset:17px -15px; border:1px solid rgba(139,92,246,.62); border-radius:50%; transform:rotate(-19deg) scaleY(.55); }
-  .storeOrbit:after { inset:29px -7px; border-color:rgba(34,211,238,.42); transform:rotate(58deg) scaleY(.48); }
-  .storeCore { position:absolute; top:92px; left:50%; width:88px; height:88px; transform:translateX(-50%); border-radius:50%; background:radial-gradient(circle at 35% 27%,#fff 0 5%,#49e8ff 9%,#7c3aed 28%,#12123d 59%,#03040d 100%); box-shadow:0 0 24px rgba(34,211,238,.72),0 0 58px rgba(139,92,246,.55); }
+  .storeOrbit:before { animation:storeRingLeft 8s linear infinite; }
+  .storeOrbit:after { inset:29px -7px; border-color:rgba(34,211,238,.42); transform:rotate(58deg) scaleY(.48); animation:storeRingRight 6s linear infinite reverse; }
+  .storeCore { position:absolute; top:92px; left:50%; width:88px; height:88px; transform:translateX(-50%); border-radius:50%; background:radial-gradient(circle at 35% 27%,#fff 0 5%,#49e8ff 9%,#7c3aed 28%,#12123d 59%,#03040d 100%); box-shadow:0 0 24px rgba(34,211,238,.72),0 0 58px rgba(139,92,246,.55); animation:storeWorldFloat 4.6s ease-in-out infinite; }
   .storeCore:after { content:"↗"; position:absolute; inset:0; display:grid; place-items:center; color:white; font-size:27px; font-weight:1000; }
   .storePortalStatus { position:absolute; top:190px; padding:5px 13px; border:1px solid rgba(34,211,238,.30); border-radius:999px; color:#9ef5ff; background:rgba(3,9,28,.82); font-size:7px; font-weight:1000; letter-spacing:.25em; }
   .storePortal h1 { position:absolute; top:217px; margin:0; color:#f7f7ff; font-size:15px; letter-spacing:.29em; text-shadow:0 0 18px rgba(139,92,246,.48); }
@@ -2381,11 +2383,39 @@ export default function MobilePage() {
   .storeArenaVisual:before { content:""; position:absolute; inset:14px 9px; border:1px solid rgba(34,211,238,.26); border-radius:50%; transform:scaleY(.48) rotate(-14deg); }
   .storeArena strong { display:block; margin-top:8px; font-size:7px; line-height:1.2; letter-spacing:.05em; }
   .storeNav { position:absolute; left:20px; right:20px; bottom:calc(env(safe-area-inset-bottom) + 14px); height:58px; display:grid; grid-template-columns:repeat(4,1fr); border:1px solid rgba(139,92,246,.22); border-radius:17px; background:rgba(8,8,28,.88); backdrop-filter:blur(16px); }
-  .storeNav button,.storeNav a { display:flex; align-items:center; justify-content:center; border:0; color:rgba(222,223,246,.48); background:transparent; font-family:inherit; font-size:7px; font-weight:1000; letter-spacing:.12em; text-decoration:none; touch-action:manipulation; }
+  .storeNav button,.storeNav a { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; border:0; color:rgba(222,223,246,.48); background:transparent; font-family:inherit; font-size:6px; font-weight:1000; letter-spacing:.12em; text-decoration:none; touch-action:manipulation; }
+  .storeNavIcon { width:15px; height:15px; fill:none; stroke:currentColor; stroke-width:1.8; filter:drop-shadow(0 0 6px currentColor); }
   .storeNav button:first-child { color:#7ff2ff; }
+  #feedbackModal { position:absolute; inset:0; z-index:160; display:none; align-items:center; justify-content:center; padding:22px; background:rgba(2,3,14,.82); backdrop-filter:blur(18px) saturate(1.25); }
+  #feedbackModal.active { display:flex; animation:feedbackFadeIn .22s ease-out; }
+  .feedbackCard { position:relative; width:min(100%,390px); overflow:hidden; padding:24px; border:1px solid rgba(94,234,255,.36); border-radius:30px; background:radial-gradient(circle at 82% 0%,rgba(139,92,246,.26),transparent 34%),linear-gradient(160deg,rgba(12,15,46,.98),rgba(4,6,22,.99)); box-shadow:0 28px 80px rgba(0,0,0,.62),0 0 42px rgba(34,211,238,.14),inset 0 1px 0 rgba(255,255,255,.12); }
+  .feedbackCard:before { content:""; position:absolute; inset:0; pointer-events:none; background:linear-gradient(120deg,transparent 20%,rgba(255,255,255,.055),transparent 58%); }
+  .feedbackKicker { color:#76efff; font-size:8px; font-weight:1000; letter-spacing:.28em; }
+  .feedbackTitle { margin:9px 0 5px; color:white; font-size:27px; font-weight:1000; letter-spacing:.08em; }
+  .feedbackSub { margin:0 0 18px; color:rgba(221,226,255,.55); font-size:9px; font-weight:800; line-height:1.55; letter-spacing:.08em; }
+  .feedbackGrid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .feedbackField { display:grid; gap:7px; margin-top:11px; }
+  .feedbackField label { color:rgba(157,244,255,.72); font-size:7px; font-weight:1000; letter-spacing:.2em; }
+  .feedbackField input,.feedbackField select,.feedbackField textarea { width:100%; border:1px solid rgba(124,141,255,.24); border-radius:15px; outline:0; color:white; background:rgba(4,7,27,.78); font:800 11px Arial,sans-serif; box-shadow:inset 0 0 16px rgba(34,211,238,.035); }
+  .feedbackField input,.feedbackField select { height:46px; padding:0 13px; }
+  .feedbackField textarea { min-height:132px; resize:none; padding:13px; line-height:1.55; }
+  .feedbackField input:focus,.feedbackField select:focus,.feedbackField textarea:focus { border-color:#43dff3; box-shadow:0 0 0 3px rgba(34,211,238,.08),inset 0 0 18px rgba(34,211,238,.05); }
+  .feedbackActions { display:grid; grid-template-columns:.7fr 1.3fr; gap:9px; margin-top:15px; }
+  .feedbackActions button { min-height:50px; border-radius:16px; font-size:9px; font-weight:1000; letter-spacing:.16em; touch-action:manipulation; }
+  #feedbackCloseBtn { border:1px solid rgba(255,255,255,.16); color:rgba(255,255,255,.68); background:rgba(255,255,255,.055); }
+  #feedbackSendBtn { border:0; color:white; background:linear-gradient(110deg,#7c3aed,#8b5cf6 48%,#22d3ee); box-shadow:0 0 25px rgba(93,91,255,.34),inset 0 1px 0 rgba(255,255,255,.25); }
+  #feedbackSendBtn:disabled { opacity:.55; }
+  #feedbackStatus { min-height:17px; margin-top:10px; color:#86f7d0; font-size:8px; font-weight:1000; line-height:1.45; letter-spacing:.1em; text-align:center; }
+  .feedbackHoney { position:absolute !important; left:-10000px !important; width:1px !important; height:1px !important; opacity:0 !important; pointer-events:none !important; }
   @keyframes storePortalBreath { 0%,100%{transform:translateX(-50%) scale(.98);opacity:.78} 50%{transform:translateX(-50%) scale(1.04);opacity:1} }
+  @keyframes storeStarDrift { from{transform:translate3d(-1.5%,-1%,0) rotate(0deg)} to{transform:translate3d(1.5%,1%,0) rotate(1.5deg)} }
+  @keyframes storeNebula { 0%,100%{opacity:.45;transform:scale(1)} 50%{opacity:.85;transform:scale(1.06)} }
+  @keyframes storeRingLeft { from{transform:rotate(-19deg) scaleY(.55)} to{transform:rotate(341deg) scaleY(.55)} }
+  @keyframes storeRingRight { from{transform:rotate(58deg) scaleY(.48)} to{transform:rotate(418deg) scaleY(.48)} }
+  @keyframes storeWorldFloat { 0%,100%{transform:translateX(-50%) translateY(0) scale(.98)} 50%{transform:translateX(-50%) translateY(-7px) scale(1.04)} }
+  @keyframes feedbackFadeIn { from{opacity:0} to{opacity:1} }
   @media(max-height:760px) { .storeCosmic{padding-top:calc(env(safe-area-inset-top) + 12px)} .storePortal{height:252px;transform:scale(.88);margin:-13px 0} .storeArenas{margin-top:13px} .storeArena{min-height:100px} .storeArenaVisual{height:54px} }
-  @media(prefers-reduced-motion:reduce) { .storeOrbit { animation:none; } }
+  @media(prefers-reduced-motion:reduce) { .storeOrbit,.storeOrbit:before,.storeOrbit:after,.storeCore,.storeCosmic:before,.storeCosmic:after { animation:none; } }
 </style>
 <div id="app">
   <div id="noise"></div>
@@ -2401,6 +2431,38 @@ export default function MobilePage() {
         <div id="nameWarn"></div>
       </div>
     </div>
+  </div>
+  <div id="feedbackModal" aria-hidden="true">
+    <form id="feedbackForm" class="feedbackCard">
+      <div class="feedbackKicker">PLAYER SUPPORT</div>
+      <div class="feedbackTitle">SEND FEEDBACK</div>
+      <p class="feedbackSub">REPORT A BUG, SHARE AN IDEA OR TELL US WHAT THE GAME IS MISSING.</p>
+      <div class="feedbackGrid">
+        <div class="feedbackField">
+          <label for="feedbackType">CATEGORY</label>
+          <select id="feedbackType" name="category">
+            <option value="Bug Report">BUG REPORT</option>
+            <option value="Suggestion">SUGGESTION</option>
+            <option value="Gameplay">GAMEPLAY</option>
+            <option value="Other">OTHER</option>
+          </select>
+        </div>
+        <div class="feedbackField">
+          <label for="feedbackEmail">YOUR EMAIL (OPTIONAL)</label>
+          <input id="feedbackEmail" name="email" type="email" maxlength="120" placeholder="YOU@EMAIL.COM" />
+        </div>
+      </div>
+      <div class="feedbackField">
+        <label for="feedbackMessage">MESSAGE</label>
+        <textarea id="feedbackMessage" name="message" minlength="10" maxlength="1200" placeholder="TELL US WHAT HAPPENED..."></textarea>
+      </div>
+      <input id="feedbackHoney" class="feedbackHoney" name="_honey" tabindex="-1" autocomplete="off" />
+      <div class="feedbackActions">
+        <button id="feedbackCloseBtn" type="button">CANCEL</button>
+        <button id="feedbackSendBtn" type="submit">SEND MESSAGE</button>
+      </div>
+      <div id="feedbackStatus" role="status" aria-live="polite"></div>
+    </form>
   </div>
   <section id="menuScreen" class="screen active storeCosmicScreen">
     <div class="storeCosmic">
@@ -2432,10 +2494,10 @@ export default function MobilePage() {
         </div>
       </div>
       <div class="storeNav">
-        <button type="button">PLAY</button>
-        <button id="storeProfileNav" type="button">PROFILE</button>
-        <button id="storeSettingsNav" type="button">SETTINGS</button>
-        <a id="storeFeedbackNav" href="https://mail.google.com/mail/?view=cm&amp;fs=1&amp;to=doberman01963%40gmail.com&amp;su=Boing%20Battle%20Feedback%20%2F%20Bug%20Report" target="_blank" rel="noopener noreferrer" aria-label="Report feedback or a bug">FEEDBACK</a>
+        <button type="button" aria-label="Play"><svg class="storeNavIcon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5l11 7-11 7z"/></svg><span>PLAY</span></button>
+        <button id="storeProfileNav" type="button" aria-label="Profile"><svg class="storeNavIcon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4.5 20c.8-4.2 3.3-6.3 7.5-6.3s6.7 2.1 7.5 6.3"/></svg><span>PROFILE</span></button>
+        <button id="storeSettingsNav" type="button" aria-label="Settings"><svg class="storeNavIcon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19 13.5l1.4 1.1-2 3.4-1.8-.7a7.9 7.9 0 0 1-2.6 1.5l-.3 1.9H9.8l-.3-1.9a7.9 7.9 0 0 1-2.6-1.5l-1.8.7-2-3.4 1.4-1.1a8 8 0 0 1 0-3L3.1 9.4l2-3.4 1.8.7a7.9 7.9 0 0 1 2.6-1.5l.3-1.9h3.9l.3 1.9a7.9 7.9 0 0 1 2.6 1.5l1.8-.7 2 3.4-1.4 1.1a8 8 0 0 1 0 3z"/></svg><span>SETTINGS</span></button>
+        <button id="storeFeedbackNav" type="button" aria-label="Feedback"><svg class="storeNavIcon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5h16v11H9l-5 3z"/><path d="M8 9h8M8 13h5"/></svg><span>FEEDBACK</span></button>
       </div>
     </div>
     <div class="artLobby">
@@ -2656,6 +2718,61 @@ export default function MobilePage() {
   function cancelUsernameModal(){
     usernameAfterSave=null;
     closeUsernameModal();
+  }
+  function openFeedbackModal(){
+    var modal=$('feedbackModal');
+    var status=$('feedbackStatus');
+    var message=$('feedbackMessage');
+    if(status) status.textContent='';
+    if(modal){ modal.classList.add('active'); modal.setAttribute('aria-hidden','false'); }
+    setTimeout(function(){ try{ if(message) message.focus(); }catch(e){} },80);
+  }
+  function closeFeedbackModal(){
+    var modal=$('feedbackModal');
+    if(modal){ modal.classList.remove('active'); modal.setAttribute('aria-hidden','true'); }
+  }
+  async function sendFeedback(e){
+    if(e){ e.preventDefault(); e.stopPropagation(); }
+    var message=$('feedbackMessage');
+    var email=$('feedbackEmail');
+    var category=$('feedbackType');
+    var honey=$('feedbackHoney');
+    var status=$('feedbackStatus');
+    var send=$('feedbackSendBtn');
+    var text=String(message&&message.value||'').trim();
+    if(honey && honey.value) return;
+    if(text.length<10){ if(status) status.textContent='PLEASE WRITE AT LEAST 10 CHARACTERS'; return; }
+    var lastSent=0; try{ lastSent=Number(localStorage.getItem('bbb_feedback_sent_at')||0); }catch(_){}
+    if(Date.now()-lastSent<30000){ if(status) status.textContent='PLEASE WAIT BEFORE SENDING AGAIN'; return; }
+    if(send){ send.disabled=true; send.textContent='SENDING...'; }
+    if(status) status.textContent='SECURELY SENDING YOUR MESSAGE';
+    try{
+      var response=await fetch('https://formsubmit.co/ajax/doberman01963@gmail.com',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','Accept':'application/json'},
+        body:JSON.stringify({
+          _subject:'Boing Battle '+String(category&&category.value||'Feedback'),
+          _template:'table',
+          _captcha:'false',
+          category:String(category&&category.value||'Feedback'),
+          player:playerName,
+          email:String(email&&email.value||'').trim(),
+          message:text,
+          page:window.location.href,
+          device:navigator.userAgent
+        })
+      });
+      var data=await response.json().catch(function(){ return {}; });
+      if(!response.ok || data.success===false || data.success==='false') throw new Error(String(data.message||'SEND_FAILED'));
+      try{ localStorage.setItem('bbb_feedback_sent_at',String(Date.now())); }catch(_){}
+      if(status) status.textContent='MESSAGE SENT — THANK YOU';
+      if(message) message.value='';
+      setTimeout(closeFeedbackModal,1400);
+    }catch(error){
+      if(status) status.textContent='MESSAGE COULD NOT BE SENT — TRY AGAIN';
+    }finally{
+      if(send){ send.disabled=false; send.textContent='SEND MESSAGE'; }
+    }
   }
   function saveName(){
     var input=$('usernameInput');
@@ -3988,6 +4105,10 @@ else next='BATTLE!';
   bindTap($('storeCreateBtn'), function(){ chooseMode('create'); });
   bindTap($('storeJoinBtn'), function(){ chooseMode('join'); });
   bindTap($('storeSettingsNav'), function(){ show('settingsScreen'); });
+  bindTap($('storeFeedbackNav'), openFeedbackModal);
+  bindTap($('feedbackCloseBtn'), closeFeedbackModal);
+  var feedbackForm=$('feedbackForm'); if(feedbackForm){ feedbackForm.addEventListener('submit',sendFeedback); }
+  var feedbackModal=$('feedbackModal'); if(feedbackModal){ feedbackModal.addEventListener('click',function(e){ if(e.target===feedbackModal) closeFeedbackModal(); }); }
   bindTap($('settingsBtn'), function(){ show('settingsScreen'); });
   bindTap($('settingsBackBtn'), function(){ show('menuScreen'); });
   bindTap($('soundToggleBtn'), function(){ soundEnabled=true; try{ localStorage.setItem('bbb_mobile_sound','on'); }catch(e){} syncSoundButton(); });
