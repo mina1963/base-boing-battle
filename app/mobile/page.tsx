@@ -2526,7 +2526,7 @@ export default function MobilePage() {
   var W=400,H=700;
   var arena='classic', difficulty='normal', socketRegion='EU', mode='ai';
   var canvas, ctx, raf=0, arenaPaint=null;
-  var ball, lines, trail, sparks, score, energy, started=false, paused=false, drawing=null, goalLocked=false;
+  var ball, lines, trail, sparks, score, energy, rallyElapsedSeconds=0, started=false, paused=false, drawing=null, goalLocked=false;
   var frame=0, lastFrameAt=Date.now(), lastDtScale=1, audioUnlocked=false, soundEnabled=true, lastWallSound=0, lastOnlineScoreTotal=null, lastOnlineRoundKey=null, onlineCountdownTimer=null, onlineBattleTimer=null, onlineRoomClosed=false, onlineServerPlaying=false, activeAudioContexts=[];
   var socket=null, socketReady=false, isHost=false, roleKnown=false, roomCode=null, mobileId='mobile_'+Math.random().toString(16).slice(2,10), onlineTarget={x:200,y:350,vx:1.2,vy:1.8}, onlineStateAt=Date.now();
   var onlineStartState=null;
@@ -2894,7 +2894,7 @@ else next='BATTLE!';
   function resetBall(dir){
     goalLocked=false;
     ball={x:200,y:dir==='up'?525:175,r:8,vx:dir==='up'?1.25:-1.25,vy:dir==='up'?-1.85:1.85};
-    lines=[]; trail=[]; sparks=[]; energy=100; drawing=null;
+    lines=[]; trail=[]; sparks=[]; energy=100; rallyElapsedSeconds=0; drawing=null;
   }
   function ensureSocket(cb){
     if(window.io){ connectSocket(cb); return; }
@@ -3507,6 +3507,8 @@ else next='BATTLE!';
     if(lastOnlineScoreTotal!==null && totalScore>lastOnlineScoreTotal){
       if(score.player>prevPlayer) setOverlay(displayName(playerName)+' SCORES');
       else if(score.ai>prevAi) setOverlay(displayName(rivalName)+' SCORES');
+      energy=100;
+      rallyElapsedSeconds=0;
       flash(); playSound('goal');
     }
     lastOnlineScoreTotal=totalScore;
@@ -3799,10 +3801,12 @@ else next='BATTLE!';
     lastDtScale=dtScale;
 
     frame++;
+    if(mode==='ai' && started && !paused) rallyElapsedSeconds+=dt/1000;
     if(energy<100){
       var rallySpeed=Math.hypot(ball.vx,ball.vy);
       var rallyBoost=Math.max(0,Math.min(1,(rallySpeed-3.5)/(10-3.5)));
-      energy=Math.min(100,energy+((0.30+(0.16*rallyBoost))*dtScale));
+      var longRallyBoost=mode==='ai'?Math.max(0,Math.min(1,(rallyElapsedSeconds-8)/(24-8))):0;
+      energy=Math.min(100,energy+((0.30+(0.16*rallyBoost)+(0.14*longRallyBoost))*dtScale));
     }
     if(!started||paused) return;
     if(mode==='online'){

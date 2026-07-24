@@ -469,6 +469,9 @@ const MAX_BALL_SPEED = 10;
 const ENERGY_REGEN_PER_FRAME = 0.2;
 const ENERGY_MAX_SPEED_BONUS_PER_FRAME = 0.22;
 const ENERGY_SPEED_BONUS_START = 3.5;
+const ENERGY_LONG_RALLY_BONUS_PER_FRAME = 0.18;
+const ENERGY_LONG_RALLY_BONUS_START_SECONDS = 8;
+const ENERGY_LONG_RALLY_BONUS_FULL_SECONDS = 24;
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -634,6 +637,7 @@ const startCountdown = (startAtMs: number) => {
       setGoalFlash(true);
       setScreenShake(true);
       playSound("goal");
+      energyRef.current.value = 100;
 
       setTimeout(() => setGoalFlash(false), 250);
       setTimeout(() => setScreenShake(false), 320);
@@ -1132,6 +1136,8 @@ const socket = io(
 
     const resetBall = (direction: "up" | "down") => {
       ballRef.current.x = W / 2;
+      energyRef.current.value = 100;
+      rallyElapsedSeconds = 0;
 
       goalLockRef.current = true;
 
@@ -1242,6 +1248,7 @@ if (
     let frame = 0;
     let lastFrameAt = performance.now();
     let aiElapsedFrames = 0;
+    let rallyElapsedSeconds = 0;
     let animation = 0;
 
     const loop = (now = performance.now()) => {
@@ -1255,6 +1262,10 @@ if (
       }
 const roundActive = gameStartedRef.current && !pauseRef.current;
 const activeArena = arenaRef.current;
+
+      if (roundActive && gameModeRef.current === "ai") {
+        rallyElapsedSeconds += dtMs / 1000;
+      }
 
       if (energyRef.current.value < 100) {
         const energyBall =
@@ -1273,10 +1284,25 @@ const activeArena = arenaRef.current;
         const regenPerFrame =
           ENERGY_REGEN_PER_FRAME +
           ENERGY_MAX_SPEED_BONUS_PER_FRAME * speedRatio;
+        const longRallyRatio =
+          gameModeRef.current === "ai"
+            ? Math.max(
+                0,
+                Math.min(
+                  1,
+                  (rallyElapsedSeconds - ENERGY_LONG_RALLY_BONUS_START_SECONDS) /
+                    (ENERGY_LONG_RALLY_BONUS_FULL_SECONDS -
+                      ENERGY_LONG_RALLY_BONUS_START_SECONDS)
+                )
+              )
+            : 0;
 
         energyRef.current.value = Math.min(
           100,
-          energyRef.current.value + regenPerFrame * dtScale
+          energyRef.current.value +
+            (regenPerFrame +
+              ENERGY_LONG_RALLY_BONUS_PER_FRAME * longRallyRatio) *
+              dtScale
         );
       }
 
@@ -1839,6 +1865,7 @@ if (
 
   goalLockRef.current = true;
   score.player++;
+  energyRef.current.value = 100;
 
 
 if (score.player >= 7) {
@@ -1889,6 +1916,7 @@ if (
 
   goalLockRef.current = true;
   score.ai++;
+  energyRef.current.value = 100;
 
 if (score.ai >= 7) {
   pauseRef.current = true;
