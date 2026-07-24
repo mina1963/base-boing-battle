@@ -2381,7 +2381,7 @@ export default function MobilePage() {
   .storeArenaVisual:before { content:""; position:absolute; inset:14px 9px; border:1px solid rgba(34,211,238,.26); border-radius:50%; transform:scaleY(.48) rotate(-14deg); }
   .storeArena strong { display:block; margin-top:8px; font-size:7px; line-height:1.2; letter-spacing:.05em; }
   .storeNav { position:absolute; left:20px; right:20px; bottom:calc(env(safe-area-inset-bottom) + 14px); height:58px; display:grid; grid-template-columns:repeat(4,1fr); border:1px solid rgba(139,92,246,.22); border-radius:17px; background:rgba(8,8,28,.88); backdrop-filter:blur(16px); }
-  .storeNav button { border:0; color:rgba(222,223,246,.48); background:transparent; font-size:7px; font-weight:1000; letter-spacing:.12em; }
+  .storeNav button,.storeNav a { display:flex; align-items:center; justify-content:center; border:0; color:rgba(222,223,246,.48); background:transparent; font-family:inherit; font-size:7px; font-weight:1000; letter-spacing:.12em; text-decoration:none; touch-action:manipulation; }
   .storeNav button:first-child { color:#7ff2ff; }
   @keyframes storePortalBreath { 0%,100%{transform:translateX(-50%) scale(.98);opacity:.78} 50%{transform:translateX(-50%) scale(1.04);opacity:1} }
   @media(max-height:760px) { .storeCosmic{padding-top:calc(env(safe-area-inset-top) + 12px)} .storePortal{height:252px;transform:scale(.88);margin:-13px 0} .storeArenas{margin-top:13px} .storeArena{min-height:100px} .storeArenaVisual{height:54px} }
@@ -2405,18 +2405,16 @@ export default function MobilePage() {
   <section id="menuScreen" class="screen active storeCosmicScreen">
     <div class="storeCosmic">
       <div class="storeTop">
-        <div class="storeBrand"><small>DIMENSION 07</small><strong>BOING BATTLE</strong></div>
+        <div class="storeBrand"><strong>BOING BATTLE</strong></div>
         <div id="storeProfileTapArea">
           <div class="storeAvatar">M</div>
           <div><div class="storePlayerLabel">PLAYER</div><div id="storeProfileName">MINA</div></div>
         </div>
       </div>
       <div class="storePortal">
-        <div class="storeDimension">COSMIC VAULT</div>
         <div class="storeOrbit"></div>
         <div class="storeCore"></div>
         <div class="storePortalStatus">PORTAL ONLINE</div>
-        <h1>ENTER THE VAULT</h1>
         <p>DEFLECT · OUTPLAY · DOMINATE</p>
       </div>
       <div class="storeActions">
@@ -2437,7 +2435,7 @@ export default function MobilePage() {
         <button type="button">PLAY</button>
         <button id="storeProfileNav" type="button">PROFILE</button>
         <button id="storeSettingsNav" type="button">SETTINGS</button>
-        <button id="storeFeedbackNav" type="button" aria-label="Report feedback or a bug">FEEDBACK</button>
+        <a id="storeFeedbackNav" href="https://mail.google.com/mail/?view=cm&amp;fs=1&amp;to=doberman01963%40gmail.com&amp;su=Boing%20Battle%20Feedback%20%2F%20Bug%20Report" target="_blank" rel="noopener noreferrer" aria-label="Report feedback or a bug">FEEDBACK</a>
       </div>
     </div>
     <div class="artLobby">
@@ -3990,19 +3988,6 @@ else next='BATTLE!';
   bindTap($('storeCreateBtn'), function(){ chooseMode('create'); });
   bindTap($('storeJoinBtn'), function(){ chooseMode('join'); });
   bindTap($('storeSettingsNav'), function(){ show('settingsScreen'); });
-  bindTap($('storeFeedbackNav'), function(){
-    var subject='Boing Battle - Feedback / Bug Report';
-    var details=[
-      'Please describe the issue or suggestion:',
-      '',
-      '',
-      '--- Device information ---',
-      'Platform: '+(navigator.platform||'Unknown'),
-      'Browser/App: '+navigator.userAgent,
-      'Screen: '+window.innerWidth+'x'+window.innerHeight
-    ].join('\\n');
-    window.location.href='mailto:doberman01963@gmail.com?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(details);
-  });
   bindTap($('settingsBtn'), function(){ show('settingsScreen'); });
   bindTap($('settingsBackBtn'), function(){ show('menuScreen'); });
   bindTap($('soundToggleBtn'), function(){ soundEnabled=true; try{ localStorage.setItem('bbb_mobile_sound','on'); }catch(e){} syncSoundButton(); });
@@ -4013,11 +3998,11 @@ else next='BATTLE!';
   bindTap($('modeJoinBtn'), function(){ chooseMode('join'); });
   bindTap($('modeBackBtn'), function(){ show('menuScreen'); });
   bindTap($('arenaNextBtn'), continueAfterArena);
-  bindTap($('arenaBackBtn'), function(){ show('modeScreen'); });
+  bindTap($('arenaBackBtn'), function(){ show('menuScreen'); });
   bindTap($('startAiBtn'), newMatch);
-  bindTap($('difficultyBackBtn'), function(){ show('arenaScreen'); });
+  bindTap($('difficultyBackBtn'), function(){ show('menuScreen'); });
   bindTap($('joinRoomBtn'), joinRoom);
-  bindTap($('joinBackBtn'), function(){ show('modeScreen'); });
+  bindTap($('joinBackBtn'), function(){ show('menuScreen'); });
   bindTap($('howBtn'), function(){ show('howScreen'); });
   bindTap($('howBtnTop'), function(){ show('howScreen'); });
   bindTap($('backHowBtn'), function(){ show('menuScreen'); });
