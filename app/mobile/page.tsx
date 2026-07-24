@@ -2527,6 +2527,7 @@ export default function MobilePage() {
   var arena='classic', difficulty='normal', socketRegion='EU', mode='ai';
   var canvas, ctx, raf=0, arenaPaint=null;
   var ball, lines, trail, sparks, score, energy, rallyElapsedSeconds=0, started=false, paused=false, drawing=null, goalLocked=false;
+  var MAX_ACTIVE_LINES_PER_SIDE=2;
   var frame=0, lastFrameAt=Date.now(), lastDtScale=1, audioUnlocked=false, soundEnabled=true, lastWallSound=0, lastOnlineScoreTotal=null, lastOnlineRoundKey=null, onlineCountdownTimer=null, onlineBattleTimer=null, onlineRoomClosed=false, onlineServerPlaying=false, activeAudioContexts=[];
   var socket=null, socketReady=false, isHost=false, roleKnown=false, roomCode=null, mobileId='mobile_'+Math.random().toString(16).slice(2,10), onlineTarget={x:200,y:350,vx:1.2,vy:1.8}, onlineStateAt=Date.now();
   var onlineStartState=null;
@@ -3694,7 +3695,7 @@ else next='BATTLE!';
     var max=160, l=Math.min(max,len), a=Math.atan2(dy,dx);
     var count=0;
     lines=lines.filter(function(line){
-      if(line.owner===owner){ count++; return count<2; }
+      if(line.owner===owner){ count++; return count<MAX_ACTIVE_LINES_PER_SIDE; }
       return true;
     });
     var createdLine={x1:start.x,y1:start.y,x2:start.x+Math.cos(a)*l,y2:start.y+Math.sin(a)*l,life:50,owner:owner};

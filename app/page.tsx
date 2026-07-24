@@ -1081,6 +1081,7 @@ const socket = io(
     const W = 400;
     const H = 700;
     const MAX_LINE_LENGTH = 160;
+    const MAX_ACTIVE_LINES_PER_SIDE = 2;
 
     const baseBackground = ctx.createLinearGradient(0, 0, 0, H);
     baseBackground.addColorStop(0, "#020716");
@@ -1193,7 +1194,7 @@ const socket = io(
         (line) => line.owner === "player"
       );
 
-      if (playerLines.length >= 2) {
+      if (playerLines.length >= MAX_ACTIVE_LINES_PER_SIDE) {
         const firstPlayerLineIndex = linesRef.current.findIndex(
           (line) => line.owner === "player"
         );
@@ -1687,6 +1688,17 @@ aiElapsedFrames += dtScale;
       : aiDifficultyRef.current === "normal"
       ? (Math.random() - 0.5) * 60
       : 0;
+
+  const aiLines = linesRef.current.filter((line) => line.owner === "ai");
+  if (aiLines.length >= MAX_ACTIVE_LINES_PER_SIDE) {
+    const firstAiLineIndex = linesRef.current.findIndex(
+      (line) => line.owner === "ai"
+    );
+
+    if (firstAiLineIndex !== -1) {
+      linesRef.current.splice(firstAiLineIndex, 1);
+    }
+  }
 
   linesRef.current.push({
     x1: ball.x + aiError - 55,
