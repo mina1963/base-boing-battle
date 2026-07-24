@@ -233,6 +233,20 @@ function MobileEnergyCard() {
 }
 
 export default function MobilePage() {
+  useEffect(() => {
+    const source = document.getElementById(
+      "storeLegacyGameSource",
+    ) as HTMLScriptElement | null;
+    if (!source || source.dataset.booted === "true") return;
+
+    source.dataset.booted = "true";
+    const runner = document.createElement("script");
+    runner.dataset.storeLegacyRunner = "true";
+    runner.textContent = source.textContent;
+    document.body.appendChild(runner);
+    runner.remove();
+  }, []);
+
   return (
     <main>
       <div
@@ -2605,7 +2619,7 @@ export default function MobilePage() {
     </div>
   </section>
 </div>
-<script>
+<script id="storeLegacyGameSource" type="text/plain">
 (function(){
   var W=400,H=700;
   var arena='base', difficulty='normal', socketRegion='EU', mode='ai';
