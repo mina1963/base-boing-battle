@@ -281,6 +281,7 @@ export default function MobilePage() {
   .arena[data-arena="base"].selected { border-color:#ef4444; box-shadow:0 0 24px rgba(239,68,68,.42); }
   .arena[data-arena="space"].selected { border-color:#22d3ee; box-shadow:0 0 24px rgba(34,211,238,.42); }
   .arena[data-arena="temple"].selected { border-color:#fbbf24; box-shadow:0 0 24px rgba(251,191,36,.38); }
+  .arena[data-arena="soccer"].selected { border-color:#5cff85; box-shadow:0 0 24px rgba(92,255,133,.42); }
   #gameScreen { padding:0; overflow:hidden; touch-action:none; }
   #gameWrap { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:#000; touch-action:none; overflow:hidden; }
   #gameCanvas { width:min(100vw, calc(100dvh * 0.5714)); height:min(100dvh, calc(100vw * 1.75)); touch-action:none; display:block; }
@@ -2382,11 +2383,14 @@ export default function MobilePage() {
   .storeArenaHead { display:flex; align-items:center; justify-content:space-between; margin-bottom:11px; }
   .storeArenaHead strong { color:#fff; font-size:11px; letter-spacing:.20em; }
   .storeArenaHead span { color:rgba(201,202,231,.48); font-size:7px; letter-spacing:.18em; }
-  .storeArenaGrid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+  .storeArenaGrid { display:grid; grid-template-columns:repeat(2,1fr); gap:8px; }
   .storeArena { min-height:112px; padding:8px; border:1px solid rgba(139,92,246,.24); border-radius:16px; color:white; background:linear-gradient(160deg,rgba(139,92,246,.15),rgba(7,9,30,.88)); text-align:left; touch-action:manipulation; }
   .storeArena.selected { border-color:#22d3ee; box-shadow:0 0 18px rgba(34,211,238,.20),inset 0 0 20px rgba(34,211,238,.06); }
   .storeArenaVisual { position:relative; display:block; height:65px; border:1px solid rgba(113,205,255,.38); border-radius:10px; background:radial-gradient(circle at 50% 50%,#fff 0 4px,rgba(139,92,246,.72) 5px,rgba(13,18,50,.8) 34%,#050713 70%); box-shadow:inset 0 0 18px rgba(139,92,246,.24); }
   .storeArenaVisual:before { content:""; position:absolute; inset:14px 9px; border:1px solid rgba(34,211,238,.26); border-radius:50%; transform:scaleY(.48) rotate(-14deg); }
+  .storeArena[data-store-arena="soccer"] .storeArenaVisual { background:repeating-linear-gradient(90deg,#0e652c 0 18px,#118039 18px 36px); box-shadow:inset 0 0 20px rgba(0,0,0,.36),0 0 15px rgba(92,255,133,.13); }
+  .storeArena[data-store-arena="soccer"] .storeArenaVisual:before { inset:5px; border:1px solid rgba(255,255,255,.82); border-radius:2px; transform:none; background:linear-gradient(90deg,transparent 49.4%,rgba(255,255,255,.82) 49.4% 50.6%,transparent 50.6%); }
+  .storeArena[data-store-arena="soccer"] .storeArenaVisual:after { content:""; position:absolute; left:50%; top:50%; width:18px; height:18px; transform:translate(-50%,-50%); border:1px solid rgba(255,255,255,.86); border-radius:50%; box-shadow:0 0 8px rgba(255,255,255,.25); }
   .storeArena strong { display:block; margin-top:8px; font-size:7px; line-height:1.2; letter-spacing:.05em; }
   .storeNav { position:absolute; left:20px; right:20px; bottom:calc(env(safe-area-inset-bottom) + 14px); height:58px; display:grid; grid-template-columns:repeat(4,1fr); border:1px solid rgba(139,92,246,.22); border-radius:17px; background:rgba(8,8,28,.88); backdrop-filter:blur(16px); }
   .storeNav button,.storeNav a { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; border:0; color:rgba(222,223,246,.48); background:transparent; font-family:inherit; font-size:6px; font-weight:1000; letter-spacing:.12em; text-decoration:none; touch-action:manipulation; }
@@ -2499,11 +2503,12 @@ export default function MobilePage() {
         <button id="storeJoinBtn">JOIN ROOM</button>
       </div>
       <div class="storeArenas">
-        <div class="storeArenaHead"><strong>ARENAS</strong><span>3 DIMENSIONS</span></div>
+        <div class="storeArenaHead"><strong>ARENAS</strong><span>4 STADIUMS</span></div>
         <div class="storeArenaGrid">
           <button class="storeArena selected" data-store-arena="base"><span class="storeArenaVisual"></span><strong>CORE ARENA</strong></button>
           <button class="storeArena" data-store-arena="space"><span class="storeArenaVisual"></span><strong>NEON ORBIT</strong></button>
           <button class="storeArena" data-store-arena="temple"><span class="storeArenaVisual"></span><strong>VOID TEMPLE</strong></button>
+          <button class="storeArena" data-store-arena="soccer"><span class="storeArenaVisual"></span><strong>CHAMPIONS PITCH</strong></button>
         </div>
       </div>
       <div class="storeNav">
@@ -2585,6 +2590,7 @@ export default function MobilePage() {
           <button class="arena" data-arena="base">CORE ARENA<small>COSMIC VAULT</small></button>
           <button class="arena" data-arena="space">ORBIT<small>SPACE MODE</small></button>
           <button class="arena" data-arena="temple">TEMPLE<small>CHAIN RUNES</small></button>
+          <button class="arena" data-arena="soccer">FOOTBALL<small>CHAMPIONS PITCH</small></button>
         </div>
       </div>
       <button id="arenaNextBtn" class="btn">NEXT</button>
@@ -2921,6 +2927,7 @@ export default function MobilePage() {
     if(arena==='base') return {main:'#8b5cf6', glow:'rgba(139,92,246,.95)', label:'CORE', bg:'#080a20'};
     if(arena==='space') return {main:'#22d3ee', glow:'rgba(34,211,238,.95)', label:'ORBIT', bg:'#02040d'};
     if(arena==='temple') return {main:'#fbbf24', glow:'rgba(251,191,36,.95)', label:'CHAIN', bg:'#201204'};
+    if(arena==='soccer') return {main:'#5cff85', glow:'rgba(92,255,133,.95)', label:'PITCH', bg:'#071c0d'};
     return {main:'#22d3ee', glow:'rgba(34,211,238,.95)', label:'CORE', bg:'#020204'};
   }
 
@@ -3956,8 +3963,10 @@ else next='BATTLE!';
     var spaceGlow=ctx.createRadialGradient(W/2,H/2,20,W/2,H/2,H/1.1); spaceGlow.addColorStop(0,'rgba(34,211,238,.22)'); spaceGlow.addColorStop(.35,'rgba(0,82,255,.10)'); spaceGlow.addColorStop(1,'rgba(0,0,0,0)');
     var temple=ctx.createLinearGradient(0,0,0,H); temple.addColorStop(0,'#140b02'); temple.addColorStop(.5,'#241403'); temple.addColorStop(1,'#050301');
     var templeGlow=ctx.createRadialGradient(W/2,H/2,18,W/2,H/2,H/1.08); templeGlow.addColorStop(0,'rgba(251,191,36,.22)'); templeGlow.addColorStop(.45,'rgba(120,53,15,.14)'); templeGlow.addColorStop(1,'rgba(0,0,0,.25)');
+    var soccer=ctx.createLinearGradient(0,0,W,0); soccer.addColorStop(0,'#075522'); soccer.addColorStop(.5,'#11843a'); soccer.addColorStop(1,'#075522');
+    var soccerGlow=ctx.createRadialGradient(W/2,H/2,20,W/2,H/2,H/1.05); soccerGlow.addColorStop(0,'rgba(144,255,171,.12)'); soccerGlow.addColorStop(.65,'rgba(4,60,24,.05)'); soccerGlow.addColorStop(1,'rgba(0,12,4,.42)');
     var classic=ctx.createRadialGradient(W/2,H/2,30,W/2,H/2,H/1.15); classic.addColorStop(0,'rgba(0,82,255,.22)'); classic.addColorStop(1,'rgba(0,0,0,0)');
-    arenaPaint={base:base,baseGlow:baseGlow,space:space,spaceGlow:spaceGlow,temple:temple,templeGlow:templeGlow,classic:classic};
+    arenaPaint={base:base,baseGlow:baseGlow,space:space,spaceGlow:spaceGlow,temple:temple,templeGlow:templeGlow,soccer:soccer,soccerGlow:soccerGlow,classic:classic};
   }
   function drawBg(){
     var th=theme();
@@ -3978,24 +3987,48 @@ else next='BATTLE!';
       ctx.fillStyle=arenaPaint.templeGlow; ctx.fillRect(0,0,W,H);
       for(var py=70; py<H-60; py+=88){ ctx.fillStyle='rgba(251,191,36,.12)'; ctx.fillRect(18,py,16,50); ctx.fillRect(W-34,py,16,50); ctx.fillStyle='rgba(251,191,36,.22)'; ctx.fillRect(14,py-5,24,6); ctx.fillRect(W-38,py-5,24,6); }
       ctx.save(); ctx.translate(W/2,H/2); ctx.strokeStyle='rgba(251,191,36,.30)'; ctx.lineWidth=1.5; for(var r=0;r<6;r++){ ctx.rotate(Math.PI/3); ctx.beginPath(); ctx.moveTo(0,-92); ctx.lineTo(0,-72); ctx.stroke(); } ctx.restore();
+    } else if(arena==='soccer'){
+      ctx.fillStyle=arenaPaint.soccer; ctx.fillRect(0,0,W,H);
+      for(var stripe=0;stripe<10;stripe++){ ctx.fillStyle=stripe%2===0?'rgba(255,255,255,.035)':'rgba(0,0,0,.035)'; ctx.fillRect(stripe*W/10,0,W/10,H); }
+      ctx.fillStyle=arenaPaint.soccerGlow; ctx.fillRect(0,0,W,H);
+      ctx.save();
+      ctx.strokeStyle='rgba(255,255,255,.82)'; ctx.fillStyle='rgba(255,255,255,.88)'; ctx.lineWidth=2;
+      ctx.strokeRect(24,24,W-48,H-48);
+      ctx.beginPath(); ctx.moveTo(24,H/2); ctx.lineTo(W-24,H/2); ctx.stroke();
+      ctx.beginPath(); ctx.arc(W/2,H/2,52,0,Math.PI*2); ctx.stroke();
+      ctx.beginPath(); ctx.arc(W/2,H/2,3,0,Math.PI*2); ctx.fill();
+      ctx.strokeRect(W/2-92,24,184,112); ctx.strokeRect(W/2-48,24,96,50);
+      ctx.strokeRect(W/2-92,H-136,184,112); ctx.strokeRect(W/2-48,H-74,96,50);
+      ctx.beginPath(); ctx.arc(W/2,96,3,0,Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(W/2,H-96,3,0,Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(24,24,14,0,Math.PI/2); ctx.stroke();
+      ctx.beginPath(); ctx.arc(W-24,24,14,Math.PI/2,Math.PI); ctx.stroke();
+      ctx.beginPath(); ctx.arc(24,H-24,14,-Math.PI/2,0); ctx.stroke();
+      ctx.beginPath(); ctx.arc(W-24,H-24,14,Math.PI,Math.PI*1.5); ctx.stroke();
+      ctx.strokeStyle='rgba(220,255,228,.62)'; ctx.lineWidth=1;
+      for(var net=0;net<7;net++){ var nx=W/2-45+net*15; ctx.beginPath(); ctx.moveTo(nx,24); ctx.lineTo(nx,7); ctx.stroke(); ctx.beginPath(); ctx.moveTo(nx,H-24); ctx.lineTo(nx,H-7); ctx.stroke(); }
+      ctx.strokeRect(W/2-45,7,90,17); ctx.strokeRect(W/2-45,H-24,90,17);
+      ctx.restore();
     } else {
       ctx.fillStyle='#020204'; ctx.fillRect(0,0,W,H);
       ctx.fillStyle=arenaPaint.classic; ctx.fillRect(0,0,W,H);
     }
 
-    ctx.strokeStyle=arena==='space'?'rgba(34,211,238,.10)':arena==='temple'?'rgba(251,191,36,.09)':'rgba(255,255,255,.06)'; ctx.lineWidth=1;
-    for(var x=40;x<W;x+=40){ ctx.beginPath(); ctx.moveTo(x,18); ctx.lineTo(x,H-18); ctx.stroke(); }
-    for(var y=60;y<H;y+=60){ ctx.beginPath(); ctx.moveTo(18,y); ctx.lineTo(W-18,y); ctx.stroke(); }
+    if(arena!=='soccer'){
+      ctx.strokeStyle=arena==='space'?'rgba(34,211,238,.10)':arena==='temple'?'rgba(251,191,36,.09)':'rgba(255,255,255,.06)'; ctx.lineWidth=1;
+      for(var x=40;x<W;x+=40){ ctx.beginPath(); ctx.moveTo(x,18); ctx.lineTo(x,H-18); ctx.stroke(); }
+      for(var y=60;y<H;y+=60){ ctx.beginPath(); ctx.moveTo(18,y); ctx.lineTo(W-18,y); ctx.stroke(); }
+    }
 
     var pulse=.55+Math.sin(frame*.045)*.18;
-    ctx.save(); ctx.strokeStyle=arena==='temple'?'rgba(251,191,36,'+pulse+')':arena==='space'?'rgba(34,211,238,'+pulse+')':arena==='base'?'rgba(239,68,68,'+pulse+')':'rgba(0,82,255,'+pulse+')';
+    ctx.save(); ctx.strokeStyle=arena==='soccer'?'rgba(92,255,133,'+pulse+')':arena==='temple'?'rgba(251,191,36,'+pulse+')':arena==='space'?'rgba(34,211,238,'+pulse+')':arena==='base'?'rgba(239,68,68,'+pulse+')':'rgba(0,82,255,'+pulse+')';
     ctx.shadowColor=th.main; ctx.shadowBlur=18; ctx.lineWidth=3; ctx.strokeRect(12,12,W-24,H-24); ctx.restore();
     ctx.beginPath(); ctx.moveTo(12,H/2); ctx.lineTo(W-12,H/2); ctx.strokeStyle='rgba(255,255,255,.14)'; ctx.stroke();
 
-    ctx.font='bold 10px monospace'; ctx.textAlign='center'; ctx.fillStyle=arena==='temple'?'rgba(251,191,36,.82)':arena==='space'?'rgba(34,211,238,.78)':arena==='base'?'rgba(255,255,255,.62)':'rgba(0,82,255,.62)';
-    ctx.fillText(arena==='space'?'◇ NEON ORBIT ◇':arena==='temple'?'◇ VOID TEMPLE ◇':arena==='base'?'◇ CORE ARENA ◇':'◇ ARCADE GRID ◇',W/2,H/2-50);
-    ctx.font=arena==='temple'?'900 36px monospace':arena==='space'?'900 40px monospace':'900 46px monospace';
-    ctx.fillStyle=arena==='temple'?'rgba(255,230,150,.82)':arena==='space'?'rgba(210,250,255,.82)':arena==='base'?'rgba(255,255,255,.82)':'rgba(0,82,255,.38)';
+    ctx.font='bold 10px monospace'; ctx.textAlign='center'; ctx.fillStyle=arena==='soccer'?'rgba(231,255,237,.88)':arena==='temple'?'rgba(251,191,36,.82)':arena==='space'?'rgba(34,211,238,.78)':arena==='base'?'rgba(255,255,255,.62)':'rgba(0,82,255,.62)';
+    ctx.fillText(arena==='soccer'?'◇ CHAMPIONS PITCH ◇':arena==='space'?'◇ NEON ORBIT ◇':arena==='temple'?'◇ VOID TEMPLE ◇':arena==='base'?'◇ CORE ARENA ◇':'◇ ARCADE GRID ◇',W/2,H/2-70);
+    ctx.font=arena==='soccer'?'900 32px monospace':arena==='temple'?'900 36px monospace':arena==='space'?'900 40px monospace':'900 46px monospace';
+    ctx.fillStyle=arena==='soccer'?'rgba(239,255,243,.42)':arena==='temple'?'rgba(255,230,150,.82)':arena==='space'?'rgba(210,250,255,.82)':arena==='base'?'rgba(255,255,255,.82)':'rgba(0,82,255,.38)';
     ctx.shadowColor=th.main; ctx.shadowBlur=24; ctx.fillText(th.label,W/2,H/2+15); ctx.shadowBlur=0;
   }
   function aiThink(){
