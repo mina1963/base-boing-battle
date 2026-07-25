@@ -281,6 +281,7 @@ export default function MobilePage() {
   .arena[data-arena="base"].selected { border-color:#ef4444; box-shadow:0 0 24px rgba(239,68,68,.42); }
   .arena[data-arena="space"].selected { border-color:#22d3ee; box-shadow:0 0 24px rgba(34,211,238,.42); }
   .arena[data-arena="temple"].selected { border-color:#fbbf24; box-shadow:0 0 24px rgba(251,191,36,.38); }
+  .arena[data-arena="soccer"].selected { border-color:#5cff85; box-shadow:0 0 24px rgba(92,255,133,.42); }
   #gameScreen { padding:0; overflow:hidden; touch-action:none; }
   #gameWrap { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:#000; touch-action:none; overflow:hidden; }
   #gameCanvas { width:min(100vw, calc(100dvh * 0.5714)); height:min(100dvh, calc(100vw * 1.75)); touch-action:none; display:block; }
@@ -2342,6 +2343,98 @@ export default function MobilePage() {
   @keyframes energyCardIn { from{opacity:0;transform:translateY(-8px) scale(.98)} to{opacity:1;transform:translateY(0) scale(1)} }
   @keyframes energyRequired { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-7px)} 50%{transform:translateX(7px)} 75%{transform:translateX(-4px)} }
   @media(max-width:360px){ .mobileEnergyCard{grid-template-columns:36px minmax(0,1fr) auto;gap:7px;padding:8px}.mobileEnergyOrb{width:36px;height:36px;border-radius:13px}.mobileEnergyCard button,.mobileEnergyCard a{min-width:90px;padding:0 8px;font-size:7px} }
+  /* STORE EXCLUSIVE — COSMIC VAULT */
+  #menuScreen.storeCosmicScreen { padding:0 !important; overflow:hidden !important; background:#050713 !important; }
+  #menuScreen.storeCosmicScreen > .artLobby { display:none !important; }
+  .storeCosmic { position:relative; width:100%; min-height:100dvh; max-width:430px; margin:0 auto; overflow:hidden; padding:calc(env(safe-area-inset-top) + 20px) 20px calc(env(safe-area-inset-bottom) + 92px); display:flex; flex-direction:column; background:radial-gradient(circle at 50% 30%,rgba(139,92,246,.24),transparent 29%),radial-gradient(circle at 84% 8%,rgba(34,211,238,.10),transparent 20%),linear-gradient(180deg,#080a20 0%,#050713 58%,#03040c 100%); }
+  .storeCosmic:before { content:""; position:absolute; inset:-10%; opacity:.7; pointer-events:none; will-change:transform,opacity; background-image:radial-gradient(circle at 12% 16%,rgba(255,255,255,.98) 0 1.2px,transparent 1.9px),radial-gradient(circle at 83% 22%,rgba(123,231,255,.94) 0 1.2px,transparent 1.9px),radial-gradient(circle at 31% 67%,rgba(255,255,255,.78) 0 1px,transparent 1.8px),radial-gradient(circle at 73% 75%,rgba(165,115,255,.92) 0 1.2px,transparent 1.9px); background-size:83px 91px,117px 129px,139px 151px,101px 113px; animation:storeStarDrift 13s linear infinite,storeStarTwinkle 2.8s ease-in-out infinite alternate; }
+  .storeCosmic:after { content:""; position:absolute; inset:0; pointer-events:none; background:radial-gradient(circle at 50% 26%,rgba(34,211,238,.13),transparent 21%),linear-gradient(110deg,transparent 30%,rgba(139,92,246,.05) 48%,transparent 64%); animation:storeNebula 7s ease-in-out infinite; }
+  .storeTop,.storePortal,.storeActions,.storeArenas,.storeNav { position:relative; z-index:2; }
+  .storeTop { display:flex; align-items:center; justify-content:space-between; }
+  .storeBrand small { display:block; color:rgba(205,205,232,.58); font-size:8px; font-weight:1000; letter-spacing:.34em; }
+  .storeBrand strong { display:block; margin-top:6px; color:#fff; font-size:20px; font-weight:1000; letter-spacing:.07em; }
+  .storeBrand strong.mobileBaseBrand { font-size:17px; letter-spacing:.055em; background:linear-gradient(95deg,#f7fbff 0%,#9fc4ff 24%,#2474ff 52%,#0052ff 72%,#75e6ff 100%); background-size:180% 100%; -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; filter:drop-shadow(0 0 8px rgba(0,82,255,.72)) drop-shadow(0 0 18px rgba(34,211,238,.28)); animation:mobileBaseBrandFlow 4.2s ease-in-out infinite alternate; }
+  #storeProfileTapArea { display:flex; align-items:center; gap:8px; min-width:90px; min-height:42px; padding:6px 10px 6px 7px; border:1px solid rgba(139,92,246,.34); border-radius:15px; background:linear-gradient(120deg,rgba(139,92,246,.20),rgba(34,211,238,.07)); box-shadow:0 0 22px rgba(139,92,246,.14),inset 0 1px 0 rgba(255,255,255,.08); }
+  .storeAvatar { width:29px; height:29px; display:grid; place-items:center; border-radius:10px; color:#fff; font-size:11px; font-weight:1000; background:linear-gradient(135deg,#8b5cf6,#22d3ee); box-shadow:0 0 15px rgba(139,92,246,.48); }
+  .storePlayerLabel { color:rgba(255,255,255,.45); font-size:6px; letter-spacing:.18em; }
+  #storeProfileName { margin-top:2px; color:#fff; font-size:10px; font-weight:1000; letter-spacing:.12em; }
+  .storePortal { height:295px; display:grid; place-items:center; text-align:center; }
+  .storeDimension { position:absolute; top:25px; left:0; color:rgba(210,211,239,.64); font-size:7px; font-weight:1000; letter-spacing:.32em; }
+  .storeOrbit { position:absolute; top:45px; left:50%; width:176px; height:176px; transform:translateX(-50%); border:1px solid rgba(34,211,238,.75); border-radius:50%; box-shadow:0 0 28px rgba(34,211,238,.18),inset 0 0 34px rgba(139,92,246,.16); animation:storePortalBreath 3.2s ease-in-out infinite; }
+  .storeOrbit:before,.storeOrbit:after { content:""; position:absolute; inset:17px -15px; border:1px solid rgba(139,92,246,.62); border-radius:50%; transform:rotate(-19deg) scaleY(.55); }
+  .storeOrbit:before { animation:storeRingLeft 8s linear infinite; }
+  .storeOrbit:after { inset:29px -7px; border-color:rgba(34,211,238,.42); transform:rotate(58deg) scaleY(.48); animation:storeRingRight 6s linear infinite reverse; }
+  .storeCore { position:absolute; top:92px; left:50%; width:88px; height:88px; transform:translateX(-50%); border-radius:50%; will-change:transform,filter; background:radial-gradient(circle at 35% 27%,#fff 0 5%,#49e8ff 9%,#7c3aed 28%,#12123d 59%,#03040d 100%); box-shadow:0 0 24px rgba(34,211,238,.72),0 0 58px rgba(139,92,246,.55); animation:storeWorldFloat 3.4s ease-in-out infinite; }
+  .storeCore:before { content:""; position:absolute; inset:-10px; border:1px solid rgba(106,238,255,.38); border-radius:50%; box-shadow:0 0 22px rgba(34,211,238,.24); animation:storeCoreHalo 2.2s ease-in-out infinite; }
+  .storeCore:after { content:"↗"; position:absolute; inset:0; display:grid; place-items:center; color:white; font-size:27px; font-weight:1000; }
+  .storePortalStatus { position:absolute; top:188px; isolation:isolate; overflow:hidden; display:inline-flex; align-items:center; gap:7px; padding:7px 14px; border:1px solid rgba(96,235,255,.52); border-radius:999px; color:#d9fcff; background:linear-gradient(110deg,rgba(5,13,38,.94),rgba(24,20,67,.92)); box-shadow:0 0 22px rgba(34,211,238,.22),inset 0 1px 0 rgba(255,255,255,.15),inset 0 0 18px rgba(34,211,238,.06); font-size:7px; font-weight:1000; letter-spacing:.22em; text-shadow:0 0 10px rgba(111,239,255,.9); }
+  .storePortalStatus:before { content:""; width:6px; height:6px; flex:0 0 auto; border-radius:50%; background:#63ffd1; box-shadow:0 0 7px #63ffd1,0 0 16px rgba(99,255,209,.75); animation:storeStatusLive 1.45s ease-in-out infinite; }
+  .storePortalStatus:after { content:""; position:absolute; z-index:-1; inset:-40% auto -40% -45%; width:42%; transform:skewX(-22deg); background:linear-gradient(90deg,transparent,rgba(255,255,255,.22),transparent); animation:storeStatusScan 3.2s ease-in-out infinite; }
+  .storePortal h1 { position:absolute; top:217px; margin:0; color:#f7f7ff; font-size:15px; letter-spacing:.29em; text-shadow:0 0 18px rgba(139,92,246,.48); }
+  .storePortalTag { position:absolute; top:241px; margin:0; display:flex; align-items:center; gap:7px; padding:8px 12px; border:1px solid rgba(125,143,255,.25); border-radius:999px; background:linear-gradient(100deg,rgba(7,12,35,.78),rgba(37,24,83,.72),rgba(7,12,35,.78)); box-shadow:0 9px 28px rgba(0,0,0,.28),0 0 24px rgba(112,75,255,.12),inset 0 1px 0 rgba(255,255,255,.1); backdrop-filter:blur(10px); animation:storeTagPulse 2.6s ease-in-out infinite; }
+  .storePortalTag span { color:#effdff; font-size:7px; font-weight:1000; letter-spacing:.18em; text-shadow:0 0 8px rgba(34,211,238,.8); }
+  .storePortalTag span:nth-of-type(2) { color:#d9c6ff; text-shadow:0 0 9px rgba(139,92,246,.9); }
+  .storePortalTag i { width:3px; height:3px; border-radius:50%; background:#60eaff; box-shadow:0 0 7px #60eaff; }
+  .storeActions { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; }
+  #storePlayBtn,#storeOnlineBtn,#storeCreateBtn,#storeJoinBtn { position:relative; width:100%; border-radius:16px; font-family:Arial,Helvetica,sans-serif; font-weight:1000; letter-spacing:.10em; touch-action:manipulation; }
+  #storePlayBtn { grid-column:1/-1; height:58px; border:0; color:white; background:linear-gradient(105deg,#7c3aed 0%,#8b5cf6 45%,#22d3ee 100%); box-shadow:0 0 30px rgba(139,92,246,.35),inset 0 1px 0 rgba(255,255,255,.28); font-size:13px; }
+  #storePlayBtn small { display:block; margin-top:4px; color:rgba(255,255,255,.72); font-size:6px; letter-spacing:.24em; }
+  #storeOnlineBtn,#storeCreateBtn,#storeJoinBtn { min-height:48px; padding:0 5px; border:1px solid rgba(34,211,238,.34); color:#dffcff; background:linear-gradient(110deg,rgba(34,211,238,.07),rgba(139,92,246,.13)); font-size:7px; }
+  .storeArenas { margin-top:20px; }
+  .storeArenaHead { display:flex; align-items:center; justify-content:space-between; margin-bottom:11px; }
+  .storeArenaHead strong { color:#fff; font-size:11px; letter-spacing:.20em; }
+  .storeArenaHead span { color:rgba(201,202,231,.48); font-size:7px; letter-spacing:.18em; }
+  .storeArenaGrid { display:grid; grid-template-columns:repeat(2,1fr); gap:8px; }
+  .storeArena { min-height:112px; padding:8px; border:1px solid rgba(139,92,246,.24); border-radius:16px; color:white; background:linear-gradient(160deg,rgba(139,92,246,.15),rgba(7,9,30,.88)); text-align:left; touch-action:manipulation; }
+  .storeArena.selected { border-color:#22d3ee; box-shadow:0 0 18px rgba(34,211,238,.20),inset 0 0 20px rgba(34,211,238,.06); }
+  .storeArenaVisual { position:relative; display:block; height:65px; border:1px solid rgba(113,205,255,.38); border-radius:10px; background:radial-gradient(circle at 50% 50%,#fff 0 4px,rgba(139,92,246,.72) 5px,rgba(13,18,50,.8) 34%,#050713 70%); box-shadow:inset 0 0 18px rgba(139,92,246,.24); }
+  .storeArenaVisual:before { content:""; position:absolute; inset:14px 9px; border:1px solid rgba(34,211,238,.26); border-radius:50%; transform:scaleY(.48) rotate(-14deg); }
+  .storeArena[data-store-arena="soccer"] .storeArenaVisual { background:repeating-linear-gradient(90deg,#0e652c 0 18px,#118039 18px 36px); box-shadow:inset 0 0 20px rgba(0,0,0,.36),0 0 15px rgba(92,255,133,.13); }
+  .storeArena[data-store-arena="soccer"] .storeArenaVisual:before { inset:5px; border:1px solid rgba(255,255,255,.82); border-radius:2px; transform:none; background:linear-gradient(90deg,transparent 49.4%,rgba(255,255,255,.82) 49.4% 50.6%,transparent 50.6%); }
+  .storeArena[data-store-arena="soccer"] .storeArenaVisual:after { content:""; position:absolute; left:50%; top:50%; width:18px; height:18px; transform:translate(-50%,-50%); border:1px solid rgba(255,255,255,.86); border-radius:50%; box-shadow:0 0 8px rgba(255,255,255,.25); }
+  .storeArena strong { display:block; margin-top:8px; font-size:7px; line-height:1.2; letter-spacing:.05em; }
+  .storeNav { position:absolute; left:20px; right:20px; bottom:calc(env(safe-area-inset-bottom) + 14px); height:58px; display:grid; grid-template-columns:repeat(4,1fr); border:1px solid rgba(139,92,246,.22); border-radius:17px; background:rgba(8,8,28,.88); backdrop-filter:blur(16px); }
+  .storeNav button,.storeNav a { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; border:0; color:rgba(222,223,246,.48); background:transparent; font-family:inherit; font-size:6px; font-weight:1000; letter-spacing:.12em; text-decoration:none; touch-action:manipulation; }
+  .storeNavIcon { width:15px; height:15px; fill:none; stroke:currentColor; stroke-width:1.8; filter:drop-shadow(0 0 6px currentColor); }
+  .storeNav button:first-child { color:#7ff2ff; }
+  #storePlayNav { cursor:pointer; }
+  #storePlayNav:active { transform:translateY(1px) scale(.96); }
+  #feedbackModal { position:absolute; inset:0; z-index:160; display:none; align-items:center; justify-content:center; padding:22px; background:rgba(2,3,14,.82); backdrop-filter:blur(18px) saturate(1.25); }
+  #feedbackModal.active { display:flex; animation:feedbackFadeIn .22s ease-out; }
+  .feedbackCard { position:relative; width:min(100%,390px); overflow:hidden; padding:24px; border:1px solid rgba(94,234,255,.36); border-radius:30px; background:radial-gradient(circle at 82% 0%,rgba(139,92,246,.26),transparent 34%),linear-gradient(160deg,rgba(12,15,46,.98),rgba(4,6,22,.99)); box-shadow:0 28px 80px rgba(0,0,0,.62),0 0 42px rgba(34,211,238,.14),inset 0 1px 0 rgba(255,255,255,.12); }
+  .feedbackCard:before { content:""; position:absolute; inset:0; pointer-events:none; background:linear-gradient(120deg,transparent 20%,rgba(255,255,255,.055),transparent 58%); }
+  .feedbackKicker { color:#76efff; font-size:8px; font-weight:1000; letter-spacing:.28em; }
+  .feedbackTitle { margin:9px 0 5px; color:white; font-size:27px; font-weight:1000; letter-spacing:.08em; }
+  .feedbackSub { margin:0 0 18px; color:rgba(221,226,255,.55); font-size:9px; font-weight:800; line-height:1.55; letter-spacing:.08em; }
+  .feedbackGrid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .feedbackField { display:grid; gap:7px; margin-top:11px; }
+  .feedbackField label { color:rgba(157,244,255,.72); font-size:7px; font-weight:1000; letter-spacing:.2em; }
+  .feedbackField input,.feedbackField select,.feedbackField textarea { width:100%; border:1px solid rgba(124,141,255,.24); border-radius:15px; outline:0; color:white; background:rgba(4,7,27,.78); font:800 11px Arial,sans-serif; box-shadow:inset 0 0 16px rgba(34,211,238,.035); }
+  .feedbackField input,.feedbackField select { height:46px; padding:0 13px; }
+  .feedbackField textarea { min-height:132px; resize:none; padding:13px; line-height:1.55; }
+  .feedbackField input:focus,.feedbackField select:focus,.feedbackField textarea:focus { border-color:#43dff3; box-shadow:0 0 0 3px rgba(34,211,238,.08),inset 0 0 18px rgba(34,211,238,.05); }
+  .feedbackActions { display:grid; grid-template-columns:.7fr 1.3fr; gap:9px; margin-top:15px; }
+  .feedbackActions button { min-height:50px; border-radius:16px; font-size:9px; font-weight:1000; letter-spacing:.16em; touch-action:manipulation; }
+  #feedbackCloseBtn { border:1px solid rgba(255,255,255,.16); color:rgba(255,255,255,.68); background:rgba(255,255,255,.055); }
+  #feedbackSendBtn { border:0; color:white; background:linear-gradient(110deg,#7c3aed,#8b5cf6 48%,#22d3ee); box-shadow:0 0 25px rgba(93,91,255,.34),inset 0 1px 0 rgba(255,255,255,.25); }
+  #feedbackSendBtn:disabled { opacity:.55; }
+  #feedbackStatus { min-height:17px; margin-top:10px; color:#86f7d0; font-size:8px; font-weight:1000; line-height:1.45; letter-spacing:.1em; text-align:center; }
+  .feedbackHoney { position:absolute !important; left:-10000px !important; width:1px !important; height:1px !important; opacity:0 !important; pointer-events:none !important; }
+  @keyframes storePortalBreath { 0%,100%{transform:translateX(-50%) scale(.98);opacity:.78} 50%{transform:translateX(-50%) scale(1.04);opacity:1} }
+  @keyframes storeStarDrift { from{transform:translate3d(-2.5%,-1.8%,0) rotate(0deg)} to{transform:translate3d(2.5%,1.8%,0) rotate(2deg)} }
+  @keyframes storeStarTwinkle { 0%{opacity:.48;filter:brightness(.86)} 45%{opacity:.88;filter:brightness(1.24)} 100%{opacity:.63;filter:brightness(1.55)} }
+  @keyframes storeNebula { 0%,100%{opacity:.45;transform:scale(1)} 50%{opacity:.85;transform:scale(1.06)} }
+  @keyframes storeRingLeft { from{transform:rotate(-19deg) scaleY(.55)} to{transform:rotate(341deg) scaleY(.55)} }
+  @keyframes storeRingRight { from{transform:rotate(58deg) scaleY(.48)} to{transform:rotate(418deg) scaleY(.48)} }
+  @keyframes storeWorldFloat { 0%,100%{transform:translateX(-50%) translateY(4px) rotate(-2deg) scale(.97);filter:brightness(.95)} 50%{transform:translateX(-50%) translateY(-11px) rotate(2deg) scale(1.07);filter:brightness(1.16)} }
+  @keyframes storeCoreHalo { 0%,100%{transform:scale(.9);opacity:.25} 50%{transform:scale(1.16);opacity:.9} }
+  @keyframes storeTagPulse { 0%,100%{opacity:.72;transform:scale(.98)} 50%{opacity:1;transform:scale(1.035)} }
+  @keyframes storeStatusLive { 0%,100%{opacity:.45;transform:scale(.72)} 50%{opacity:1;transform:scale(1.18)} }
+  @keyframes storeStatusScan { 0%,30%{left:-45%;opacity:0} 48%{opacity:1} 70%,100%{left:112%;opacity:0} }
+  @keyframes mobileBaseBrandFlow { from{background-position:0% 50%;filter:drop-shadow(0 0 7px rgba(0,82,255,.58)) drop-shadow(0 0 14px rgba(34,211,238,.18))} to{background-position:100% 50%;filter:drop-shadow(0 0 11px rgba(0,82,255,.9)) drop-shadow(0 0 22px rgba(34,211,238,.34))} }
+  @keyframes feedbackFadeIn { from{opacity:0} to{opacity:1} }
+  @media(max-height:760px) { .storeCosmic{padding-top:calc(env(safe-area-inset-top) + 12px)} .storePortal{height:252px;transform:scale(.88);margin:-13px 0} .storeArenas{margin-top:13px} .storeArena{min-height:100px} .storeArenaVisual{height:54px} }
+  @media(prefers-reduced-motion:reduce) { .storeOrbit{animation-duration:5.5s} .storeOrbit:before{animation-duration:12s} .storeOrbit:after{animation-duration:10s} .storeCore{animation-duration:5.5s} .storeCore:before{animation-duration:4s} .storeCosmic:before{animation-duration:22s,5s} .storeCosmic:after{animation-duration:12s} .storePortalTag{animation-duration:4.5s} }
 </style>
 <div id="app">
   <div id="noise"></div>
@@ -2358,7 +2451,75 @@ export default function MobilePage() {
       </div>
     </div>
   </div>
-  <section id="menuScreen" class="screen active artworkMenu">
+  <div id="feedbackModal" aria-hidden="true">
+    <form id="feedbackForm" class="feedbackCard">
+      <div class="feedbackKicker">PLAYER SUPPORT</div>
+      <div class="feedbackTitle">SEND FEEDBACK</div>
+      <p class="feedbackSub">REPORT A BUG, SHARE AN IDEA OR TELL US WHAT THE GAME IS MISSING.</p>
+      <div class="feedbackGrid">
+        <div class="feedbackField">
+          <label for="feedbackType">CATEGORY</label>
+          <select id="feedbackType" name="category">
+            <option value="Bug Report">BUG REPORT</option>
+            <option value="Suggestion">SUGGESTION</option>
+            <option value="Gameplay">GAMEPLAY</option>
+            <option value="Other">OTHER</option>
+          </select>
+        </div>
+        <div class="feedbackField">
+          <label for="feedbackEmail">YOUR EMAIL (OPTIONAL)</label>
+          <input id="feedbackEmail" name="email" type="email" maxlength="120" placeholder="YOU@EMAIL.COM" />
+        </div>
+      </div>
+      <div class="feedbackField">
+        <label for="feedbackMessage">MESSAGE</label>
+        <textarea id="feedbackMessage" name="message" minlength="10" maxlength="1200" placeholder="TELL US WHAT HAPPENED..."></textarea>
+      </div>
+      <input id="feedbackHoney" class="feedbackHoney" name="_honey" tabindex="-1" autocomplete="off" />
+      <div class="feedbackActions">
+        <button id="feedbackCloseBtn" type="button">CANCEL</button>
+        <button id="feedbackSendBtn" type="submit">SEND MESSAGE</button>
+      </div>
+      <div id="feedbackStatus" role="status" aria-live="polite"></div>
+    </form>
+  </div>
+  <section id="menuScreen" class="screen active storeCosmicScreen">
+    <div class="storeCosmic">
+      <div class="storeTop">
+        <div class="storeBrand"><strong class="mobileBaseBrand">BASE BOING BATTLE</strong></div>
+        <div id="storeProfileTapArea">
+          <div class="storeAvatar">M</div>
+          <div><div class="storePlayerLabel">PLAYER</div><div id="storeProfileName">MINA</div></div>
+        </div>
+      </div>
+      <div class="storePortal">
+        <div class="storeOrbit"></div>
+        <div class="storeCore"></div>
+        <div class="storePortalStatus">PORTAL ONLINE</div>
+        <p class="storePortalTag"><span>DEFLECT</span><i></i><span>OUTPLAY</span><i></i><span>DOMINATE</span></p>
+      </div>
+      <div class="storeActions">
+        <button id="storePlayBtn" aria-label="Play versus AI">PLAY VS AI<small>INSTANT MATCH</small></button>
+        <button id="storeOnlineBtn">ONLINE 1V1</button>
+        <button id="storeCreateBtn">CREATE ROOM</button>
+        <button id="storeJoinBtn">JOIN ROOM</button>
+      </div>
+      <div class="storeArenas">
+        <div class="storeArenaHead"><strong>ARENAS</strong><span>4 STADIUMS</span></div>
+        <div class="storeArenaGrid">
+          <button class="storeArena selected" data-store-arena="base"><span class="storeArenaVisual"></span><strong>CORE ARENA</strong></button>
+          <button class="storeArena" data-store-arena="space"><span class="storeArenaVisual"></span><strong>NEON ORBIT</strong></button>
+          <button class="storeArena" data-store-arena="temple"><span class="storeArenaVisual"></span><strong>VOID TEMPLE</strong></button>
+          <button class="storeArena" data-store-arena="soccer"><span class="storeArenaVisual"></span><strong>CHAMPIONS PITCH</strong></button>
+        </div>
+      </div>
+      <div class="storeNav">
+        <button id="storePlayNav" type="button" aria-label="Open play menu" aria-controls="modeScreen"><svg class="storeNavIcon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5l11 7-11 7z"/></svg><span>PLAY</span></button>
+        <button id="storeProfileNav" type="button" aria-label="Profile"><svg class="storeNavIcon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4.5 20c.8-4.2 3.3-6.3 7.5-6.3s6.7 2.1 7.5 6.3"/></svg><span>PROFILE</span></button>
+        <button id="storeSettingsNav" type="button" aria-label="Settings"><svg class="storeNavIcon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19 13.5l1.4 1.1-2 3.4-1.8-.7a7.9 7.9 0 0 1-2.6 1.5l-.3 1.9H9.8l-.3-1.9a7.9 7.9 0 0 1-2.6-1.5l-1.8.7-2-3.4 1.4-1.1a8 8 0 0 1 0-3L3.1 9.4l2-3.4 1.8.7a7.9 7.9 0 0 1 2.6-1.5l.3-1.9h3.9l.3 1.9a7.9 7.9 0 0 1 2.6 1.5l1.8-.7 2 3.4-1.4 1.1a8 8 0 0 1 0 3z"/></svg><span>SETTINGS</span></button>
+        <button id="storeFeedbackNav" type="button" aria-label="Feedback"><svg class="storeNavIcon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5h16v11H9l-5 3z"/><path d="M8 9h8M8 13h5"/></svg><span>FEEDBACK</span></button>
+      </div>
+    </div>
     <div class="artLobby">
       <div class="artHeaderMask"></div>
       <div class="artTop">
@@ -2428,9 +2589,10 @@ export default function MobilePage() {
       <div class="card">
         <div class="grid">
           <button class="arena selected" data-arena="classic">CLASSIC<small>RETRO GRID</small></button>
-          <button class="arena" data-arena="base">BASE<small>NEON STADIUM</small></button>
+          <button class="arena" data-arena="base">CORE ARENA<small>COSMIC VAULT</small></button>
           <button class="arena" data-arena="space">ORBIT<small>SPACE MODE</small></button>
           <button class="arena" data-arena="temple">TEMPLE<small>CHAIN RUNES</small></button>
+          <button class="arena" data-arena="soccer">FOOTBALL<small>CHAMPIONS PITCH</small></button>
         </div>
       </div>
       <button id="arenaNextBtn" class="btn">NEXT</button>
@@ -2524,7 +2686,7 @@ export default function MobilePage() {
 <script>
 (function(){
   var W=400,H=700;
-  var arena='classic', difficulty='normal', socketRegion='EU', mode='ai';
+  var arena='base', difficulty='normal', socketRegion='EU', mode='ai';
   var canvas, ctx, raf=0, arenaPaint=null;
   var ball, lines, trail, sparks, score, energy, rallyElapsedSeconds=0, started=false, paused=false, drawing=null, goalLocked=false;
   var MAX_ACTIVE_LINES_PER_SIDE=2;
@@ -2554,6 +2716,7 @@ export default function MobilePage() {
     playerName=cleanName(saved)||'PLAYER';
     var input=$('usernameInput'); if(input) input.value=playerName==='PLAYER'?'':playerName;
     var profile=$('profileName'); if(profile) profile.textContent='@'+playerName;
+    var storeProfile=$('storeProfileName'); if(storeProfile) storeProfile.textContent=playerName;
   }
   function openUsernameModal(message, afterSave){
     usernameAfterSave=afterSave||null;
@@ -2577,6 +2740,61 @@ export default function MobilePage() {
     usernameAfterSave=null;
     closeUsernameModal();
   }
+  function openFeedbackModal(){
+    var modal=$('feedbackModal');
+    var status=$('feedbackStatus');
+    var message=$('feedbackMessage');
+    if(status) status.textContent='';
+    if(modal){ modal.classList.add('active'); modal.setAttribute('aria-hidden','false'); }
+    setTimeout(function(){ try{ if(message) message.focus(); }catch(e){} },80);
+  }
+  function closeFeedbackModal(){
+    var modal=$('feedbackModal');
+    if(modal){ modal.classList.remove('active'); modal.setAttribute('aria-hidden','true'); }
+  }
+  async function sendFeedback(e){
+    if(e){ e.preventDefault(); e.stopPropagation(); }
+    var message=$('feedbackMessage');
+    var email=$('feedbackEmail');
+    var category=$('feedbackType');
+    var honey=$('feedbackHoney');
+    var status=$('feedbackStatus');
+    var send=$('feedbackSendBtn');
+    var text=String(message&&message.value||'').trim();
+    if(honey && honey.value) return;
+    if(text.length<10){ if(status) status.textContent='PLEASE WRITE AT LEAST 10 CHARACTERS'; return; }
+    var lastSent=0; try{ lastSent=Number(localStorage.getItem('bbb_feedback_sent_at')||0); }catch(_){}
+    if(Date.now()-lastSent<30000){ if(status) status.textContent='PLEASE WAIT BEFORE SENDING AGAIN'; return; }
+    if(send){ send.disabled=true; send.textContent='SENDING...'; }
+    if(status) status.textContent='SECURELY SENDING YOUR MESSAGE';
+    try{
+      var response=await fetch('https://formsubmit.co/ajax/90187fdb47fa0af565e6d745c6d94bb7',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','Accept':'application/json'},
+        body:JSON.stringify({
+          _subject:'Boing Battle '+String(category&&category.value||'Feedback'),
+          _template:'table',
+          _captcha:'false',
+          category:String(category&&category.value||'Feedback'),
+          player:playerName,
+          email:String(email&&email.value||'').trim(),
+          message:text,
+          page:window.location.href,
+          device:navigator.userAgent
+        })
+      });
+      var data=await response.json().catch(function(){ return {}; });
+      if(!response.ok || data.success===false || data.success==='false') throw new Error(String(data.message||'SEND_FAILED'));
+      try{ localStorage.setItem('bbb_feedback_sent_at',String(Date.now())); }catch(_){}
+      if(status) status.textContent='MESSAGE SENT — THANK YOU';
+      if(message) message.value='';
+      setTimeout(closeFeedbackModal,1400);
+    }catch(error){
+      if(status) status.textContent='MESSAGE COULD NOT BE SENT — TRY AGAIN';
+    }finally{
+      if(send){ send.disabled=false; send.textContent='SEND MESSAGE'; }
+    }
+  }
   function saveName(){
     var input=$('usernameInput');
     var finalName=cleanName(input&&input.value);
@@ -2586,6 +2804,7 @@ export default function MobilePage() {
     try{ localStorage.setItem('bbb_mobile_username', playerName); }catch(e){}
     if(input) input.value=playerName;
     var profile=$('profileName'); if(profile) profile.textContent='@'+playerName;
+    var storeProfile=$('storeProfileName'); if(storeProfile) storeProfile.textContent=playerName;
     if(warn) warn.textContent='SAVED';
     var next=usernameAfterSave;
     usernameAfterSave=null;
@@ -2707,10 +2926,11 @@ export default function MobilePage() {
     }, false);
   }
   function theme(){
-    if(arena==='base') return {main:'#ef4444', glow:'rgba(239,68,68,.95)', label:'BASE', bg:'#031d5a'};
+    if(arena==='base') return {main:'#8b5cf6', glow:'rgba(139,92,246,.95)', label:'CORE', bg:'#080a20'};
     if(arena==='space') return {main:'#22d3ee', glow:'rgba(34,211,238,.95)', label:'ORBIT', bg:'#02040d'};
     if(arena==='temple') return {main:'#fbbf24', glow:'rgba(251,191,36,.95)', label:'CHAIN', bg:'#201204'};
-    return {main:'#0052ff', glow:'rgba(0,82,255,.95)', label:'BASE', bg:'#020204'};
+    if(arena==='soccer') return {main:'#5cff85', glow:'rgba(92,255,133,.95)', label:'PITCH', bg:'#071c0d'};
+    return {main:'#22d3ee', glow:'rgba(34,211,238,.95)', label:'CORE', bg:'#020204'};
   }
 
   function unlockAudio(){ audioUnlocked=true; }
@@ -3745,8 +3965,10 @@ else next='BATTLE!';
     var spaceGlow=ctx.createRadialGradient(W/2,H/2,20,W/2,H/2,H/1.1); spaceGlow.addColorStop(0,'rgba(34,211,238,.22)'); spaceGlow.addColorStop(.35,'rgba(0,82,255,.10)'); spaceGlow.addColorStop(1,'rgba(0,0,0,0)');
     var temple=ctx.createLinearGradient(0,0,0,H); temple.addColorStop(0,'#140b02'); temple.addColorStop(.5,'#241403'); temple.addColorStop(1,'#050301');
     var templeGlow=ctx.createRadialGradient(W/2,H/2,18,W/2,H/2,H/1.08); templeGlow.addColorStop(0,'rgba(251,191,36,.22)'); templeGlow.addColorStop(.45,'rgba(120,53,15,.14)'); templeGlow.addColorStop(1,'rgba(0,0,0,.25)');
+    var soccer=ctx.createLinearGradient(0,0,W,0); soccer.addColorStop(0,'#075522'); soccer.addColorStop(.5,'#11843a'); soccer.addColorStop(1,'#075522');
+    var soccerGlow=ctx.createRadialGradient(W/2,H/2,20,W/2,H/2,H/1.05); soccerGlow.addColorStop(0,'rgba(144,255,171,.12)'); soccerGlow.addColorStop(.65,'rgba(4,60,24,.05)'); soccerGlow.addColorStop(1,'rgba(0,12,4,.42)');
     var classic=ctx.createRadialGradient(W/2,H/2,30,W/2,H/2,H/1.15); classic.addColorStop(0,'rgba(0,82,255,.22)'); classic.addColorStop(1,'rgba(0,0,0,0)');
-    arenaPaint={base:base,baseGlow:baseGlow,space:space,spaceGlow:spaceGlow,temple:temple,templeGlow:templeGlow,classic:classic};
+    arenaPaint={base:base,baseGlow:baseGlow,space:space,spaceGlow:spaceGlow,temple:temple,templeGlow:templeGlow,soccer:soccer,soccerGlow:soccerGlow,classic:classic};
   }
   function drawBg(){
     var th=theme();
@@ -3767,24 +3989,48 @@ else next='BATTLE!';
       ctx.fillStyle=arenaPaint.templeGlow; ctx.fillRect(0,0,W,H);
       for(var py=70; py<H-60; py+=88){ ctx.fillStyle='rgba(251,191,36,.12)'; ctx.fillRect(18,py,16,50); ctx.fillRect(W-34,py,16,50); ctx.fillStyle='rgba(251,191,36,.22)'; ctx.fillRect(14,py-5,24,6); ctx.fillRect(W-38,py-5,24,6); }
       ctx.save(); ctx.translate(W/2,H/2); ctx.strokeStyle='rgba(251,191,36,.30)'; ctx.lineWidth=1.5; for(var r=0;r<6;r++){ ctx.rotate(Math.PI/3); ctx.beginPath(); ctx.moveTo(0,-92); ctx.lineTo(0,-72); ctx.stroke(); } ctx.restore();
+    } else if(arena==='soccer'){
+      ctx.fillStyle=arenaPaint.soccer; ctx.fillRect(0,0,W,H);
+      for(var stripe=0;stripe<10;stripe++){ ctx.fillStyle=stripe%2===0?'rgba(255,255,255,.035)':'rgba(0,0,0,.035)'; ctx.fillRect(stripe*W/10,0,W/10,H); }
+      ctx.fillStyle=arenaPaint.soccerGlow; ctx.fillRect(0,0,W,H);
+      ctx.save();
+      ctx.strokeStyle='rgba(255,255,255,.82)'; ctx.fillStyle='rgba(255,255,255,.88)'; ctx.lineWidth=2;
+      ctx.strokeRect(24,24,W-48,H-48);
+      ctx.beginPath(); ctx.moveTo(24,H/2); ctx.lineTo(W-24,H/2); ctx.stroke();
+      ctx.beginPath(); ctx.arc(W/2,H/2,52,0,Math.PI*2); ctx.stroke();
+      ctx.beginPath(); ctx.arc(W/2,H/2,3,0,Math.PI*2); ctx.fill();
+      ctx.strokeRect(W/2-92,24,184,112); ctx.strokeRect(W/2-48,24,96,50);
+      ctx.strokeRect(W/2-92,H-136,184,112); ctx.strokeRect(W/2-48,H-74,96,50);
+      ctx.beginPath(); ctx.arc(W/2,96,3,0,Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(W/2,H-96,3,0,Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(24,24,14,0,Math.PI/2); ctx.stroke();
+      ctx.beginPath(); ctx.arc(W-24,24,14,Math.PI/2,Math.PI); ctx.stroke();
+      ctx.beginPath(); ctx.arc(24,H-24,14,-Math.PI/2,0); ctx.stroke();
+      ctx.beginPath(); ctx.arc(W-24,H-24,14,Math.PI,Math.PI*1.5); ctx.stroke();
+      ctx.strokeStyle='rgba(220,255,228,.62)'; ctx.lineWidth=1;
+      for(var net=0;net<7;net++){ var nx=W/2-45+net*15; ctx.beginPath(); ctx.moveTo(nx,24); ctx.lineTo(nx,7); ctx.stroke(); ctx.beginPath(); ctx.moveTo(nx,H-24); ctx.lineTo(nx,H-7); ctx.stroke(); }
+      ctx.strokeRect(W/2-45,7,90,17); ctx.strokeRect(W/2-45,H-24,90,17);
+      ctx.restore();
     } else {
       ctx.fillStyle='#020204'; ctx.fillRect(0,0,W,H);
       ctx.fillStyle=arenaPaint.classic; ctx.fillRect(0,0,W,H);
     }
 
-    ctx.strokeStyle=arena==='space'?'rgba(34,211,238,.10)':arena==='temple'?'rgba(251,191,36,.09)':'rgba(255,255,255,.06)'; ctx.lineWidth=1;
-    for(var x=40;x<W;x+=40){ ctx.beginPath(); ctx.moveTo(x,18); ctx.lineTo(x,H-18); ctx.stroke(); }
-    for(var y=60;y<H;y+=60){ ctx.beginPath(); ctx.moveTo(18,y); ctx.lineTo(W-18,y); ctx.stroke(); }
+    if(arena!=='soccer'){
+      ctx.strokeStyle=arena==='space'?'rgba(34,211,238,.10)':arena==='temple'?'rgba(251,191,36,.09)':'rgba(255,255,255,.06)'; ctx.lineWidth=1;
+      for(var x=40;x<W;x+=40){ ctx.beginPath(); ctx.moveTo(x,18); ctx.lineTo(x,H-18); ctx.stroke(); }
+      for(var y=60;y<H;y+=60){ ctx.beginPath(); ctx.moveTo(18,y); ctx.lineTo(W-18,y); ctx.stroke(); }
+    }
 
     var pulse=.55+Math.sin(frame*.045)*.18;
-    ctx.save(); ctx.strokeStyle=arena==='temple'?'rgba(251,191,36,'+pulse+')':arena==='space'?'rgba(34,211,238,'+pulse+')':arena==='base'?'rgba(239,68,68,'+pulse+')':'rgba(0,82,255,'+pulse+')';
+    ctx.save(); ctx.strokeStyle=arena==='soccer'?'rgba(92,255,133,'+pulse+')':arena==='temple'?'rgba(251,191,36,'+pulse+')':arena==='space'?'rgba(34,211,238,'+pulse+')':arena==='base'?'rgba(239,68,68,'+pulse+')':'rgba(0,82,255,'+pulse+')';
     ctx.shadowColor=th.main; ctx.shadowBlur=18; ctx.lineWidth=3; ctx.strokeRect(12,12,W-24,H-24); ctx.restore();
     ctx.beginPath(); ctx.moveTo(12,H/2); ctx.lineTo(W-12,H/2); ctx.strokeStyle='rgba(255,255,255,.14)'; ctx.stroke();
 
-    ctx.font='bold 10px monospace'; ctx.textAlign='center'; ctx.fillStyle=arena==='temple'?'rgba(251,191,36,.82)':arena==='space'?'rgba(34,211,238,.78)':arena==='base'?'rgba(255,255,255,.62)':'rgba(0,82,255,.62)';
-    ctx.fillText(arena==='space'?'◇ SPACE STATION ◇':arena==='temple'?'◇ CRYPTO TEMPLE ◇':arena==='base'?'◇ BASE ARENA ◇':'◇ ONCHAIN ARCADE ◇',W/2,H/2-50);
-    ctx.font=arena==='temple'?'900 36px monospace':arena==='space'?'900 40px monospace':'900 46px monospace';
-    ctx.fillStyle=arena==='temple'?'rgba(255,230,150,.82)':arena==='space'?'rgba(210,250,255,.82)':arena==='base'?'rgba(255,255,255,.82)':'rgba(0,82,255,.38)';
+    ctx.font='bold 10px monospace'; ctx.textAlign='center'; ctx.fillStyle=arena==='soccer'?'rgba(231,255,237,.88)':arena==='temple'?'rgba(251,191,36,.82)':arena==='space'?'rgba(34,211,238,.78)':arena==='base'?'rgba(255,255,255,.62)':'rgba(0,82,255,.62)';
+    ctx.fillText(arena==='soccer'?'◇ CHAMPIONS PITCH ◇':arena==='space'?'◇ NEON ORBIT ◇':arena==='temple'?'◇ VOID TEMPLE ◇':arena==='base'?'◇ CORE ARENA ◇':'◇ ARCADE GRID ◇',W/2,H/2-70);
+    ctx.font=arena==='soccer'?'900 32px monospace':arena==='temple'?'900 36px monospace':arena==='space'?'900 40px monospace':'900 46px monospace';
+    ctx.fillStyle=arena==='soccer'?'rgba(239,255,243,.42)':arena==='temple'?'rgba(255,230,150,.82)':arena==='space'?'rgba(210,250,255,.82)':arena==='base'?'rgba(255,255,255,.82)':'rgba(0,82,255,.38)';
     ctx.shadowColor=th.main; ctx.shadowBlur=24; ctx.fillText(th.label,W/2,H/2+15); ctx.shadowBlur=0;
   }
   function aiThink(){
@@ -3859,7 +4105,7 @@ else next='BATTLE!';
     drawBg(); physics();
     if(score && (score.player===6 || score.ai===6)){
       ctx.save(); ctx.textAlign='center'; ctx.font=(score.player===6&&score.ai===6)?'bold 28px monospace':'bold 24px monospace'; ctx.fillStyle=theme().main; ctx.shadowColor=theme().main; ctx.shadowBlur=24;
-      ctx.fillText((score.player===6&&score.ai===6)?'FINAL CLASH':(arena==='space'?'ORBIT POINT':arena==='temple'?'CHAIN POINT':arena==='base'?'BASE POINT':'MATCH POINT'), W/2, H/2-95); ctx.restore();
+      ctx.fillText((score.player===6&&score.ai===6)?'FINAL CLASH':(arena==='space'?'ORBIT POINT':arena==='temple'?'VOID POINT':arena==='base'?'CORE POINT':'MATCH POINT'), W/2, H/2-95); ctx.restore();
     }
     trail.push({x:ball.x,y:ball.y}); if(trail.length>20) trail.shift();
     lines=lines.map(function(l){l.life-=lastDtScale;return l}).filter(function(l){return l.life>0});
@@ -3891,14 +4137,27 @@ else next='BATTLE!';
   bindTap($('usernameCancelBtn'), cancelUsernameModal);
   bindTap($('editNameBtn'), function(){ openUsernameModal(); });
   bindTap($('profileTapArea'), function(){ openUsernameModal(); });
+  bindTap($('storeProfileTapArea'), function(){ openUsernameModal(); });
+  bindTap($('storeProfileNav'), function(){ openUsernameModal(); });
   loadSound();
 
   document.querySelectorAll('.region').forEach(function(btn){ bindTap(btn,function(){ socketRegion=btn.getAttribute('data-region')||'EU'; warmSocketRegion(socketRegion); document.querySelectorAll('.region').forEach(function(b){b.classList.remove('selected')}); btn.classList.add('selected'); }); });
   bindTap($('cancelMatchBtn'), cancelOnlineSearch);
   bindTap($('copyRoomCodeBtn'), copyRoomCode);
   document.querySelectorAll('.arena').forEach(function(btn){ bindTap(btn,function(){ arena=btn.getAttribute('data-arena')||'classic'; document.querySelectorAll('.arena').forEach(function(b){b.classList.remove('selected')}); btn.classList.add('selected'); }); });
+  document.querySelectorAll('.storeArena').forEach(function(btn){ bindTap(btn,function(){ arena=btn.getAttribute('data-store-arena')||'base'; document.querySelectorAll('.storeArena').forEach(function(b){b.classList.remove('selected')}); btn.classList.add('selected'); }); });
   document.querySelectorAll('.difficulty').forEach(function(btn){ bindTap(btn,function(){ difficulty=btn.getAttribute('data-difficulty')||'normal'; document.querySelectorAll('.difficulty').forEach(function(b){b.classList.remove('selected')}); btn.classList.add('selected'); }); });
   bindTap($('playBtn'), openModeScreen);
+  bindTap($('storePlayNav'), openModeScreen);
+  bindTap($('storePlayBtn'), function(){ pendingMode='ai'; show('difficultyScreen'); });
+  bindTap($('storeOnlineBtn'), function(){ chooseMode('online'); });
+  bindTap($('storeCreateBtn'), function(){ chooseMode('create'); });
+  bindTap($('storeJoinBtn'), function(){ chooseMode('join'); });
+  bindTap($('storeSettingsNav'), function(){ show('settingsScreen'); });
+  bindTap($('storeFeedbackNav'), openFeedbackModal);
+  bindTap($('feedbackCloseBtn'), closeFeedbackModal);
+  var feedbackForm=$('feedbackForm'); if(feedbackForm){ feedbackForm.addEventListener('submit',sendFeedback); }
+  var feedbackModal=$('feedbackModal'); if(feedbackModal){ feedbackModal.addEventListener('click',function(e){ if(e.target===feedbackModal) closeFeedbackModal(); }); }
   bindTap($('settingsBtn'), function(){ show('settingsScreen'); });
   bindTap($('settingsBackBtn'), function(){ show('menuScreen'); });
   bindTap($('soundToggleBtn'), function(){ soundEnabled=true; try{ localStorage.setItem('bbb_mobile_sound','on'); }catch(e){} syncSoundButton(); });
@@ -3909,11 +4168,11 @@ else next='BATTLE!';
   bindTap($('modeJoinBtn'), function(){ chooseMode('join'); });
   bindTap($('modeBackBtn'), function(){ show('menuScreen'); });
   bindTap($('arenaNextBtn'), continueAfterArena);
-  bindTap($('arenaBackBtn'), function(){ show('modeScreen'); });
+  bindTap($('arenaBackBtn'), function(){ show('menuScreen'); });
   bindTap($('startAiBtn'), newMatch);
-  bindTap($('difficultyBackBtn'), function(){ show('arenaScreen'); });
+  bindTap($('difficultyBackBtn'), function(){ show('menuScreen'); });
   bindTap($('joinRoomBtn'), joinRoom);
-  bindTap($('joinBackBtn'), function(){ show('modeScreen'); });
+  bindTap($('joinBackBtn'), function(){ show('menuScreen'); });
   bindTap($('howBtn'), function(){ show('howScreen'); });
   bindTap($('howBtnTop'), function(){ show('howScreen'); });
   bindTap($('backHowBtn'), function(){ show('menuScreen'); });
