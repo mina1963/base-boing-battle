@@ -2344,7 +2344,8 @@ export default function MobilePage() {
   @keyframes energyRequired { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-7px)} 50%{transform:translateX(7px)} 75%{transform:translateX(-4px)} }
   @media(max-width:360px){ .mobileEnergyCard{grid-template-columns:36px minmax(0,1fr) auto;gap:7px;padding:8px}.mobileEnergyOrb{width:36px;height:36px;border-radius:13px}.mobileEnergyCard button,.mobileEnergyCard a{min-width:90px;padding:0 8px;font-size:7px} }
   /* STORE EXCLUSIVE — COSMIC VAULT */
-  #menuScreen.storeCosmicScreen { padding:0 !important; overflow:hidden !important; background:#050713 !important; }
+  #menuScreen.storeCosmicScreen { padding:0 !important; overflow-x:hidden !important; overflow-y:auto !important; overscroll-behavior-y:contain; scrollbar-width:none; background:#050713 !important; }
+  #menuScreen.storeCosmicScreen::-webkit-scrollbar { display:none; }
   #menuScreen.storeCosmicScreen > .artLobby { display:none !important; }
   .storeCosmic { position:relative; width:100%; min-height:100dvh; max-width:430px; margin:0 auto; overflow:hidden; padding:calc(env(safe-area-inset-top) + 20px) 20px calc(env(safe-area-inset-bottom) + 92px); display:flex; flex-direction:column; background:radial-gradient(circle at 50% 30%,rgba(139,92,246,.24),transparent 29%),radial-gradient(circle at 84% 8%,rgba(34,211,238,.10),transparent 20%),linear-gradient(180deg,#080a20 0%,#050713 58%,#03040c 100%); }
   .storeCosmic:before { content:""; position:absolute; inset:-10%; opacity:.7; pointer-events:none; will-change:transform,opacity; background-image:radial-gradient(circle at 12% 16%,rgba(255,255,255,.98) 0 1.2px,transparent 1.9px),radial-gradient(circle at 83% 22%,rgba(123,231,255,.94) 0 1.2px,transparent 1.9px),radial-gradient(circle at 31% 67%,rgba(255,255,255,.78) 0 1px,transparent 1.8px),radial-gradient(circle at 73% 75%,rgba(165,115,255,.92) 0 1.2px,transparent 1.9px); background-size:83px 91px,117px 129px,139px 151px,101px 113px; animation:storeStarDrift 13s linear infinite,storeStarTwinkle 2.8s ease-in-out infinite alternate; }
@@ -2431,7 +2432,7 @@ export default function MobilePage() {
   @keyframes storeStatusLive { 0%,100%{opacity:.45;transform:scale(.72)} 50%{opacity:1;transform:scale(1.18)} }
   @keyframes storeStatusScan { 0%,30%{left:-45%;opacity:0} 48%{opacity:1} 70%,100%{left:112%;opacity:0} }
   @keyframes feedbackFadeIn { from{opacity:0} to{opacity:1} }
-  @media(max-height:760px) { .storeCosmic{padding-top:calc(env(safe-area-inset-top) + 12px)} .storePortal{height:252px;transform:scale(.88);margin:-13px 0} .storeArenas{margin-top:13px} .storeArena{min-height:100px} .storeArenaVisual{height:54px} }
+  @media(max-height:760px) { .storeCosmic{padding-top:calc(env(safe-area-inset-top) + 12px)} .storePortal{height:285px;transform:scale(.88);transform-origin:top center;margin:-8px 0 0} .storeArenas{margin-top:13px} .storeArena{min-height:100px} .storeArenaVisual{height:54px} }
   @media(prefers-reduced-motion:reduce) { .storeOrbit{animation-duration:5.5s} .storeOrbit:before{animation-duration:12s} .storeOrbit:after{animation-duration:10s} .storeCore{animation-duration:5.5s} .storeCore:before{animation-duration:4s} .storeCosmic:before{animation-duration:22s,5s} .storeCosmic:after{animation-duration:12s} .storePortalTag{animation-duration:4.5s} }
 </style>
 <div id="app">
