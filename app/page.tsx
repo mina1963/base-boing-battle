@@ -516,6 +516,15 @@ const ENERGY_LONG_RALLY_BONUS_FULL_SECONDS = 24;
   });
 
   const targetBallUpdatedAtRef = useRef(0);
+  const onlineBouncePredictionRef = useRef<{
+    x: number;
+    y: number;
+    vx: number;
+    vy: number;
+    beforeVx: number;
+    beforeVy: number;
+    createdAt: number;
+  } | null>(null);
 
   const clearCountdownTimers = () => {
     if (countdownDelayTimerRef.current) {
@@ -661,6 +670,17 @@ const startCountdown = (startAtMs: number) => {
       targetBallRef.current.vx = displayBallVx;
       targetBallRef.current.vy = displayBallVy;
       targetBallUpdatedAtRef.current = Date.now();
+      const prediction = onlineBouncePredictionRef.current;
+      if (
+        prediction &&
+        (Math.hypot(
+          displayBallVx - prediction.beforeVx,
+          displayBallVy - prediction.beforeVy
+        ) > 0.45 ||
+          Date.now() - prediction.createdAt > 280)
+      ) {
+        onlineBouncePredictionRef.current = null;
+      }
     }
 
     if (serverPhase === "countdown" || serverPhase === "finished") {
@@ -984,6 +1004,42 @@ const socket = io(
     setShowArenaVote(false);
   });
 
+  socket.on("line-hit", ({ owner, ball: hitBall }) => {
+    if (!hitBall) return;
+    const hitX = Number(hitBall.x);
+    const rawY = Number(hitBall.y);
+    if (!Number.isFinite(hitX) || !Number.isFinite(rawY)) return;
+    const hitY = isHostRef.current ? rawY : GAME_H - rawY;
+    const hitVx = Number(hitBall.vx) || 0;
+    const hitVy = isHostRef.current
+      ? Number(hitBall.vy) || 0
+      : -(Number(hitBall.vy) || 0);
+
+    const hadLocalPrediction = onlineBouncePredictionRef.current !== null;
+    onlineBouncePredictionRef.current = null;
+    targetBallRef.current = { x: hitX, y: hitY, vx: hitVx, vy: hitVy };
+    targetBallUpdatedAtRef.current = Date.now();
+    ballRef.current.x += (hitX - ballRef.current.x) * 0.72;
+    ballRef.current.y += (hitY - ballRef.current.y) * 0.72;
+    ballRef.current.vx = hitVx;
+    ballRef.current.vy = hitVy;
+
+    const myOwner = isHostRef.current ? "host" : "guest";
+    if (!hadLocalPrediction || owner !== myOwner) {
+      for (let i = 0; i < 12; i++) {
+        sparksRef.current.push({
+          x: ballRef.current.x,
+          y: ballRef.current.y,
+          vx: (Math.random() - 0.5) * 8,
+          vy: (Math.random() - 0.5) * 8,
+          life: 22,
+          color: owner === myOwner ? "#0052FF" : "#ef4444",
+        });
+      }
+      playSound("hit");
+    }
+  });
+
   socket.on("remote-line", (line) => {
     const myOwner = isHostRef.current ? "host" : "guest";
     if (line.owner === myOwner) return;
@@ -1136,6 +1192,7 @@ const socket = io(
     };
 
     const resetBall = (direction: "up" | "down") => {
+      onlineBouncePredictionRef.current = null;
       ballRef.current.x = W / 2;
       energyRef.current.value = 100;
       rallyElapsedSeconds = 0;
@@ -1719,7 +1776,7 @@ if (roundActive) {
       (Date.now() - targetBallUpdatedAtRef.current) / 16.67
     );
 
-    const predictedX = Math.max(
+    let predictedX = Math.max(
       22,
       Math.min(
         W - 22,
@@ -1727,13 +1784,29 @@ if (roundActive) {
       )
     );
 
-    const predictedY = Math.max(
+    let predictedY = Math.max(
       22,
       Math.min(
         H - 22,
         targetBallRef.current.y + targetBallRef.current.vy * elapsedFrames
       )
     );
+
+    const activePrediction = onlineBouncePredictionRef.current;
+    if (activePrediction) {
+      activePrediction.x += activePrediction.vx * dtScale;
+      activePrediction.y += activePrediction.vy * dtScale;
+      if (activePrediction.x < 22) {
+        activePrediction.x = 22;
+        activePrediction.vx = Math.abs(activePrediction.vx);
+      }
+      if (activePrediction.x > W - 22) {
+        activePrediction.x = W - 22;
+        activePrediction.vx = -Math.abs(activePrediction.vx);
+      }
+      predictedX = activePrediction.x;
+      predictedY = activePrediction.y;
+    }
 
     const dx = predictedX - ball.x;
     const dy = predictedY - ball.y;
@@ -1748,8 +1821,77 @@ if (roundActive) {
       ball.y += dy * follow;
     }
 
-    ball.vx = targetBallRef.current.vx;
-    ball.vy = targetBallRef.current.vy;
+    ball.vx = activePrediction?.vx ?? targetBallRef.current.vx;
+    ball.vy = activePrediction?.vy ?? targetBallRef.current.vy;
+
+    if (!activePrediction) {
+      for (const line of linesRef.current) {
+        if (line.owner !== "player" || line.life < 4) continue;
+        const lineDx = line.x2 - line.x1;
+        const lineDy = line.y2 - line.y1;
+        const lenSq = lineDx * lineDx + lineDy * lineDy;
+        if (!lenSq) continue;
+        const t = Math.max(
+          0,
+          Math.min(
+            1,
+            ((ball.x - line.x1) * lineDx + (ball.y - line.y1) * lineDy) /
+              lenSq
+          )
+        );
+        const lineX = line.x1 + t * lineDx;
+        const lineY = line.y1 + t * lineDy;
+        const distanceToLine = Math.hypot(ball.x - lineX, ball.y - lineY);
+        if (distanceToLine >= ball.r + 14) continue;
+
+        const beforeVx = ball.vx;
+        const beforeVy = ball.vy;
+        const speed = Math.min(Math.hypot(beforeVx, beforeVy) + 0.25, MAX_BALL_SPEED);
+        let nx = -lineDy;
+        let ny = lineDx;
+        const normalLength = Math.hypot(nx, ny) || 1;
+        nx /= normalLength;
+        ny /= normalLength;
+        if (beforeVx * nx + beforeVy * ny > 0) {
+          nx *= -1;
+          ny *= -1;
+        }
+        ball.vx = nx * speed + lineDx * 0.006;
+        ball.vy = ny * speed + lineDy * 0.006;
+        const nextSpeed = Math.hypot(ball.vx, ball.vy);
+        if (nextSpeed > MAX_BALL_SPEED) {
+          ball.vx = (ball.vx / nextSpeed) * MAX_BALL_SPEED;
+          ball.vy = (ball.vy / nextSpeed) * MAX_BALL_SPEED;
+        }
+        const overlap = ball.r + 14 - distanceToLine;
+        if (overlap > 0) {
+          ball.x += nx * (overlap + 0.75);
+          ball.y += ny * (overlap + 0.75);
+        }
+        onlineBouncePredictionRef.current = {
+          x: ball.x,
+          y: ball.y,
+          vx: ball.vx,
+          vy: ball.vy,
+          beforeVx,
+          beforeVy,
+          createdAt: Date.now(),
+        };
+        line.life = 0;
+        for (let i = 0; i < 12; i++) {
+          sparksRef.current.push({
+            x: ball.x,
+            y: ball.y,
+            vx: (Math.random() - 0.5) * 8,
+            vy: (Math.random() - 0.5) * 8,
+            life: 22,
+            color: "#0052FF",
+          });
+        }
+        playSound("hit");
+        break;
+      }
+    }
   } else {
     // AI/local mode physics.
     const moveVx = ball.vx * dtScale;

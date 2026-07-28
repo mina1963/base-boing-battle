@@ -331,6 +331,16 @@ const tickRoomPhysics = (room, dtScale = 1) => {
         applyLineCollision(ball, line, lineDx, lineDy, dist);
         line.life = 0;
         hitLine = line;
+        io.to(room.code).emit("line-hit", {
+          owner: line.owner,
+          ball: {
+            x: ball.x,
+            y: ball.y,
+            vx: ball.vx,
+            vy: ball.vy,
+          },
+          serverNow: Date.now(),
+        });
         break;
       }
     }

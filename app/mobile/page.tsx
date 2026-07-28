@@ -2705,6 +2705,7 @@ export default function MobilePage() {
   var onlineArenaVoteActive=false;
   var onlineArenaVoteSubmitted=false;
   var onlineArenaVoteMatchId=null;
+  var onlineBouncePrediction=null;
   var playerName='PLAYER', rivalName='RIVAL', pendingMode='ai';
   var usernameAfterSave=null;
   var SOCKET_EU='https://base-boing-battle-1.onrender.com';
@@ -3121,6 +3122,7 @@ else next='BATTLE!';
   }
   function resetBall(dir){
     goalLocked=false;
+    onlineBouncePrediction=null;
     ball={x:200,y:dir==='up'?525:175,r:8,vx:dir==='up'?1.25:-1.25,vy:dir==='up'?-1.85:1.85};
     lines=[]; trail=[]; sparks=[]; energy=100; rallyElapsedSeconds=0; drawing=null;
   }
@@ -3538,6 +3540,31 @@ else next='BATTLE!';
       setMatchStatus('');
       scheduleOnlineStart(data.state||null,data.launchAt,data.serverNow);
     });
+    socket.on('line-hit',function(data){
+      data=data||{};
+      var hitBall=data.ball||{};
+      if(!ball || !Number.isFinite(Number(hitBall.x)) || !Number.isFinite(Number(hitBall.y))) return;
+      var hitX=Number(hitBall.x);
+      var hitY=isHost?Number(hitBall.y):H-Number(hitBall.y);
+      var hitVx=Number(hitBall.vx)||0;
+      var hitVy=isHost?(Number(hitBall.vy)||0):-(Number(hitBall.vy)||0);
+      var hadLocalPrediction=!!onlineBouncePrediction;
+      var myHitOwner=isHost?'host':'guest';
+      onlineBouncePrediction=null;
+      onlineTarget.x=hitX;
+      onlineTarget.y=hitY;
+      onlineTarget.vx=hitVx;
+      onlineTarget.vy=hitVy;
+      onlineStateAt=Date.now();
+      ball.x+= (hitX-ball.x)*.72;
+      ball.y+= (hitY-ball.y)*.72;
+      ball.vx=hitVx;
+      ball.vy=hitVy;
+      if(!hadLocalPrediction || data.owner!==myHitOwner){
+        addSparks(ball.x,ball.y,data.owner===myHitOwner?'#0052ff':'#ef4444');
+        playSound('hit');
+      }
+    });
     socket.on('remote-line',function(line){ addRemoteLine(line); });
     socket.on('opponent-left',function(){ opponentLeft(); });
     socket.on('opponent-disconnected',function(){ opponentLeft(); });
@@ -3833,6 +3860,11 @@ else next='BATTLE!';
     var bvx=Number(state.ball_vx!=null?state.ball_vx:(state.ball&&state.ball.vx)||ball.vx);
     var bvy=Number(state.ball_vy!=null?state.ball_vy:(state.ball&&state.ball.vy)||ball.vy);
     onlineTarget.x=bx; onlineTarget.y=isHost?by:H-by; onlineTarget.vx=bvx; onlineTarget.vy=isHost?bvy:-bvy; onlineStateAt=Date.now();
+    if(onlineBouncePrediction){
+      var predictionAge=Date.now()-onlineBouncePrediction.createdAt;
+      var velocityChanged=Math.hypot(onlineTarget.vx-onlineBouncePrediction.beforeVx,onlineTarget.vy-onlineBouncePrediction.beforeVy)>.45;
+      if(velocityChanged || predictionAge>280) onlineBouncePrediction=null;
+    }
     var phase=state.phase||'';
     if(phase==='countdown'){
       onlineServerPlaying=false;
@@ -4135,6 +4167,34 @@ else next='BATTLE!';
     var err=difficulty==='easy'?(Math.random()-.5)*210:difficulty==='hard'?(Math.random()-.5)*25:(Math.random()-.5)*80;
     addLine({x:ball.x-55+err,y:Math.max(42,ball.y-35)}, {x:ball.x+55+err,y:Math.max(42,ball.y-10)}, 'ai');
   }
+  function predictOwnOnlineBounce(){
+    if(onlineBouncePrediction || !ball) return;
+    for(var i=0;i<lines.length;i++){
+      var l=lines[i];
+      if(l.owner!=='player' || l.life<4) continue;
+      var dx=l.x2-l.x1,dy=l.y2-l.y1,lenSq=dx*dx+dy*dy;
+      if(!lenSq) continue;
+      var t=Math.max(0,Math.min(1,((ball.x-l.x1)*dx+(ball.y-l.y1)*dy)/lenSq));
+      var px=l.x1+t*dx,py=l.y1+t*dy,dist=Math.hypot(ball.x-px,ball.y-py);
+      if(dist>=ball.r+14) continue;
+      var beforeVx=ball.vx,beforeVy=ball.vy;
+      var speed=Math.min(Math.hypot(beforeVx,beforeVy)+.25,10);
+      var nx=-dy,ny=dx,nl=Math.hypot(nx,ny)||1;
+      nx/=nl; ny/=nl;
+      if(beforeVx*nx+beforeVy*ny>0){ nx*=-1; ny*=-1; }
+      ball.vx=nx*speed+dx*.006;
+      ball.vy=ny*speed+dy*.006;
+      var nextSpeed=Math.hypot(ball.vx,ball.vy);
+      if(nextSpeed>10){ ball.vx=ball.vx/nextSpeed*10; ball.vy=ball.vy/nextSpeed*10; }
+      var overlap=ball.r+14-dist;
+      if(overlap>0){ ball.x+=nx*(overlap+.75); ball.y+=ny*(overlap+.75); }
+      onlineBouncePrediction={x:ball.x,y:ball.y,vx:ball.vx,vy:ball.vy,beforeVx:beforeVx,beforeVy:beforeVy,createdAt:Date.now()};
+      l.life=0;
+      addSparks(ball.x,ball.y,'#0052ff');
+      playSound('hit');
+      return;
+    }
+  }
   function physics(){
     var now=Date.now();
     var dt=Math.min(50,Math.max(0,now-lastFrameAt));
@@ -4156,6 +4216,14 @@ else next='BATTLE!';
       var elapsed=Math.min(4,(Date.now()-onlineStateAt)/16.67);
       var px=Math.max(22,Math.min(W-22,onlineTarget.x+onlineTarget.vx*elapsed));
       var py=Math.max(22,Math.min(H-22,onlineTarget.y+onlineTarget.vy*elapsed));
+      if(onlineBouncePrediction){
+        onlineBouncePrediction.x+=onlineBouncePrediction.vx*dtScale;
+        onlineBouncePrediction.y+=onlineBouncePrediction.vy*dtScale;
+        if(onlineBouncePrediction.x<22){ onlineBouncePrediction.x=22; onlineBouncePrediction.vx=Math.abs(onlineBouncePrediction.vx); }
+        if(onlineBouncePrediction.x>W-22){ onlineBouncePrediction.x=W-22; onlineBouncePrediction.vx=-Math.abs(onlineBouncePrediction.vx); }
+        px=onlineBouncePrediction.x;
+        py=onlineBouncePrediction.y;
+      }
       var dxo=px-ball.x, dyo=py-ball.y, disto=Math.hypot(dxo,dyo);
       if(disto>90){
         ball.x=px;
@@ -4165,7 +4233,9 @@ else next='BATTLE!';
         ball.x+=dxo*follow;
         ball.y+=dyo*follow;
       }
-      ball.vx=onlineTarget.vx; ball.vy=onlineTarget.vy;
+      ball.vx=onlineBouncePrediction?onlineBouncePrediction.vx:onlineTarget.vx;
+      ball.vy=onlineBouncePrediction?onlineBouncePrediction.vy:onlineTarget.vy;
+      predictOwnOnlineBounce();
       return;
     }
     aiThink();
@@ -4223,7 +4293,10 @@ else next='BATTLE!';
     ctx.fillStyle='rgba(255,255,255,.12)'; ctx.fillRect(120,72,160,8); ctx.fillStyle='#ef4444'; ctx.fillRect(120,72,160*energy/100,8);
     ctx.fillStyle='rgba(255,255,255,.55)'; ctx.font='10px monospace'; ctx.textAlign='center'; ctx.fillText('ENERGY',W/2,96);
   }
-  function loop(){ if(ctx && !document.hidden) render(); raf=requestAnimationFrame(loop); }
+  function loop(){
+    if(ctx && !document.hidden && $('gameScreen') && $('gameScreen').classList.contains('active')) render();
+    raf=requestAnimationFrame(loop);
+  }
 
   loadName();
   var nameInput=$('usernameInput'); if(nameInput){ nameInput.addEventListener('input',function(){ this.value=cleanName(this.value); }); }
@@ -4391,12 +4464,17 @@ else next='BATTLE!';
   setTimeout(function(){
     canvas=$('gameCanvas');
     if(canvas){
-      canvas.addEventListener('touchstart',canvasDown,{passive:false});
-      canvas.addEventListener('touchmove',canvasMove,{passive:false});
-      canvas.addEventListener('touchend',canvasUp,{passive:false});
-      canvas.addEventListener('pointerdown',canvasDown,{passive:false});
-      canvas.addEventListener('pointermove',canvasMove,{passive:false});
-      canvas.addEventListener('pointerup',canvasUp,{passive:false});
+      if(window.PointerEvent){
+        canvas.addEventListener('pointerdown',canvasDown,{passive:false});
+        canvas.addEventListener('pointermove',canvasMove,{passive:false});
+        canvas.addEventListener('pointerup',canvasUp,{passive:false});
+        canvas.addEventListener('pointercancel',canvasUp,{passive:false});
+      }else{
+        canvas.addEventListener('touchstart',canvasDown,{passive:false});
+        canvas.addEventListener('touchmove',canvasMove,{passive:false});
+        canvas.addEventListener('touchend',canvasUp,{passive:false});
+        canvas.addEventListener('touchcancel',canvasUp,{passive:false});
+      }
     }
   },0);
 })();
