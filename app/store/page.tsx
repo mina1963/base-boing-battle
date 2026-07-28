@@ -282,6 +282,8 @@ export default function MobilePage() {
   .arena[data-arena="space"].selected { border-color:#22d3ee; box-shadow:0 0 24px rgba(34,211,238,.42); }
   .arena[data-arena="temple"].selected { border-color:#fbbf24; box-shadow:0 0 24px rgba(251,191,36,.38); }
   .arena[data-arena="soccer"].selected { border-color:#5cff85; box-shadow:0 0 24px rgba(92,255,133,.42); }
+  .arenaVoteStatus { display:none; min-height:34px; align-items:center; justify-content:center; padding:8px 12px; border:1px solid rgba(34,211,238,.22); border-radius:13px; color:#bff8ff; background:rgba(4,12,34,.72); font-size:8px; font-weight:1000; line-height:1.35; letter-spacing:.13em; text-align:center; }
+  .arenaVoteStatus.active { display:flex; }
   #gameScreen { padding:0; overflow:hidden; touch-action:none; }
   #gameWrap { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:#000; touch-action:none; overflow:hidden; }
   #gameCanvas { width:min(100vw, calc(100dvh * 0.5714)); height:min(100dvh, calc(100vw * 1.75)); touch-action:none; display:block; }
@@ -2594,6 +2596,7 @@ export default function MobilePage() {
           <button class="arena" data-arena="soccer">FOOTBALL<small>CHAMPIONS PITCH</small></button>
         </div>
       </div>
+      <div id="arenaVoteStatus" class="arenaVoteStatus" role="status" aria-live="polite"></div>
       <button id="arenaNextBtn" class="btn">NEXT</button>
       <button id="arenaBackBtn" class="flowBack">BACK</button>
     </div>
@@ -2697,6 +2700,9 @@ export default function MobilePage() {
   var onlineMatchNo=0;
   var onlineLaunchStarted=false;
   var onlineLaunchRoom=null;
+  var onlineArenaVoteActive=false;
+  var onlineArenaVoteSubmitted=false;
+  var onlineArenaVoteMatchId=null;
   var playerName='PLAYER', rivalName='RIVAL', pendingMode='ai';
   var usernameAfterSave=null;
   var SOCKET_EU='https://base-boing-battle-1.onrender.com';
@@ -3154,6 +3160,79 @@ else next='BATTLE!';
     },delay);
   }
 
+  function syncArenaSelection(){
+    document.querySelectorAll('.arena').forEach(function(btn){
+      btn.classList.toggle('selected',btn.getAttribute('data-arena')===arena);
+    });
+  }
+  function setArenaVoteStatus(value){
+    var el=$('arenaVoteStatus');
+    if(!el) return;
+    el.textContent=String(value||'');
+    el.classList.toggle('active',!!value);
+  }
+  function openOnlineArenaVote(data){
+    data=data||{};
+    roomCode=data.roomCode||data.room_code||roomCode;
+    var incomingMatchId=data.matchId||onlineMatchId;
+    var isNewVote=!onlineArenaVoteActive || String(incomingMatchId||'')!==String(onlineArenaVoteMatchId||'');
+    onlineMatchId=incomingMatchId;
+    onlineArenaVoteMatchId=incomingMatchId;
+    mode='online';
+    pendingMode='onlineMatched';
+    onlineLaunchStarted=false;
+    onlineLaunchRoom=null;
+    onlineRoomClosed=false;
+    if(isNewVote){
+      onlineArenaVoteSubmitted=false;
+      onlineClientReadySent=false;
+      onlineClientReadyRoom=null;
+      clearClientReadyTimers();
+    }
+    onlineArenaVoteActive=true;
+    syncArenaSelection();
+    if($('arenaNextBtn')){
+      $('arenaNextBtn').disabled=onlineArenaVoteSubmitted;
+      $('arenaNextBtn').textContent=onlineArenaVoteSubmitted?'WAITING RIVAL':'LOCK IN MAP';
+    }
+    if($('arenaBackBtn')) $('arenaBackBtn').style.display='none';
+    setArenaVoteStatus(onlineArenaVoteSubmitted?'YOUR VOTE IS LOCKED - WAITING FOR RIVAL':'MATCH FOUND - CHOOSE YOUR ARENA');
+    show('arenaScreen');
+    if(socket && roomCode && !onlineClientReadySent){
+      socket.emit('client-ready',{roomCode:roomCode,role:isHost?'host':'guest',platform:'mobile',source:'arena-selection-visible',matchId:onlineMatchId});
+      onlineClientReadySent=true;
+    }
+  }
+  function submitOnlineArenaVote(){
+    if(!socket || !roomCode || onlineArenaVoteSubmitted) return;
+    socket.emit('vote-arena',{roomCode:roomCode,arena:arena,role:isHost?'host':'guest',platform:'mobile'});
+    onlineArenaVoteSubmitted=true;
+    if($('arenaNextBtn')){ $('arenaNextBtn').disabled=true; $('arenaNextBtn').textContent='WAITING RIVAL'; }
+    setArenaVoteStatus('YOUR VOTE IS LOCKED - WAITING FOR RIVAL');
+  }
+  function handleMatchedPayload(data){
+    data=data||{};
+    mode='online';
+    roomCode=data.roomCode||data.room_code||roomCode;
+    onlineMatchId=data.matchId||onlineMatchId;
+    if(data.role==='host' || data.role==='guest'){ isHost=(data.role==='host'); roleKnown=true; }
+    else if(typeof data.isHost==='boolean'){ isHost=data.isHost; roleKnown=true; }
+    rivalName=pickRivalName(data);
+    onlineMatchNo=0;
+    var matchState=data.state||null;
+    var phase=matchState && (matchState.phase||'');
+    if(matchState && matchState.arena) arena=matchState.arena;
+    if(phase==='countdown' || phase==='playing' || (matchState && (matchState.roundStartAt||matchState.round_start_at))){
+      onlineArenaVoteActive=false;
+      onlineArenaVoteSubmitted=false;
+      setArenaVoteStatus('');
+      if($('arenaBackBtn')) $('arenaBackBtn').style.display='';
+      scheduleOnlineStart(matchState,data.launchAt,data.serverNow);
+      return;
+    }
+    openOnlineArenaVote(data);
+  }
+
   function connectSocket(cb){
     var url=socketRegion==='US'?SOCKET_US:SOCKET_EU;
 
@@ -3185,29 +3264,21 @@ else next='BATTLE!';
     socket.on('connect',function(){ socketReady=true; if(roomCode){ setMatchStatus('JOINING ROOM '+roomCode+'...'); } else { setMatchStatus('CONNECTED • SEARCHING...'); } if(cb) cb(); });
     socket.on('disconnect',function(){ socketReady=false; });
 
-    function sendArenaVoteNow(){
-      if(!socket || !roomCode) return;
-      try{
-        socket.emit('vote-arena',{
-          roomCode:roomCode,
-          arena:arena,
-          role:isHost?'host':'guest',
-          platform:'mobile'
-        });
-      }catch(e){}
-    }
-
     socket.on('arena-vote-start',function(data){
       data=data||{};
       if(data.roomCode || data.room_code){
         roomCode=data.roomCode||data.room_code;
       }
-      setMatchStatus('MATCH FOUND • STARTING...');
-      sendArenaVoteNow();
-
-      // Do not wait on the matchmaking screen after the server has started arena vote.
-      // The first game-state will sync countdown/ball as soon as it arrives.
-      scheduleOnlineStart(null,data.launchAt,data.serverNow);
+      openOnlineArenaVote(data);
+    });
+    socket.on('arena-vote-update',function(data){
+      if(!onlineArenaVoteActive) return;
+      data=data||{};
+      var mine=isHost?data.hostVoted:data.guestVoted;
+      var rival=isHost?data.guestVoted:data.hostVoted;
+      if(mine && rival) setArenaVoteStatus('BOTH VOTES LOCKED - SELECTING ARENA');
+      else if(mine) setArenaVoteStatus('YOUR VOTE IS LOCKED - WAITING FOR RIVAL');
+      else if(rival) setArenaVoteStatus('RIVAL READY - CHOOSE YOUR ARENA');
     });
 
     socket.on('matchmaking-status',function(data){
@@ -3218,6 +3289,8 @@ else next='BATTLE!';
     });
     socket.on('match-found',function(data){
       data=data||{};
+      handleMatchedPayload(data);
+      return;
       mode='online';
 
       // Random 1v1 has no roomCode before this event.
@@ -3280,6 +3353,8 @@ else next='BATTLE!';
     });
     socket.on('room-matched',function(data){
       data=data||{};
+      handleMatchedPayload(data);
+      return;
       mode='online';
       roomCode=data.roomCode||data.room_code||roomCode;
       onlineMatchId=data.matchId||onlineMatchId;
@@ -3374,8 +3449,8 @@ else next='BATTLE!';
       rivalName=pickRivalName(data);
       pendingMode='onlineMatched';
       onlineRoomClosed=false;
-      onlineLaunchStarted=true;
-      onlineLaunchRoom=String(roomCode||'');
+      onlineLaunchStarted=false;
+      onlineLaunchRoom=null;
 
       setRoomCodeDisplay(roomCode||null);
       setMatchStatus('');
@@ -3387,7 +3462,7 @@ else next='BATTLE!';
         }
       }catch(e){}
 
-      scheduleOnlineStart(data.state||null,data.launchAt,data.serverNow);
+      openOnlineArenaVote(data);
 
       try{
         if(socket && roomCode){
@@ -3402,10 +3477,20 @@ else next='BATTLE!';
     socket.on('room-joined',handleRoomJoined);
     socket.on('join-error',function(msg){ setMatchStatus(String(msg||'JOIN ROOM FAILED')); onlineLaunchStarted=false; onlineLaunchRoom=null; });
     socket.on('room-error',function(msg){ setMatchStatus(String(msg||'ROOM ERROR')); onlineLaunchStarted=false; onlineLaunchRoom=null; });
-    socket.on('arena-selected',function(data){ if(data && data.arena){ arena=data.arena; } });
+    socket.on('arena-selected',function(data){
+      if(data && data.arena) arena=data.arena;
+      onlineArenaVoteActive=false;
+      onlineArenaVoteSubmitted=false;
+      syncArenaSelection();
+      setArenaVoteStatus('ARENA SELECTED - '+String(arena).toUpperCase());
+      if($('arenaNextBtn')){ $('arenaNextBtn').disabled=false; $('arenaNextBtn').textContent='NEXT'; }
+      if($('arenaBackBtn')) $('arenaBackBtn').style.display='';
+      startOnlineMatch(true);
+    });
     socket.on('game-state',function(state){
       try{
         if(state){
+          if(state.arena) arena=state.arena;
           var phase=state.phase||'';
           var hasCountdown=phase==='countdown' || phase==='playing' || !!state.roundStartAt || !!state.round_start_at;
 
@@ -3464,16 +3549,20 @@ else next='BATTLE!';
     socket.on('opponent-quit',function(){ opponentLeft(); });
     socket.on('match-cancelled-by-opponent',function(){ opponentLeft(); });
     socket.on('play-again-status',function(data){
+      data=data||{};
+      if(data.mapVote){
+        if($('resultPanel')) $('resultPanel').classList.remove('active');
+        openOnlineArenaVote(data);
+        return;
+      }
       if(data && (data.hostReadyAgain && data.guestReadyAgain || data.ready===true || data.start===true)){
-        onlineMatchNo++;
-        setOnlineArenaForMatch();
-        startOnlineMatch(true);
+        setOverlay('MAP VOTE STARTING');
       } else {
         setOverlay('WAITING RIVAL');
       }
     });
-    socket.on('play-again-start',function(data){ onlineMatchNo++; setOnlineArenaForMatch(); startOnlineMatch(true); });
-    socket.on('new-match',function(data){ onlineMatchNo++; setOnlineArenaForMatch(); startOnlineMatch(true); });
+    socket.on('play-again-start',function(data){ onlineMatchNo++; openOnlineArenaVote(data||{}); });
+    socket.on('new-match',function(data){ onlineMatchNo++; openOnlineArenaVote(data||{}); });
     socket.on('connect_error',function(){ socketReady=false; setMatchStatus('SOCKET CONNECTION FAILED • RETRYING...'); });
   }
 
@@ -3488,7 +3577,15 @@ else next='BATTLE!';
   function chooseMode(m){
     if(!requireBaseEnergy()){ show('menuScreen'); return; }
     pendingMode=m;
-    if(m==='ai'){ show('arenaScreen'); return; }
+    if(m==='ai'){
+      onlineArenaVoteActive=false;
+      onlineArenaVoteSubmitted=false;
+      setArenaVoteStatus('');
+      if($('arenaNextBtn')){ $('arenaNextBtn').disabled=false; $('arenaNextBtn').textContent='NEXT'; }
+      if($('arenaBackBtn')) $('arenaBackBtn').style.display='';
+      show('arenaScreen');
+      return;
+    }
     if(m==='online'){ startOnlineSearch(); return; }
     if(m==='create'){ createRoom(); return; }
     if(m==='join'){ show('joinScreen'); return; }
@@ -3498,10 +3595,7 @@ else next='BATTLE!';
     if(pendingMode==='online'){ startOnlineSearch(); return; }
     if(pendingMode==='create'){ createRoom(); return; }
     if(pendingMode==='onlineMatched'){
-      try{ if(socket && roomCode){ socket.emit('arena-selected',{ roomCode:roomCode, arena:arena, role:isHost?'host':'guest' }); socket.emit('select-arena',{ roomCode:roomCode, arena:arena, role:isHost?'host':'guest' }); } }catch(e){}
-      setMatchStatus('ARENA '+String(arena).toUpperCase()+' SELECTED');
-      startOnlineMatch();
-      if(onlineStartState){ applyOnlineState(onlineStartState); onlineStartState=null; }
+      submitOnlineArenaVote();
       return;
     }
   }

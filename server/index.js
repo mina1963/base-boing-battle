@@ -68,6 +68,7 @@ const MIN_LINE_LENGTH = 12;
 const MAX_LINE_LENGTH = 180;
 const DRAW_COOLDOWN_MS = 45;
 const MATCH_SCREEN_LEAD_MS = 1500;
+const ARENA_VOTE_TIMEOUT_MS = 20_000;
 
 const rooms = new Map();
 const socketRooms = new Map();
@@ -86,7 +87,7 @@ const cleanUsername = (username, fallback = "PLAYER") => {
   );
 };
 
-const ARENAS = ["classic", "base", "space", "temple"];
+const ARENAS = ["classic", "base", "space", "temple", "soccer"];
 
 const normalizeArena = (arena) => (ARENAS.includes(arena) ? arena : null);
 
@@ -544,8 +545,11 @@ const emitMatchPayloads = (room) => {
   hostSocket?.emit("room-matched", hostPayload);
   guestSocket?.emit("room-matched", guestPayload);
 
-  hostSocket?.emit("match-start", hostPayload);
-  guestSocket?.emit("match-start", guestPayload);
+  const phase = room.state?.phase || "waiting";
+  if (phase === "countdown" || phase === "playing") {
+    hostSocket?.emit("match-start", hostPayload);
+    guestSocket?.emit("match-start", guestPayload);
+  }
 };
 
 const pulseRoomSync = (roomCode, delays = [250, 600, 1200, 2000]) => {
@@ -595,6 +599,8 @@ const finishArenaVote = (room) => {
   io.to(room.code).emit("arena-selected", {
     arena: selected,
     votes: getArenaVotesPayload(room),
+    matchId: room.matchId,
+    serverNow: Date.now(),
   });
 
   startCountdown(room);
@@ -619,8 +625,22 @@ const startArenaVote = (room) => {
   room.arenaVotes = { host: null, guest: null };
   room.lines = [];
   room.state = createInitialState();
+  room.state.arena = room.arena || "classic";
 
-  finishArenaVote(room);
+  const voteEndsAt = Date.now() + ARENA_VOTE_TIMEOUT_MS;
+  io.to(room.code).emit("arena-vote-start", {
+    roomCode: room.code,
+    matchId: room.matchId,
+    votes: getArenaVotesPayload(room),
+    voteEndsAt,
+    serverNow: Date.now(),
+  });
+
+  room.arenaVoteTimer = setTimeout(() => {
+    const activeRoom = rooms.get(room.code);
+    if (!activeRoom || activeRoom.matchId !== room.matchId) return;
+    finishArenaVote(activeRoom);
+  }, ARENA_VOTE_TIMEOUT_MS);
 };
 
 const handleArenaVote = (room, socketId, arena) => {
@@ -974,24 +994,22 @@ io.on("connection", (socket) => {
       room.hostReadyAgain = false;
       room.guestReadyAgain = false;
 
-      room.state = createInitialState();
-      room.lines = [];
-      room.arenaVotes = {
-        host: null,
-        guest: null,
-      };
-
-      room.hostClientReady = false;
-      room.guestClientReady = false;
-      room.countdownStarted = false;
+      room.matchId = `${room.code}-${Date.now()}-${Math.random()
+        .toString(36)
+        .slice(2, 8)}`;
+      room.launchAt = Date.now();
+      room.hostClientReady = true;
+      room.guestClientReady = true;
+      room.countdownStarted = true;
 
       io.to(roomCode).emit("play-again-status", {
         hostReadyAgain: false,
         guestReadyAgain: false,
+        mapVote: true,
+        matchId: room.matchId,
       });
 
-      emitMatchPayloads(room);
-      pulseRoomSync(roomCode, [300, 700, 1300, 2200]);
+      startArenaVote(room);
     }
   });
 
