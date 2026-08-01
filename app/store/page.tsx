@@ -2434,11 +2434,55 @@ export default function MobilePage() {
   @keyframes storeStatusLive { 0%,100%{opacity:.45;transform:scale(.72)} 50%{opacity:1;transform:scale(1.18)} }
   @keyframes storeStatusScan { 0%,30%{left:-45%;opacity:0} 48%{opacity:1} 70%,100%{left:112%;opacity:0} }
   @keyframes feedbackFadeIn { from{opacity:0} to{opacity:1} }
+  #storeSplash { position:absolute; inset:0; z-index:300; display:grid; place-items:center; overflow:hidden; color:white; background:radial-gradient(circle at 50% 37%,rgba(88,67,255,.26),transparent 27%),radial-gradient(circle at 50% 50%,rgba(34,211,238,.08),transparent 48%),linear-gradient(180deg,#050717 0%,#02030b 100%); opacity:1; visibility:visible; transition:opacity .7s cubic-bezier(.22,.8,.3,1),visibility .7s; }
+  #storeSplash:before { content:""; position:absolute; inset:-12%; opacity:.72; background-image:radial-gradient(circle at 12% 16%,#fff 0 1px,transparent 1.8px),radial-gradient(circle at 82% 24%,#7cecff 0 1.2px,transparent 2px),radial-gradient(circle at 34% 72%,#fff 0 1px,transparent 1.8px),radial-gradient(circle at 70% 80%,#9d6cff 0 1.2px,transparent 2px); background-size:87px 101px,129px 143px,151px 167px,109px 121px; animation:storeSplashStars 8s linear infinite,storeSplashTwinkle 2s ease-in-out infinite alternate; }
+  #storeSplash:after { content:""; position:absolute; left:50%; top:50%; width:440px; height:440px; margin:-220px 0 0 -220px; border-radius:50%; background:conic-gradient(from 20deg,transparent,rgba(139,92,246,.2),transparent 28%,rgba(34,211,238,.12),transparent 63%); filter:blur(12px); animation:storeSplashNebula 7s linear infinite; }
+  #storeSplash.ready .storeSplashCore { transform:scale(1); opacity:1; }
+  #storeSplash.ready .storeSplashCopy { transform:translateY(0); opacity:1; }
+  #storeSplash.hide { opacity:0; visibility:hidden; pointer-events:none; }
+  .storeSplashInner { position:relative; z-index:2; width:min(86vw,370px); min-height:520px; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; }
+  .storeSplashCore { position:relative; width:176px; height:176px; opacity:0; transform:scale(.68); transition:transform 1s cubic-bezier(.18,.9,.22,1.18),opacity .65s ease; }
+  .storeSplashCore:before,.storeSplashCore:after { content:""; position:absolute; inset:3px; border:1px solid rgba(73,225,255,.64); border-radius:50%; transform:rotate(-18deg) scaleY(.48); box-shadow:0 0 26px rgba(34,211,238,.17),inset 0 0 24px rgba(139,92,246,.12); animation:storeSplashRingA 5s linear infinite; }
+  .storeSplashCore:after { inset:-12px; border-color:rgba(157,104,255,.54); transform:rotate(52deg) scaleY(.38); animation:storeSplashRingB 6.5s linear infinite reverse; }
+  .storeSplashPlanet { position:absolute; left:50%; top:50%; width:100px; height:100px; margin:-50px; border-radius:50%; background:radial-gradient(circle at 31% 24%,#fff 0 5%,#8ff4ff 10%,#6c3cff 34%,#16113d 67%,#04050e 100%); box-shadow:0 0 28px rgba(34,211,238,.5),0 0 68px rgba(123,65,255,.4),inset -14px -18px 28px rgba(0,0,0,.45); animation:storeSplashFloat 2.6s ease-in-out infinite; }
+  .storeSplashPlanet:before { content:""; position:absolute; inset:-24px; border-radius:50%; background:radial-gradient(circle,rgba(34,211,238,.14),transparent 64%); animation:storeSplashPulse 1.8s ease-in-out infinite; }
+  .storeSplashMark { position:absolute; inset:0; display:grid; place-items:center; font-size:34px; font-weight:1000; text-shadow:0 0 18px white; }
+  .storeSplashCopy { margin-top:30px; opacity:0; transform:translateY(14px); transition:transform .85s .25s cubic-bezier(.2,.8,.2,1),opacity .8s .25s ease; }
+  .storeSplashKicker { color:#72efff; font-size:7px; font-weight:1000; letter-spacing:.45em; text-shadow:0 0 13px rgba(34,211,238,.75); }
+  .storeSplashTitle { margin-top:12px; font-size:32px; line-height:.92; font-weight:1000; letter-spacing:.12em; text-shadow:0 0 30px rgba(139,92,246,.85); }
+  .storeSplashTitle span { display:block; margin-top:7px; color:#b8a4ff; font-size:15px; letter-spacing:.46em; transform:translateX(.23em); }
+  .storeSplashRule { width:76px; height:1px; margin:22px auto 16px; background:linear-gradient(90deg,transparent,#70edff,transparent); box-shadow:0 0 10px #22d3ee; }
+  .storeSplashStatus { color:rgba(222,229,255,.52); font-size:7px; font-weight:900; letter-spacing:.28em; }
+  .storeSplashTrack { width:156px; height:2px; margin-top:13px; overflow:hidden; border-radius:99px; background:rgba(255,255,255,.1); }
+  .storeSplashTrack i { display:block; width:100%; height:100%; transform:translateX(-100%); background:linear-gradient(90deg,#7c3aed,#8b5cf6,#22d3ee); box-shadow:0 0 12px #22d3ee; animation:storeSplashLoad 2.2s .25s cubic-bezier(.2,.75,.2,1) forwards; }
+  @keyframes storeSplashStars { from{transform:translate3d(-2%,-2%,0)} to{transform:translate3d(2%,2%,0)} }
+  @keyframes storeSplashTwinkle { from{opacity:.38;filter:brightness(.8)} to{opacity:.86;filter:brightness(1.5)} }
+  @keyframes storeSplashNebula { to{transform:rotate(360deg)} }
+  @keyframes storeSplashRingA { to{transform:rotate(342deg) scaleY(.48)} }
+  @keyframes storeSplashRingB { to{transform:rotate(412deg) scaleY(.38)} }
+  @keyframes storeSplashFloat { 0%,100%{transform:translateY(4px) rotate(-2deg)} 50%{transform:translateY(-7px) rotate(2deg)} }
+  @keyframes storeSplashPulse { 0%,100%{transform:scale(.82);opacity:.3} 50%{transform:scale(1.22);opacity:.9} }
+  @keyframes storeSplashLoad { to{transform:translateX(0)} }
   @media(max-height:760px) { .storeCosmic{padding-top:calc(env(safe-area-inset-top) + 12px)} .storePortal{height:285px;transform:scale(.88);transform-origin:top center;margin:-8px 0 0} .storeArenas{margin-top:13px} .storeArena{min-height:100px} .storeArenaVisual{height:54px} }
   @media(prefers-reduced-motion:reduce) { .storeOrbit{animation-duration:5.5s} .storeOrbit:before{animation-duration:12s} .storeOrbit:after{animation-duration:10s} .storeCore{animation-duration:5.5s} .storeCore:before{animation-duration:4s} .storeCosmic:before{animation-duration:22s,5s} .storeCosmic:after{animation-duration:12s} .storePortalTag{animation-duration:4.5s} }
 </style>
 <div id="app">
   <div id="noise"></div>
+
+  <div id="storeSplash" role="status" aria-label="BOING BATTLE is loading">
+    <div class="storeSplashInner">
+      <div class="storeSplashCore">
+        <div class="storeSplashPlanet"><div class="storeSplashMark">↗</div></div>
+      </div>
+      <div class="storeSplashCopy">
+        <div class="storeSplashKicker">PREMIUM ARCADE</div>
+        <div class="storeSplashTitle">BOING<span>BATTLE</span></div>
+        <div class="storeSplashRule"></div>
+        <div class="storeSplashStatus">INITIALIZING ARENA</div>
+        <div class="storeSplashTrack"><i></i></div>
+      </div>
+    </div>
+  </div>
 
   <div id="usernameModal" aria-hidden="true">
     <div class="usernameModalCard">
@@ -4246,6 +4290,20 @@ else next='BATTLE!';
   function loop(){
     if(ctx && !document.hidden && $('gameScreen') && $('gameScreen').classList.contains('active')) render();
     raf=requestAnimationFrame(loop);
+  }
+
+  function dismissStoreSplash(){
+    var splash=$('storeSplash');
+    if(!splash || splash.classList.contains('hide')) return;
+    splash.classList.add('hide');
+    splash.setAttribute('aria-hidden','true');
+    setTimeout(function(){ try{ splash.remove(); }catch(e){} },760);
+  }
+  var storeSplash=$('storeSplash');
+  if(storeSplash){
+    requestAnimationFrame(function(){ requestAnimationFrame(function(){ storeSplash.classList.add('ready'); }); });
+    setTimeout(dismissStoreSplash,2700);
+    storeSplash.addEventListener('pointerup',function(){ setTimeout(dismissStoreSplash,80); },{once:true});
   }
 
   loadName();
