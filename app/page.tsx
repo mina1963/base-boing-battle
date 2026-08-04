@@ -53,7 +53,7 @@ type Spark = {
   color: string;
 };
 
-type Arena = "classic" | "base" | "space" | "temple";
+type Arena = "classic" | "base" | "space" | "temple" | "soccer";
 type SocketRegion = "EU" | "US";
 type ServerGameState = {
   host_score?: unknown;
@@ -128,6 +128,20 @@ const getArenaTheme = (arena: Arena): ArenaTheme => {
     };
   }
 
+  if (arena === "soccer") {
+    return {
+      readyText: "KICKOFF READY",
+      readyClass: "text-emerald-300 drop-shadow-[0_0_18px_rgba(92,255,133,0.95)]",
+      countdownClass: "text-emerald-100",
+      countdownGlowClass: "drop-shadow-[0_0_38px_rgba(92,255,133,0.98)]",
+      subText: "CHAMPIONS PITCH MODE",
+      flashClass: "bg-emerald-400/20",
+      canvasMain: "#effff3",
+      canvasGlow: "#5cff85",
+      canvasRgba: (alpha: number) => `rgba(92,255,133,${alpha})`,
+    };
+  }
+
   return {
     readyText: "BASE READY",
     readyClass: "text-[#0052FF] drop-shadow-[0_0_18px_rgba(0,82,255,0.9)]",
@@ -177,6 +191,15 @@ const ARENA_OPTIONS: { key: Arena; label: string; title: string; subtitle: strin
     dot: "bg-amber-300",
     selectedClass: "border-amber-300 text-amber-100 shadow-[0_0_30px_rgba(251,191,36,0.42)]",
     previewClass: "from-[#050301] via-[#241403] to-[#140b02]",
+  },
+  {
+    key: "soccer",
+    label: "FOOTBALL",
+    title: "PITCH",
+    subtitle: "CHAMPIONS FIELD",
+    dot: "bg-emerald-300",
+    selectedClass: "border-emerald-300 text-emerald-100 shadow-[0_0_30px_rgba(92,255,133,0.42)]",
+    previewClass: "from-[#041208] via-[#11843a] to-[#05210d]",
   },
 ];
 
@@ -948,7 +971,7 @@ const socket = io(
   });
 
   socket.on("game-state", (state) => {
-    if (state?.arena && ["classic", "base", "space", "temple"].includes(state.arena)) {
+    if (state?.arena && ["classic", "base", "space", "temple", "soccer"].includes(state.arena)) {
       arenaRef.current = state.arena;
       setArena(state.arena);
     }
@@ -975,7 +998,7 @@ const socket = io(
   });
 
   socket.on("arena-selected", ({ arena }) => {
-    if (["classic", "base", "space", "temple"].includes(arena)) {
+    if (["classic", "base", "space", "temple", "soccer"].includes(arena)) {
       arenaRef.current = arena;
       setArena(arena);
       setSelectedMatchArena(arena);
@@ -1145,6 +1168,15 @@ const socket = io(
     templeGlow.addColorStop(0, "rgba(251,191,36,0.22)");
     templeGlow.addColorStop(0.45, "rgba(120,53,15,0.14)");
     templeGlow.addColorStop(1, "rgba(0,0,0,0.25)");
+
+    const soccerBackground = ctx.createLinearGradient(0, 0, W, 0);
+    soccerBackground.addColorStop(0, "#075522");
+    soccerBackground.addColorStop(0.5, "#11843a");
+    soccerBackground.addColorStop(1, "#075522");
+    const soccerGlow = ctx.createRadialGradient(W / 2, H / 2, 20, W / 2, H / 2, H / 1.05);
+    soccerGlow.addColorStop(0, "rgba(144,255,171,0.12)");
+    soccerGlow.addColorStop(0.65, "rgba(4,60,24,0.05)");
+    soccerGlow.addColorStop(1, "rgba(0,12,4,0.42)");
 
     const classicGlow = ctx.createRadialGradient(W / 2, H / 2, 40, W / 2, H / 2, H / 1.2);
     classicGlow.addColorStop(0, "rgba(0,82,255,0.16)");
@@ -1524,6 +1556,46 @@ const activeArena = arenaRef.current;
           ctx.stroke();
         }
         ctx.restore();
+      } else if (activeArena === "soccer") {
+        ctx.fillStyle = soccerBackground;
+        ctx.fillRect(0, 0, W, H);
+
+        for (let x = 0; x < W; x += 50) {
+          ctx.fillStyle = x % 100 === 0 ? "rgba(255,255,255,0.025)" : "rgba(0,0,0,0.055)";
+          ctx.fillRect(x, 0, 50, H);
+        }
+
+        ctx.fillStyle = soccerGlow;
+        ctx.fillRect(0, 0, W, H);
+
+        ctx.save();
+        const pitchPulse = 0.62 + Math.sin(frame * 0.045) * 0.14;
+        ctx.strokeStyle = `rgba(235,255,239,${pitchPulse})`;
+        ctx.fillStyle = "rgba(239,255,243,0.9)";
+        ctx.lineWidth = 2;
+        ctx.shadowColor = "#5cff85";
+        ctx.shadowBlur = 12;
+        ctx.strokeRect(18, 18, W - 36, H - 36);
+        ctx.shadowBlur = 0;
+        ctx.beginPath();
+        ctx.moveTo(18, H / 2);
+        ctx.lineTo(W - 18, H / 2);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(W / 2, H / 2, 62, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(W / 2, H / 2, 3, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeRect(W / 2 - 88, 18, 176, 82);
+        ctx.strokeRect(W / 2 - 42, 18, 84, 34);
+        ctx.strokeRect(W / 2 - 88, H - 100, 176, 82);
+        ctx.strokeRect(W / 2 - 42, H - 52, 84, 34);
+        ctx.beginPath();
+        ctx.arc(W / 2, 76, 3, 0, Math.PI * 2);
+        ctx.arc(W / 2, H - 76, 3, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
       } else {
         ctx.fillStyle = "#020204";
         ctx.fillRect(0, 0, W, H);
@@ -1551,9 +1623,9 @@ const activeArena = arenaRef.current;
 
       ctx.beginPath();
       ctx.arc(W / 2, H / 2, 80, 0, Math.PI * 2);
-      ctx.strokeStyle = "rgba(0,82,255,0.22)";
+      ctx.strokeStyle = activeArena === "soccer" ? "rgba(239,255,243,0.74)" : "rgba(0,82,255,0.22)";
       ctx.lineWidth = 2;
-      ctx.shadowColor = "#0052FF";
+      ctx.shadowColor = activeArena === "soccer" ? "#5cff85" : "#0052FF";
       ctx.shadowBlur = 12;
       ctx.stroke();
       ctx.shadowBlur = 0;
@@ -1562,7 +1634,7 @@ const activeArena = arenaRef.current;
       ctx.fillStyle = `rgba(0,82,255,${basePulse})`;
       ctx.textAlign = "center";
       ctx.shadowColor = "#0052FF";
-      ctx.shadowBlur = activeArena === "base" ? 30 : activeArena === "space" ? 28 : activeArena === "temple" ? 28 : 22;
+      ctx.shadowBlur = activeArena === "base" ? 30 : activeArena === "space" ? 28 : activeArena === "temple" || activeArena === "soccer" ? 28 : 22;
 
       if (activeArena === "base") {
         ctx.font = "bold 10px monospace";
@@ -1600,6 +1672,16 @@ const activeArena = arenaRef.current;
         ctx.font = "bold 8px monospace";
         ctx.fillStyle = "rgba(251,191,36,0.72)";
         ctx.fillText("ANCIENT BASE", W / 2, H / 2 + 38);
+      } else if (activeArena === "soccer") {
+        ctx.font = "bold 10px monospace";
+        ctx.fillStyle = "rgba(231,255,237,0.88)";
+        ctx.fillText("◇ CHAMPIONS PITCH ◇", W / 2, H / 2 - 50);
+        ctx.fillStyle = `rgba(239,255,243,${0.42 + Math.sin(frame * 0.035) * 0.08})`;
+        ctx.font = "900 32px monospace";
+        ctx.fillText("FOOTBALL", W / 2, H / 2 + 15);
+        ctx.font = "bold 8px monospace";
+        ctx.fillStyle = "rgba(180,255,198,0.78)";
+        ctx.fillText("PREMIUM STADIUM", W / 2, H / 2 + 38);
       } else {
         ctx.font = "900 46px monospace";
         ctx.fillText("BASE", W / 2, H / 2 + 14);
@@ -2926,6 +3008,8 @@ socketRef.current?.emit("create-room", {
               ? "drop-shadow-[0_0_38px_rgba(34,211,238,0.28)]"
               : arena === "temple"
               ? "drop-shadow-[0_0_38px_rgba(251,191,36,0.28)]"
+              : arena === "soccer"
+              ? "drop-shadow-[0_0_38px_rgba(92,255,133,0.3)]"
               : ""
           }`}
           style={{
@@ -3022,6 +3106,23 @@ socketRef.current?.emit("create-room", {
             </>
           )}
 
+          {arena === "soccer" && (
+            <>
+              <div className="pointer-events-none absolute left-1/2 top-[-20px] z-[1] hidden h-[8px] w-[calc(100%+190px)] -translate-x-1/2 rounded-full bg-emerald-300/70 shadow-[0_0_30px_rgba(92,255,133,0.95)] sm:block" />
+              <div className="pointer-events-none absolute bottom-[-20px] left-1/2 z-[1] hidden h-[8px] w-[calc(100%+190px)] -translate-x-1/2 rounded-full bg-emerald-300/70 shadow-[0_0_30px_rgba(92,255,133,0.95)] sm:block" />
+              <div className="pointer-events-none absolute bottom-[9%] left-[-112px] top-[9%] z-[1] hidden w-[96px] flex-col justify-around sm:flex">
+                {["HOME", "ULTRAS", "GOAL", "FINAL"].map((label) => (
+                  <div key={`pitch-left-${label}`} className="rounded-xl border border-emerald-300/45 bg-[#03150a]/85 px-3 py-3 text-center text-[11px] font-black tracking-[0.16em] text-emerald-100 shadow-[0_0_22px_rgba(92,255,133,0.22)]">{label}</div>
+                ))}
+              </div>
+              <div className="pointer-events-none absolute bottom-[9%] right-[-112px] top-[9%] z-[1] hidden w-[96px] flex-col justify-around sm:flex">
+                {["AWAY", "CROWD", "MATCH", "CUP"].map((label) => (
+                  <div key={`pitch-right-${label}`} className="rounded-xl border border-white/30 bg-[#03150a]/85 px-3 py-3 text-center text-[11px] font-black tracking-[0.16em] text-white/85 shadow-[0_0_22px_rgba(92,255,133,0.18)]">{label}</div>
+                ))}
+              </div>
+            </>
+          )}
+
           <canvas
             ref={canvasRef}
             width={400}
@@ -3033,6 +3134,8 @@ socketRef.current?.emit("create-room", {
                 ? "border border-cyan-300/60 shadow-[0_0_28px_rgba(34,211,238,0.42)]"
                 : arena === "temple"
                 ? "border border-amber-300/60 shadow-[0_0_28px_rgba(251,191,36,0.42)]"
+                : arena === "soccer"
+                ? "border border-emerald-300/70 shadow-[0_0_32px_rgba(92,255,133,0.42)]"
                 : "border border-white/15"
             }`}
           />
@@ -3048,6 +3151,8 @@ socketRef.current?.emit("create-room", {
               ? "ORBIT GOAL"
               : arena === "temple"
               ? "RUNE GOAL"
+              : arena === "soccer"
+              ? "STADIUM GOAL"
               : "GOAL"}
           </div>
         </div>

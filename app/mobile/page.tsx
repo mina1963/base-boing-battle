@@ -2436,11 +2436,46 @@ export default function MobilePage() {
   @keyframes storeStatusScan { 0%,30%{left:-45%;opacity:0} 48%{opacity:1} 70%,100%{left:112%;opacity:0} }
   @keyframes mobileBaseBrandFlow { from{background-position:0% 50%;filter:drop-shadow(0 0 7px rgba(0,82,255,.58)) drop-shadow(0 0 14px rgba(34,211,238,.18))} to{background-position:100% 50%;filter:drop-shadow(0 0 11px rgba(0,82,255,.9)) drop-shadow(0 0 22px rgba(34,211,238,.34))} }
   @keyframes feedbackFadeIn { from{opacity:0} to{opacity:1} }
+  #mobileLaunch { position:absolute; inset:0; z-index:300; display:grid; place-items:center; overflow:hidden; color:white; background:radial-gradient(circle at 50% 48%,rgba(0,82,255,.38),transparent 30%),linear-gradient(145deg,#00040d 0%,#001445 52%,#020611 100%); transition:opacity .52s cubic-bezier(.2,.8,.2,1),visibility .52s; }
+  #mobileLaunch:before { content:""; position:absolute; inset:-35%; background:repeating-conic-gradient(from 0deg at 50% 50%,rgba(49,220,255,.16) 0deg,transparent 1.5deg 13deg); filter:blur(.3px); animation:mobileLaunchBurst 4.8s linear infinite; }
+  #mobileLaunch:after { content:""; position:absolute; inset:0; background:linear-gradient(90deg,transparent 0 18%,rgba(34,211,238,.28) 20%,transparent 22% 45%,rgba(0,82,255,.32) 47%,transparent 49% 100%); background-size:260% 100%; transform:skewX(-18deg); animation:mobileLaunchSpeed 1.15s linear infinite; }
+  #mobileLaunch.hide { opacity:0; visibility:hidden; pointer-events:none; }
+  #mobileLaunch.ready .mobileLaunchBall { transform:scale(1) rotate(0deg); opacity:1; }
+  #mobileLaunch.ready .mobileLaunchCopy { transform:translateY(0); opacity:1; }
+  .mobileLaunchInner { position:relative; z-index:2; width:min(88vw,380px); display:flex; min-height:540px; flex-direction:column; align-items:center; justify-content:center; text-align:center; }
+  .mobileLaunchBall { position:relative; width:142px; height:142px; border-radius:50%; opacity:0; transform:scale(.35) rotate(-120deg); background:radial-gradient(circle at 31% 24%,#fff 0 4%,#8cf6ff 8%,#0052ff 31%,#041b67 58%,#01040e 78%); box-shadow:0 0 22px #22d3ee,0 0 78px rgba(0,82,255,.78),inset -18px -22px 30px rgba(0,0,0,.55); transition:transform .78s cubic-bezier(.12,1.35,.25,1),opacity .35s ease; animation:mobileLaunchBall 1.35s .75s ease-in-out infinite alternate; }
+  .mobileLaunchBall:before,.mobileLaunchBall:after { content:""; position:absolute; left:50%; top:50%; width:218px; height:74px; margin:-37px 0 0 -109px; border:2px solid rgba(82,232,255,.72); border-radius:50%; box-shadow:0 0 18px rgba(34,211,238,.5); transform:rotate(-16deg); animation:mobileLaunchOrbit 1.7s linear infinite; }
+  .mobileLaunchBall:after { width:184px; height:62px; margin:-31px 0 0 -92px; border-color:rgba(90,120,255,.8); transform:rotate(58deg); animation-duration:1.25s; animation-direction:reverse; }
+  .mobileLaunchB { position:absolute; inset:0; display:grid; place-items:center; font-size:62px; font-style:italic; font-weight:1000; letter-spacing:-.12em; text-shadow:0 0 18px white; transform:translateX(-3px); }
+  .mobileLaunchCopy { margin-top:48px; opacity:0; transform:translateY(18px); transition:transform .65s .18s ease,opacity .65s .18s ease; }
+  .mobileLaunchKicker { color:#83f5ff; font-size:8px; font-weight:1000; letter-spacing:.38em; text-shadow:0 0 14px #22d3ee; }
+  .mobileLaunchTitle { margin-top:12px; font-size:29px; font-weight:1000; line-height:1; letter-spacing:.08em; text-shadow:0 0 24px rgba(0,82,255,.9); }
+  .mobileLaunchTitle span { display:block; margin-top:8px; color:#58dfff; font-size:13px; letter-spacing:.45em; transform:translateX(.22em); }
+  .mobileLaunchCharge { width:190px; height:5px; margin:25px auto 0; overflow:hidden; border-radius:99px; border:1px solid rgba(111,234,255,.35); background:rgba(0,8,30,.78); box-shadow:0 0 18px rgba(34,211,238,.24); }
+  .mobileLaunchCharge i { display:block; width:42%; height:100%; background:linear-gradient(90deg,transparent,#0052ff,#a8fbff,#0052ff,transparent); filter:drop-shadow(0 0 5px #22d3ee); animation:mobileLaunchCharge 1s ease-in-out infinite; }
+  .mobileLaunchStatus { margin-top:11px; color:rgba(200,242,255,.58); font-size:7px; font-weight:1000; letter-spacing:.29em; }
+  @keyframes mobileLaunchBurst { to{transform:rotate(360deg) scale(1.06)} }
+  @keyframes mobileLaunchSpeed { to{background-position:-160% 0} }
+  @keyframes mobileLaunchBall { to{filter:brightness(1.2);box-shadow:0 0 30px #22d3ee,0 0 105px rgba(0,82,255,.95),inset -18px -22px 30px rgba(0,0,0,.48)} }
+  @keyframes mobileLaunchOrbit { to{transform:rotate(344deg)} }
+  @keyframes mobileLaunchCharge { from{transform:translateX(-110%)} to{transform:translateX(350%)} }
   @media(max-height:760px) { .storeCosmic{padding-top:calc(env(safe-area-inset-top) + 12px)} .storePortal{height:285px;transform:scale(.88);transform-origin:top center;margin:-8px 0 0} .storeArenas{margin-top:13px} .storeArena{min-height:100px} .storeArenaVisual{height:54px} }
   @media(prefers-reduced-motion:reduce) { .storeOrbit{animation-duration:5.5s} .storeOrbit:before{animation-duration:12s} .storeOrbit:after{animation-duration:10s} .storeCore{animation-duration:5.5s} .storeCore:before{animation-duration:4s} .storeCosmic:before{animation-duration:22s,5s} .storeCosmic:after{animation-duration:12s} .storePortalTag{animation-duration:4.5s} }
 </style>
 <div id="app">
   <div id="noise"></div>
+
+  <div id="mobileLaunch" role="status" aria-label="BASE BOING BATTLE is loading">
+    <div class="mobileLaunchInner">
+      <div class="mobileLaunchBall"><div class="mobileLaunchB">B</div></div>
+      <div class="mobileLaunchCopy">
+        <div class="mobileLaunchKicker">POWERED FOR BATTLE</div>
+        <div class="mobileLaunchTitle">BASE BOING<span>BATTLE</span></div>
+        <div class="mobileLaunchCharge"><i></i></div>
+        <div class="mobileLaunchStatus">CHARGING THE ARENA</div>
+      </div>
+    </div>
+  </div>
 
   <div id="usernameModal" aria-hidden="true">
     <div class="usernameModalCard">
@@ -4248,6 +4283,20 @@ else next='BATTLE!';
   function loop(){
     if(ctx && !document.hidden && $('gameScreen') && $('gameScreen').classList.contains('active')) render();
     raf=requestAnimationFrame(loop);
+  }
+
+  function dismissMobileLaunch(){
+    var splash=$('mobileLaunch');
+    if(!splash || splash.classList.contains('hide')) return;
+    splash.classList.add('hide');
+    splash.setAttribute('aria-hidden','true');
+    setTimeout(function(){ try{ splash.remove(); }catch(e){} },580);
+  }
+  var mobileLaunch=$('mobileLaunch');
+  if(mobileLaunch){
+    requestAnimationFrame(function(){ requestAnimationFrame(function(){ mobileLaunch.classList.add('ready'); }); });
+    setTimeout(dismissMobileLaunch,2450);
+    mobileLaunch.addEventListener('pointerup',function(){ setTimeout(dismissMobileLaunch,60); },{once:true});
   }
 
   loadName();
