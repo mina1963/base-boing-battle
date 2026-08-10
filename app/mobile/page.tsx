@@ -2322,14 +2322,15 @@ export default function MobilePage() {
   #menuBtn:before { content:"‹"; display:inline-grid; place-items:center; width:16px; height:16px; margin-right:4px; border:1px solid rgba(111,227,255,.3); border-radius:50%; color:#7beaff; }
   #restartBtn:after { content:"↻"; display:inline-grid; place-items:center; width:16px; height:16px; margin-left:4px; border:1px solid rgba(111,227,255,.3); border-radius:50%; color:#7beaff; }
   #scoreHud { min-width:0; display:grid !important; grid-template-columns:minmax(0,1fr) 22px 6px 22px minmax(0,1fr); align-items:center; gap:6px; padding:0 10px !important; border-color:rgba(99,199,255,.62) !important; background:radial-gradient(circle at 50% 0%,rgba(0,112,255,.3),transparent 58%),linear-gradient(180deg,rgba(6,34,82,.97),rgba(0,6,22,.94)) !important; }
-  .scoreName { min-width:0; overflow:hidden; color:rgba(213,242,255,.72); font-size:7px; font-weight:1000; letter-spacing:.13em; text-overflow:ellipsis; white-space:nowrap; }
+  .scoreName { min-width:0; overflow:hidden; color:#ffd8dd; font-size:9px; font-weight:1000; letter-spacing:.08em; text-overflow:ellipsis; white-space:nowrap; text-shadow:0 0 10px rgba(255,70,91,.58); }
   .scoreName:first-child { text-align:right; }
-  .scoreName:last-child { text-align:left; color:#86efff; }
+  .scoreName:last-child { text-align:left; color:#b8f7ff; text-shadow:0 0 11px rgba(49,220,255,.68); }
   .scoreNumber { color:white; font-size:19px; line-height:1; font-weight:1000; text-shadow:0 0 16px rgba(115,224,255,.85); }
   .scoreNumber.rival { color:#ff7d89; text-shadow:0 0 16px rgba(255,65,85,.72); }
   .scoreDivider { width:4px; height:4px; border:1px solid #8cecff; transform:rotate(45deg); box-shadow:0 0 8px #22d3ee; }
   #roundHint { z-index:7; top:calc(env(safe-area-inset-top) + 71px) !important; padding:5px 15px !important; border-color:rgba(103,215,255,.2) !important; background:linear-gradient(180deg,rgba(5,25,61,.76),rgba(0,4,16,.72)) !important; box-shadow:0 8px 20px rgba(0,0,0,.35),0 0 18px rgba(0,82,255,.1); color:rgba(206,241,255,.8) !important; }
   #overlayText { z-index:7; background:linear-gradient(90deg,transparent,rgba(0,8,35,.5),transparent); padding:12px 0; text-shadow:0 0 10px white,0 0 34px rgba(0,82,255,.95); }
+  #overlayText:empty { display:none; }
   #resultPanel { z-index:12; padding:26px 20px 20px; border:1px solid rgba(103,221,255,.38); border-radius:30px; background:radial-gradient(circle at 50% 0%,rgba(0,82,255,.28),transparent 50%),linear-gradient(160deg,rgba(7,24,58,.97),rgba(0,3,13,.98)); box-shadow:0 30px 80px rgba(0,0,0,.72),0 0 42px rgba(0,119,255,.25),inset 0 1px 0 rgba(255,255,255,.14); backdrop-filter:blur(20px) saturate(1.35); }
   #resultPanel:before { content:"MATCH COMPLETE"; display:block; margin-bottom:8px; color:#78eaff; font-size:7px; font-weight:1000; letter-spacing:.32em; text-align:center; }
   #resultTitle { color:white; text-shadow:0 0 26px rgba(88,215,255,.72); }
@@ -4333,8 +4334,8 @@ else next='BATTLE!';
     var energyWidth=174, energyX=(W-energyWidth)/2, energyY=88, filled=Math.max(0,energyWidth*energy/100);
     ctx.fillStyle='rgba(0,4,18,.78)'; ctx.shadowColor='rgba(0,0,0,.8)'; ctx.shadowBlur=12; ctx.fillRect(energyX-3,energyY-3,energyWidth+6,10); ctx.shadowBlur=0;
     ctx.strokeStyle='rgba(150,229,255,.25)'; ctx.lineWidth=1; ctx.strokeRect(energyX-2.5,energyY-2.5,energyWidth+5,9);
-    ctx.fillStyle=energy<28?'#ff465b':energy<58?'#ffb829':theme().main; ctx.shadowColor=ctx.fillStyle; ctx.shadowBlur=14; ctx.fillRect(energyX,energyY,filled,4); ctx.shadowBlur=0;
-    ctx.fillStyle='rgba(215,245,255,.7)'; ctx.font='bold 7px monospace'; ctx.textAlign='center'; ctx.fillText('ENERGY  '+Math.round(energy)+'%',W/2,106);
+    ctx.fillStyle=energy<28?'#ff465b':energy<58?'#ffb829':'#31dcff'; ctx.shadowColor=ctx.fillStyle; ctx.shadowBlur=14; ctx.fillRect(energyX,energyY,filled,4); ctx.shadowBlur=0;
+    ctx.fillStyle=energy<28?'rgba(255,119,132,.82)':energy<58?'rgba(255,207,111,.82)':'rgba(126,235,255,.82)'; ctx.font='bold 7px monospace'; ctx.textAlign='center'; ctx.fillText('ENERGY  '+Math.round(energy)+'%',W/2,106);
   }
   function loop(){
     if(ctx && !document.hidden && $('gameScreen') && $('gameScreen').classList.contains('active')) render();
