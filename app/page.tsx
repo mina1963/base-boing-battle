@@ -1138,6 +1138,7 @@ const socket = io(
     const MAX_LINE_LENGTH = 160;
     const MAX_AI_LINE_LENGTH = 120;
     const MAX_ACTIVE_LINES_PER_SIDE = 2;
+    const MAX_ACTIVE_AI_LINES = 1;
 
     const baseBackground = ctx.createLinearGradient(0, 0, 0, H);
     baseBackground.addColorStop(0, "#020716");
@@ -1804,7 +1805,7 @@ aiElapsedFrames += dtScale;
       : 0;
 
   const aiLines = linesRef.current.filter((line) => line.owner === "ai");
-  if (aiLines.length >= MAX_ACTIVE_LINES_PER_SIDE) {
+  if (aiLines.length >= MAX_ACTIVE_AI_LINES) {
     const firstAiLineIndex = linesRef.current.findIndex(
       (line) => line.owner === "ai"
     );

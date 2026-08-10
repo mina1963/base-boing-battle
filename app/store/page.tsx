@@ -2763,7 +2763,7 @@ export default function MobilePage() {
   var arena='base', difficulty='normal', socketRegion='EU', mode='ai';
   var canvas, ctx, raf=0, arenaPaint=null;
   var ball, lines, trail, sparks, score, energy, rallyElapsedSeconds=0, started=false, paused=false, drawing=null, goalLocked=false;
-  var MAX_ACTIVE_LINES_PER_SIDE=2, MAX_PLAYER_LINE_LENGTH=160, MAX_AI_LINE_LENGTH=120;
+  var MAX_ACTIVE_LINES_PER_SIDE=2, MAX_AI_ACTIVE_LINES=1, MAX_PLAYER_LINE_LENGTH=160, MAX_AI_LINE_LENGTH=120;
   var frame=0, lastFrameAt=Date.now(), lastDtScale=1, audioUnlocked=false, soundEnabled=true, lastWallSound=0, lastOnlineScoreTotal=null, lastOnlineRoundKey=null, onlineCountdownTimer=null, onlineBattleTimer=null, onlineRoomClosed=false, onlineServerPlaying=false, activeAudioContexts=[];
   var socket=null, socketReady=false, isHost=false, roleKnown=false, roomCode=null, mobileId='mobile_'+Math.random().toString(16).slice(2,10), onlineTarget={x:200,y:350,vx:1.2,vy:1.8}, onlineStateAt=Date.now();
   var onlineStartState=null;
@@ -4105,7 +4105,7 @@ else next='BATTLE!';
     var max=owner==='ai'?MAX_AI_LINE_LENGTH:MAX_PLAYER_LINE_LENGTH, l=Math.min(max,len), a=Math.atan2(dy,dx);
     var count=0;
     lines=lines.filter(function(line){
-      if(line.owner===owner){ count++; return count<MAX_ACTIVE_LINES_PER_SIDE; }
+      if(line.owner===owner){ count++; return count<(owner==='ai'?MAX_AI_ACTIVE_LINES:MAX_ACTIVE_LINES_PER_SIDE); }
       return true;
     });
     var sx=Math.max(22,Math.min(W-22,start.x)), sy=Math.max(22,Math.min(H-22,start.y));
@@ -4306,8 +4306,6 @@ else next='BATTLE!';
       var left=c%2===0, top=c<2, x=left?30:W-30, y=top?30:H-30, sx=left?1:-1, sy=top?1:-1;
       ctx.beginPath(); ctx.moveTo(x,y+sy*22); ctx.lineTo(x,y); ctx.lineTo(x+sx*22,y); ctx.stroke();
     }
-    var scanY=36+((performance.now()*.035)%(H-72));
-    ctx.globalAlpha=.08; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(34,scanY); ctx.lineTo(W-34,scanY); ctx.stroke();
     ctx.restore();
   }
   function render(){
