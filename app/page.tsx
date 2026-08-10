@@ -490,10 +490,10 @@ const BALL_RESET_VX = 1.2;
 const BALL_RESET_VY = 1.8;
 
 const MAX_BALL_SPEED = 10;
-const ENERGY_REGEN_PER_FRAME = 0.2;
-const ENERGY_MAX_SPEED_BONUS_PER_FRAME = 0.22;
+const ENERGY_REGEN_PER_FRAME = 0.3;
+const ENERGY_MAX_SPEED_BONUS_PER_FRAME = 0.16;
 const ENERGY_SPEED_BONUS_START = 3.5;
-const ENERGY_LONG_RALLY_BONUS_PER_FRAME = 0.18;
+const ENERGY_LONG_RALLY_BONUS_PER_FRAME = 0.14;
 const ENERGY_LONG_RALLY_BONUS_START_SECONDS = 8;
 const ENERGY_LONG_RALLY_BONUS_FULL_SECONDS = 24;
 
@@ -1276,7 +1276,7 @@ const socket = io(
 
       const distance = Math.hypot(p.x - start.x, p.y - start.y);
       if (distance < 60) return;
-      if (energyRef.current.value < 25) return;
+      if (energyRef.current.value < 20) return;
 
       const end = limitLine(start, p);
 
@@ -1322,7 +1322,7 @@ if (
   });
 }
 
-      energyRef.current.value -= 25;
+      energyRef.current.value -= 20;
       currentLineRef.current = null;
       drawingRef.current = null;
     };
@@ -1349,6 +1349,7 @@ if (
       frame++;
 
       if (winnerRef.current) {
+        animation = requestAnimationFrame(loop);
         return;
       }
 const roundActive = gameStartedRef.current && !pauseRef.current;
@@ -1699,15 +1700,9 @@ const activeArena = arenaRef.current;
         ctx.fillStyle = "rgba(251,191,36,0.72)";
         ctx.fillText("ANCIENT BASE", W / 2, H / 2 + 38);
       } else if (activeArena === "soccer") {
-        ctx.font = "bold 10px monospace";
-        ctx.fillStyle = "rgba(231,255,237,0.88)";
-        ctx.fillText("◇ CHAMPIONS PITCH ◇", W / 2, H / 2 - 50);
         ctx.fillStyle = `rgba(239,255,243,${0.42 + Math.sin(frame * 0.035) * 0.08})`;
         ctx.font = "900 32px monospace";
         ctx.fillText("FOOTBALL", W / 2, H / 2 + 15);
-        ctx.font = "bold 8px monospace";
-        ctx.fillStyle = "rgba(180,255,198,0.78)";
-        ctx.fillText("PREMIUM STADIUM", W / 2, H / 2 + 38);
       } else {
         ctx.font = "900 46px monospace";
         ctx.fillText("BASE", W / 2, H / 2 + 14);
@@ -1731,25 +1726,43 @@ const activeArena = arenaRef.current;
       ctx.font = "bold 12px monospace";
       ctx.fillText("FIRST TO 7", W / 2, 68);
 
-      const energyWidth = 160;
-      const energyHeight = 8;
+      const energyWidth = 174;
+      const energyHeight = 4;
       const energyX = W / 2 - energyWidth / 2;
-      const energyY = 72;
+      const energyY = 78;
+      const energyValue = Math.max(0, Math.min(100, energyRef.current.value));
+      const energyColor =
+        energyValue < 28 ? "#ff465b" : energyValue < 58 ? "#ffb829" : "#31dcff";
 
-      ctx.fillStyle = "rgba(255,255,255,0.12)";
-      ctx.fillRect(energyX, energyY, energyWidth, energyHeight);
+      ctx.fillStyle = "rgba(0,4,18,0.78)";
+      ctx.shadowColor = "rgba(0,0,0,0.8)";
+      ctx.shadowBlur = 12;
+      ctx.fillRect(energyX - 3, energyY - 3, energyWidth + 6, 10);
+      ctx.shadowBlur = 0;
 
-      ctx.fillStyle = "rgba(59,130,246,0.85)";
+      ctx.strokeStyle = "rgba(150,229,255,0.35)";
+      ctx.lineWidth = 1;
+      ctx.strokeRect(energyX - 2.5, energyY - 2.5, energyWidth + 5, 9);
+
+      ctx.fillStyle = energyColor;
+      ctx.shadowColor = energyColor;
+      ctx.shadowBlur = 14;
       ctx.fillRect(
         energyX,
         energyY,
-        (energyWidth * energyRef.current.value) / 100,
+        (energyWidth * energyValue) / 100,
         energyHeight
       );
+      ctx.shadowBlur = 0;
 
-      ctx.fillStyle = "rgba(255,255,255,0.35)";
-      ctx.font = "10px monospace";
-      ctx.fillText("ENERGY", W / 2, energyY + 22);
+      ctx.fillStyle =
+        energyValue < 28
+          ? "rgba(255,119,132,0.9)"
+          : energyValue < 58
+          ? "rgba(255,207,111,0.9)"
+          : "rgba(126,235,255,0.9)";
+      ctx.font = "bold 8px monospace";
+      ctx.fillText(`ENERGY  ${Math.round(energyValue)}%`, W / 2, energyY + 20);
 
       const canvasTheme = getArenaTheme(activeArena);
 
@@ -2027,6 +2040,7 @@ if (score.player >= 7) {
 
   const winText = "YOU WIN";
   score.message = winText;
+  setFinalScore({ player: score.player, ai: score.ai });
   winnerRef.current = winText;
   setWinner(winText);
   console.log("HOST WIN TRIGGERED");
@@ -2076,6 +2090,7 @@ if (score.ai >= 7) {
 
   const loseText = "AI WINS";
   score.message = loseText;
+  setFinalScore({ player: score.player, ai: score.ai });
   winnerRef.current = loseText;
   setWinner(loseText);
 } else {
