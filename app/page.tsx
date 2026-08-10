@@ -282,6 +282,8 @@ const countdownIntervalRef =
   useRef<ReturnType<typeof setInterval> | null>(null);
 const countdownBattleTimerRef =
   useRef<ReturnType<typeof setTimeout> | null>(null);
+const goalScoreMessageTimerRef =
+  useRef<ReturnType<typeof setTimeout> | null>(null);
 const lastCountdownKeyRef = useRef<string | null>(null);
 const goalLockRef = useRef(false);
 const scoreMessageUntilRef = useRef(0);
@@ -291,6 +293,7 @@ const serverPhaseRef = useRef<"waiting" | "countdown" | "playing" | "finished">(
 
   const [screenShake, setScreenShake] = useState(false);
   const [goalFlash, setGoalFlash] = useState(false);
+  const [goalScoreMessage, setGoalScoreMessage] = useState<string | null>(null);
   const [countdown, setCountdown] = useState<number | string | null>(null);
 
 
@@ -595,6 +598,18 @@ const startCountdown = (startAtMs: number) => {
   tick();
 };
 
+const showGoalScoreMessage = (message: string, duration = 1600) => {
+  if (goalScoreMessageTimerRef.current) {
+    clearTimeout(goalScoreMessageTimerRef.current);
+  }
+  setGoalScoreMessage(message);
+  scoreMessageUntilRef.current = Date.now() + duration;
+  goalScoreMessageTimerRef.current = setTimeout(() => {
+    setGoalScoreMessage(null);
+    goalScoreMessageTimerRef.current = null;
+  }, duration);
+};
+
   function playSound(type: "hit" | "wall" | "goal") {
     const AudioContextClass = window.AudioContext;
     const audioCtx = audioContextRef.current ?? new AudioContextClass();
@@ -658,12 +673,12 @@ const startCountdown = (startAtMs: number) => {
         scoreRef.current.message = `${scoreAnnouncementName(rivalNameRef.current)} SCORES`;
         scoreRef.current.messageLife = 120;
       }
+      showGoalScoreMessage(scoreRef.current.message);
 
       setGoalFlash(true);
       setScreenShake(true);
       playSound("goal");
       energyRef.current.value = 100;
-      scoreMessageUntilRef.current = Date.now() + 950;
 
       setTimeout(() => setGoalFlash(false), 250);
       setTimeout(() => setScreenShake(false), 320);
@@ -862,6 +877,8 @@ const socket = io(
     scoreRef.current.messageLife = 0;
     energyRef.current.value = 100;
     setHudScore({ player: 0, ai: 0 });
+    setGoalScoreMessage(null);
+    if (goalScoreMessageTimerRef.current) clearTimeout(goalScoreMessageTimerRef.current);
 
     ballRef.current.x = 200;
     ballRef.current.y = 350;
@@ -2015,6 +2032,7 @@ if (score.player >= 7) {
   console.log("HOST WIN TRIGGERED");
 } else {
   score.message = "YOU SCORES";
+  showGoalScoreMessage(`${scoreAnnouncementName(playerNameRef.current)} SCORES`);
   pauseRef.current = true;
   gameStartedRef.current = false;
   setGameStarted(false);
@@ -2030,7 +2048,7 @@ if (score.player >= 7) {
 
   setTimeout(() => {
     startCountdown(Date.now() + 3000);
-  }, 950);
+  }, 1700);
 }
 
       }
@@ -2064,6 +2082,7 @@ if (score.ai >= 7) {
   const goalText = "AI SCORES";
 
   score.message = goalText;
+  showGoalScoreMessage(goalText);
   pauseRef.current = true;
   gameStartedRef.current = false;
   setGameStarted(false);
@@ -2079,7 +2098,7 @@ if (score.ai >= 7) {
 
   setTimeout(() => {
     startCountdown(Date.now() + 3000);
-  }, 950);
+  }, 1700);
 }
 
       }
@@ -2235,6 +2254,8 @@ useEffect(() => {
     scoreRef.current.messageLife = 0;
     energyRef.current.value = 100;
     setHudScore({ player: 0, ai: 0 });
+    setGoalScoreMessage(null);
+    if (goalScoreMessageTimerRef.current) clearTimeout(goalScoreMessageTimerRef.current);
 
     ballRef.current.x = 200;
     ballRef.current.y = 350;
@@ -2304,6 +2325,8 @@ useEffect(() => {
     scoreRef.current.messageLife = 0;
     energyRef.current.value = 100;
     setHudScore({ player: 0, ai: 0 });
+    setGoalScoreMessage(null);
+    if (goalScoreMessageTimerRef.current) clearTimeout(goalScoreMessageTimerRef.current);
 
     linesRef.current = [];
     trailRef.current = [];
@@ -3245,6 +3268,16 @@ socketRef.current?.emit("create-room", {
               : arena === "soccer"
               ? "STADIUM GOAL"
               : "GOAL"}
+          </div>
+        </div>
+      )}
+
+      {goalScoreMessage && !winner && (
+        <div className="pointer-events-none absolute inset-0 z-[45] flex items-center justify-center">
+          <div className="w-full bg-[linear-gradient(90deg,transparent,rgba(0,8,35,.72),transparent)] px-4 py-5 text-center backdrop-blur-[1px]">
+            <div className={`${activeArenaTheme.countdownClass} text-3xl font-black tracking-[0.08em] drop-shadow-[0_0_18px_rgba(255,255,255,.8)] sm:text-5xl`}>
+              {goalScoreMessage}
+            </div>
           </div>
         </div>
       )}
