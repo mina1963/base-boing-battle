@@ -3589,32 +3589,54 @@ socketRef.current?.emit("create-room", {
       )}
 
       {winner && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/85 backdrop-blur-sm z-50">
-          <h1 className="text-4xl font-black text-white mb-2">{winner}</h1>
+        <div className="absolute inset-0 z-50 flex items-center justify-center overflow-hidden bg-black/88 px-5 backdrop-blur-md">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_38%,rgba(0,82,255,.24),transparent_42%)]" />
+          <div className="absolute h-[540px] w-[540px] animate-[spin_18s_linear_infinite] rounded-full border border-cyan-300/10 shadow-[0_0_100px_rgba(0,82,255,.12)]" />
+          <div className="relative w-full max-w-[410px] overflow-hidden rounded-[36px] border border-cyan-200/25 bg-[linear-gradient(155deg,rgba(8,30,70,.97),rgba(1,4,16,.98))] p-[1px] shadow-[0_35px_100px_rgba(0,0,0,.75),0_0_55px_rgba(0,82,255,.3)] animate-[resultCardIn_.45s_cubic-bezier(.2,.8,.2,1)_both]">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(34,211,238,.2),transparent_46%)]" />
+            <div className="relative rounded-[35px] px-7 pb-7 pt-8 text-center">
+              <p className="text-[9px] font-black tracking-[0.38em] text-cyan-200/65">MATCH COMPLETE</p>
 
-          <div className="mb-3 max-w-[90vw] text-center text-white/80 text-lg font-black tracking-[0.08em]">
-            {playerDisplayName || "YOU"} {finalScore?.player ?? 0} ◇ {finalScore?.ai ?? 0} {gameMode === "online" ? rivalDisplayName || "RIVAL" : "AI"}
-          </div>
+              <div className="relative mx-auto my-6 grid h-24 w-24 place-items-center rounded-full border border-cyan-200/40 bg-[radial-gradient(circle_at_35%_28%,#ecfeff_0_4%,#22d3ee_7%,#0052ff_31%,#13072f_70%)] shadow-[0_0_24px_rgba(34,211,238,.55),0_0_65px_rgba(0,82,255,.38),inset_-12px_-16px_28px_rgba(0,0,0,.5)]">
+                <div className="absolute inset-[-12px] rotate-[24deg] scale-y-[.42] rounded-full border border-cyan-200/35" />
+                <div className="absolute inset-[-20px] -rotate-[28deg] scale-y-[.5] rounded-full border border-violet-400/35" />
+                <span className="text-4xl text-white drop-shadow-[0_0_12px_white]">✦</span>
+              </div>
 
-          <p className="mb-8 text-[#0052FF] text-xs font-black tracking-[0.35em]">
-            FINAL SCORE
-          </p>
+              <p className="mb-2 text-[8px] font-black tracking-[0.34em] text-cyan-300/60">
+                {(finalScore?.player ?? 0) > (finalScore?.ai ?? 0) ? "VICTORY SECURED" : "BATTLE CONCLUDED"}
+              </p>
+              <h1 className={`text-4xl font-black tracking-[0.08em] text-white ${activeArenaTheme.countdownGlowClass}`}>{winner}</h1>
 
-          <div className="flex flex-col items-center">
+              <div className="mx-auto mt-5 grid max-w-[310px] grid-cols-[1fr_auto_1fr] items-center gap-4 rounded-2xl border border-cyan-200/15 bg-black/35 px-5 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,.08)]">
+                <div className="min-w-0 text-right">
+                  <div className="truncate text-[9px] font-black tracking-[0.12em] text-cyan-100/75">{playerDisplayName || "YOU"}</div>
+                  <div className="mt-1 text-3xl font-black text-white">{finalScore?.player ?? 0}</div>
+                </div>
+                <div className="h-2 w-2 rotate-45 border border-cyan-200 shadow-[0_0_10px_#22d3ee]" />
+                <div className="min-w-0 text-left">
+                  <div className="truncate text-[9px] font-black tracking-[0.12em] text-rose-200/75">{gameMode === "online" ? rivalDisplayName || "RIVAL" : "AI"}</div>
+                  <div className="mt-1 text-3xl font-black text-rose-300">{finalScore?.ai ?? 0}</div>
+                </div>
+              </div>
+
+              <div className="mt-6 flex flex-col items-stretch gap-3">
             <button
               onClick={handlePlayAgain}
               disabled={playAgainWaiting}
-              className="px-7 py-3 rounded-full bg-[#0052FF] hover:bg-blue-500 disabled:opacity-50 font-black text-white tracking-[0.2em] shadow-[0_0_30px_rgba(0,82,255,0.45)]"
+                  className="h-14 rounded-2xl bg-[linear-gradient(100deg,#6d35ff,#0052ff_54%,#22d3ee)] font-black tracking-[0.2em] text-white shadow-[0_14px_34px_rgba(0,82,255,.38),inset_0_1px_0_rgba(255,255,255,.3)] transition hover:brightness-110 disabled:opacity-50"
             >
               {playAgainWaiting ? "WAITING P2" : "PLAY AGAIN"}
             </button>
 
             <button
               onClick={goMainMenu}
-              className="mt-4 px-7 py-3 rounded-full border border-white/20 text-white/70 font-black tracking-[0.2em] hover:bg-white/10 transition"
+                  className="h-14 rounded-2xl border border-cyan-200/20 bg-[#031026]/75 font-black tracking-[0.2em] text-white/70 transition hover:border-cyan-200/40 hover:bg-[#06203a]"
             >
               MAIN MENU
             </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

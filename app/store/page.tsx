@@ -2335,6 +2335,20 @@ export default function MobilePage() {
   #resultPanel:before { content:"MATCH COMPLETE"; display:block; margin-bottom:8px; color:#78eaff; font-size:7px; font-weight:1000; letter-spacing:.32em; text-align:center; }
   #resultTitle { color:white; text-shadow:0 0 26px rgba(88,215,255,.72); }
   #resultScore { margin:0 auto 20px; width:max-content; padding:8px 15px; border:1px solid rgba(255,255,255,.1); border-radius:999px; background:rgba(0,5,20,.56); color:rgba(221,244,255,.75); font-weight:900; letter-spacing:.14em; }
+  #resultPanel { top:50%; transform:translateY(-50%); overflow:hidden; padding:28px 22px 22px; animation:resultCardIn .45s cubic-bezier(.2,.8,.2,1) both; }
+  #resultPanel:after { content:""; position:absolute; inset:-45%; z-index:-1; background:conic-gradient(from 20deg,transparent,rgba(49,220,255,.13),transparent,rgba(91,75,255,.18),transparent); animation:resultAura 8s linear infinite; }
+  .resultOrb { position:relative; width:76px; height:76px; margin:2px auto 16px; display:grid; place-items:center; border:1px solid rgba(105,231,255,.45); border-radius:50%; background:radial-gradient(circle at 36% 30%,#eaffff 0 5%,#31dcff 7%,#0052ff 30%,#10062e 68%); box-shadow:0 0 18px rgba(49,220,255,.55),0 0 54px rgba(0,82,255,.4),inset -10px -14px 24px rgba(0,0,0,.5); }
+  .resultOrb:before,.resultOrb:after { content:""; position:absolute; inset:-9px; border:1px solid rgba(97,220,255,.35); border-radius:50%; transform:rotate(24deg) scaleY(.42); }
+  .resultOrb:after { inset:-17px; border-color:rgba(130,78,255,.38); transform:rotate(-28deg) scaleY(.5); }
+  .resultOrb span { font-size:25px; color:white; text-shadow:0 0 15px white; }
+  .resultLabel { margin-bottom:6px; color:rgba(135,232,255,.7); text-align:center; font-size:7px; font-weight:1000; letter-spacing:.34em; }
+  #resultTitle { margin-bottom:10px; font-size:34px; line-height:1; }
+  #resultScore { min-width:190px; padding:12px 18px; border-color:rgba(112,224,255,.24); background:linear-gradient(180deg,rgba(8,31,69,.88),rgba(0,5,18,.86)); color:#eafcff; box-shadow:inset 0 1px 0 rgba(255,255,255,.1),0 12px 25px rgba(0,0,0,.3); }
+  #resultPanel .btn { min-height:54px; border-radius:18px; letter-spacing:.18em; }
+  #playAgainBtn { background:linear-gradient(100deg,#6d35ff,#0052ff 54%,#22d3ee); box-shadow:0 12px 30px rgba(0,82,255,.35),inset 0 1px 0 rgba(255,255,255,.3); }
+  #resultMenuBtn { border-color:rgba(132,221,255,.25); background:rgba(3,15,38,.78); }
+  @keyframes resultCardIn { from{opacity:0;transform:translateY(-44%) scale(.9)} to{opacity:1;transform:translateY(-50%) scale(1)} }
+  @keyframes resultAura { to{transform:rotate(360deg)} }
 
   /* Base-only energy control rendered by React above the legacy game shell. */
   .mobileEnergyCard {
@@ -2748,6 +2762,8 @@ export default function MobilePage() {
       </div>
       <div id="overlayText"></div>
       <div id="resultPanel">
+        <div class="resultOrb"><span>✦</span></div>
+        <div class="resultLabel">BATTLE REPORT</div>
         <div id="resultTitle">YOU WIN</div>
         <div id="resultScore" class="sub">YOU 0 ◇ 0 AI</div>
         <button id="playAgainBtn" class="btn">PLAY AGAIN</button>
