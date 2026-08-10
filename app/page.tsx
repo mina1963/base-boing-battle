@@ -240,6 +240,7 @@ const socketRegionRef = useRef<SocketRegion>("EU");
   const [gameStarted, setGameStarted] = useState(false);
   const [showHowToPlay, setShowHowToPlay] = useState(false);
   const [showOnlineSoon, setShowOnlineSoon] = useState(false);
+  const [showAiUsername, setShowAiUsername] = useState(false);
 const [joinCode, setJoinCode] = useState("");
 const [activeRoomId, setActiveRoomId] =
   useState<string | null>(null);
@@ -283,6 +284,7 @@ const countdownBattleTimerRef =
   useRef<ReturnType<typeof setTimeout> | null>(null);
 const lastCountdownKeyRef = useRef<string | null>(null);
 const goalLockRef = useRef(false);
+const scoreMessageUntilRef = useRef(0);
 const serverPhaseRef = useRef<"waiting" | "countdown" | "playing" | "finished">("waiting");
 
   const gameStartedRef = useRef(false);
@@ -407,8 +409,7 @@ const scoreAnnouncementName = (value: string) => {
 };
 
 const playerDisplayName =
-  username ||
-  (address ? `${address.slice(0, 6)}...${address.slice(-4)}` : "YOU");
+  username || "PLAYER";
 
 const rivalDisplayName =
   opponentUsername ||
@@ -449,6 +450,7 @@ const getReadyUsername = () => {
       finalName
     );
   }
+  localStorage.setItem("base_boing_username", finalName);
 
   return finalName;
 };
@@ -661,6 +663,7 @@ const startCountdown = (startAtMs: number) => {
       setScreenShake(true);
       playSound("goal");
       energyRef.current.value = 100;
+      scoreMessageUntilRef.current = Date.now() + 950;
 
       setTimeout(() => setGoalFlash(false), 250);
       setTimeout(() => setScreenShake(false), 320);
@@ -737,7 +740,15 @@ const startCountdown = (startAtMs: number) => {
             ? Date.now() + Math.max(0, serverStartAt - serverNow)
             : serverStartAt;
 
-        startCountdown(startAtMs);
+        const scoreMessageDelay = Math.max(0, scoreMessageUntilRef.current - Date.now());
+        if (scoreMessageDelay > 0) {
+          countdownDelayTimerRef.current = setTimeout(
+            () => startCountdown(startAtMs),
+            scoreMessageDelay
+          );
+        } else {
+          startCountdown(startAtMs);
+        }
       }
     }
 
@@ -797,16 +808,10 @@ const startCountdown = (startAtMs: number) => {
 
 useEffect(() => {
   const syncUsername = () => {
-  if (!address) {
-    setUsername("");
-    setUsernameInput("");
-    setUsernameWarning(null);
-    return;
-  }
-
-  const savedUsername = localStorage.getItem(
-    `base_boing_username_${address.toLowerCase()}`
-  );
+  const savedUsername = address
+    ? localStorage.getItem(`base_boing_username_${address.toLowerCase()}`) ||
+      localStorage.getItem("base_boing_username")
+    : localStorage.getItem("base_boing_username");
 
   if (savedUsername) {
     setUsername(savedUsername);
@@ -2021,16 +2026,13 @@ if (score.player >= 7) {
   setTimeout(() => setScreenShake(false), 320);
 
   resetBall("down");
-
-  const roundStartAt = Date.now() + 1800;
+  score.messageLife = 95;
 
   setTimeout(() => {
-    pauseRef.current = false;
-    startCountdown(roundStartAt);
-  }, 0);
+    startCountdown(Date.now() + 3000);
+  }, 950);
 }
 
-        score.messageLife = 70;
       }
 if (
   roundActive &&
@@ -2073,16 +2075,13 @@ if (score.ai >= 7) {
   setTimeout(() => setScreenShake(false), 320);
 
   resetBall("up");
-
-  const roundStartAt = Date.now() + 1800;
+  score.messageLife = 95;
 
   setTimeout(() => {
-    pauseRef.current = false;
-    startCountdown(roundStartAt);
-  }, 0);
+    startCountdown(Date.now() + 3000);
+  }, 950);
 }
 
-        score.messageLife = 70;
       }
 
       linesRef.current = linesRef.current
@@ -2428,7 +2427,8 @@ useEffect(() => {
       return;
     }
 
-    setShowDifficulty(true);
+    setUsernameWarning(null);
+    setShowAiUsername(true);
   }}
   className={`mt-12 w-[240px] h-[58px] rounded-full font-black tracking-[0.2em] transition ${
     baseEnergyActive
@@ -2438,6 +2438,56 @@ useEffect(() => {
 >
   PLAY VS AI {!baseEnergyActive ? "🔒" : ""}
 </button>
+{showAiUsername && (
+  <div className="absolute inset-0 z-[95] flex items-center justify-center bg-black/85 px-6 backdrop-blur-md">
+    <div className="w-full max-w-[390px] rounded-3xl border border-cyan-300/25 bg-[#050814] p-6 text-center shadow-[0_0_55px_rgba(0,82,255,0.24)]">
+      <div className="mx-auto mb-4 grid h-12 w-12 place-items-center rounded-2xl border border-cyan-300/30 bg-blue-500/15 text-sm font-black text-cyan-200">P1</div>
+      <h2 className="text-2xl font-black tracking-[0.12em] text-white">PLAYER NAME</h2>
+      <p className="mt-2 text-[10px] font-black tracking-[0.28em] text-cyan-300/65">CHOOSE YOUR ARENA NAME</p>
+      <input
+        autoFocus
+        value={usernameInput}
+        onChange={(e) => {
+          setUsernameInput(cleanUsername(e.target.value));
+          setUsernameWarning(null);
+        }}
+        onKeyDown={(e) => {
+          if (e.key !== "Enter") return;
+          const readyName = getReadyUsername();
+          if (!readyName) return;
+          setShowAiUsername(false);
+          setShowDifficulty(true);
+        }}
+        maxLength={10}
+        placeholder="MAX 10 CHARACTERS"
+        className="mt-6 h-14 w-full rounded-2xl border border-white/15 bg-black/45 px-4 text-center text-lg font-black tracking-[0.16em] text-white outline-none placeholder:text-[10px] placeholder:text-white/25 focus:border-cyan-300/60"
+      />
+      {usernameWarning && <p className="mt-3 text-[10px] font-black tracking-[0.2em] text-red-400">{usernameWarning}</p>}
+      <button
+        type="button"
+        onClick={() => {
+          const readyName = getReadyUsername();
+          if (!readyName) return;
+          setShowAiUsername(false);
+          setShowDifficulty(true);
+        }}
+        className="mt-5 h-14 w-full rounded-2xl bg-[linear-gradient(90deg,#0052ff,#22d3ee)] font-black tracking-[0.18em] text-white shadow-[0_0_28px_rgba(0,82,255,.32)]"
+      >
+        CONTINUE
+      </button>
+      <button
+        type="button"
+        onClick={() => {
+          setShowAiUsername(false);
+          setUsernameWarning(null);
+        }}
+        className="mt-4 text-[10px] font-black tracking-[0.22em] text-white/35"
+      >
+        CANCEL
+      </button>
+    </div>
+  </div>
+)}
 {showDifficulty && (
   <div className="absolute inset-0 z-[90] bg-black/80 backdrop-blur-md flex items-center justify-center px-6">
     <div className="w-full max-w-[430px] text-center bg-[#050814] border border-[#0052FF]/20 rounded-3xl p-6 shadow-[0_0_50px_rgba(0,82,255,0.15)]">
