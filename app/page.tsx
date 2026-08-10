@@ -2396,16 +2396,18 @@ useEffect(() => {
       )}
 
       {!showSplash && screen === "menu" && (
-        <div className="absolute inset-0 z-50 flex items-center justify-center overflow-hidden">
+        <div className="absolute inset-0 z-50 flex items-center justify-center overflow-hidden bg-[#01030a]">
           <img
             src="/splash.png"
             alt=""
-            className="absolute inset-0 w-full h-full object-cover opacity-20 blur-sm"
+            className="absolute inset-0 h-full w-full scale-110 object-cover opacity-[0.08] blur-xl"
           />
 
-          <div className="absolute inset-0 bg-black/75" />
-    
-<div className="absolute inset-0 opacity-[0.08]">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_34%,rgba(0,82,255,.27),transparent_34%),radial-gradient(circle_at_18%_70%,rgba(34,211,238,.09),transparent_28%),radial-gradient(circle_at_82%_72%,rgba(109,53,255,.12),transparent_30%),linear-gradient(180deg,rgba(0,2,10,.28),#01030a_88%)]" />
+          <div className="absolute left-1/2 top-[10%] h-[70%] w-[2px] -translate-x-1/2 bg-[linear-gradient(transparent,rgba(34,211,238,.32),transparent)] blur-[1px]" />
+          <div className="absolute left-1/2 top-1/2 h-[620px] w-[620px] -translate-x-1/2 -translate-y-1/2 animate-[menuCorePulse_5s_ease-in-out_infinite] rounded-full border border-blue-400/10 shadow-[0_0_140px_rgba(0,82,255,.15)]" />
+
+<div className="absolute inset-[-5%] origin-center opacity-[0.11] [transform:perspective(700px)_rotateX(58deg)_scale(1.25)] animate-[menuGridDrift_12s_linear_infinite]">
   <div
     className="w-full h-full"
     style={{
@@ -2418,42 +2420,62 @@ useEffect(() => {
   />
 </div>
 
+          <div className="pointer-events-none absolute inset-0">
+            {Array.from({ length: 28 }).map((_, index) => (
+              <span
+                key={`menu-star-${index}`}
+                className="absolute rounded-full bg-cyan-100 animate-[menuStarFloat_5s_ease-in-out_infinite]"
+                style={{
+                  left: `${4 + ((index * 37) % 92)}%`,
+                  top: `${6 + ((index * 53) % 86)}%`,
+                  width: index % 4 === 0 ? 3 : 2,
+                  height: index % 4 === 0 ? 3 : 2,
+                  opacity: 0.18 + (index % 5) * 0.1,
+                  animationDelay: `${(index % 9) * -0.55}s`,
+                }}
+              />
+            ))}
+          </div>
 
-          <div className="relative z-10 flex flex-col items-center text-center">
+          <div className="relative z-10 flex max-h-[94dvh] w-[min(92vw,460px)] flex-col items-center overflow-y-auto rounded-[40px] border border-cyan-200/15 bg-[linear-gradient(155deg,rgba(8,25,58,.78),rgba(1,5,18,.88))] px-10 py-8 text-center shadow-[0_40px_120px_rgba(0,0,0,.72),0_0_70px_rgba(0,82,255,.2),inset_0_1px_0_rgba(255,255,255,.1)] backdrop-blur-2xl [scrollbar-width:none]">
+            <div className="pointer-events-none absolute inset-[1px] rounded-[39px] bg-[radial-gradient(circle_at_50%_0%,rgba(34,211,238,.12),transparent_34%)]" />
+            <div className="relative z-10 flex w-full flex-col items-center">
 
-<div className="mb-4 relative">
-  <div className="w-28 h-28 rounded-full border-2 border-[#0052FF]/60 animate-pulse" />
+<div className="mb-5 relative">
+  <div className="h-24 w-24 rounded-full border border-cyan-300/45 shadow-[0_0_35px_rgba(0,82,255,.35)] animate-[menuCorePulse_3.5s_ease-in-out_infinite]" />
 
-  <div className="absolute inset-0 rounded-full bg-[#0052FF]/10 blur-xl" />
+  <div className="absolute inset-[-14px] rotate-[24deg] scale-y-[.42] rounded-full border border-cyan-300/30" />
+  <div className="absolute inset-[-22px] -rotate-[30deg] scale-y-[.48] rounded-full border border-violet-400/25" />
+  <div className="absolute inset-0 rounded-full bg-[#0052FF]/20 blur-xl" />
 
   {/* dönen enerji noktası */}
-  <div className="absolute inset-0 animate-[spin_5s_linear_infinite]">
-    <div className="absolute left-1/2 top-0 w-3 h-3 rounded-full bg-[#0052FF] shadow-[0_0_12px_rgba(0,82,255,1)] -translate-x-1/2" />
+  <div className="absolute inset-0 animate-[spin_6s_linear_infinite]">
+    <div className="absolute left-1/2 top-0 h-2.5 w-2.5 -translate-x-1/2 rounded-full bg-cyan-300 shadow-[0_0_16px_rgba(34,211,238,1)]" />
   </div>
 
   {/* merkez çekirdek */}
-  <div className="absolute left-1/2 top-1/2 w-12 h-12 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white shadow-[0_0_30px_rgba(0,82,255,1)]" />
+  <div className="absolute left-1/2 top-1/2 h-11 w-11 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(circle_at_35%_30%,white,#9ff5ff_24%,#0052ff_58%,#06112e)] shadow-[0_0_30px_rgba(34,211,238,.85)]" />
 
   <div className="absolute left-1/2 top-1/2 w-4 h-[3px] -translate-x-1/2 -translate-y-1/2 bg-[#0052FF]" />
 
-  <div className="mt-2 text-[10px] tracking-[0.35em] text-[#0052FF]/60 font-black">
+  <div className="mt-3 text-[9px] tracking-[0.4em] text-cyan-300/65 font-black">
   BASE CORE
 </div>
 </div>
 
-            <h1 className="text-white text-5xl font-black tracking-[0.2em]">
+            <h1 className="bg-[linear-gradient(180deg,#fff_30%,#a9d9ff)] bg-clip-text text-4xl font-black tracking-[0.18em] text-transparent drop-shadow-[0_0_22px_rgba(126,220,255,.18)] sm:text-5xl">
               BASE BOING
             </h1>
 
-            <div className="text-[#0052FF] text-xl font-black tracking-[0.45em] mt-2">
+            <div className="mt-2 text-xl font-black tracking-[0.48em] text-[#3885ff] drop-shadow-[0_0_15px_rgba(0,82,255,.55)]">
               BATTLE
             </div>
 
-            <p className="mt-2 text-[10px] tracking-[0.35em] text-[#0052FF] font-black">
+            <p className="mt-2 text-[9px] tracking-[0.38em] text-cyan-300/70 font-black">
   BUILT ON BASE
 </p>
 
-            <p className="mt-5 text-white/35 text-xs tracking-[0.35em]">
+            <p className="mt-5 rounded-full border border-white/10 bg-black/20 px-5 py-2 text-[9px] font-black tracking-[0.3em] text-white/45">
               DEFLECT • SURVIVE • DOMINATE
             </p>
 
@@ -2468,9 +2490,9 @@ useEffect(() => {
     setUsernameWarning(null);
     setShowAiUsername(true);
   }}
-  className={`mt-12 w-[240px] h-[58px] rounded-full font-black tracking-[0.2em] transition ${
+  className={`mt-8 h-[60px] w-full max-w-[310px] rounded-2xl font-black tracking-[0.2em] transition ${
     baseEnergyActive
-      ? "bg-[#0052FF] text-white shadow-[0_0_30px_rgba(0,82,255,0.35)]"
+      ? "bg-[linear-gradient(100deg,#6d35ff,#0052ff_55%,#22d3ee)] text-white shadow-[0_14px_34px_rgba(0,82,255,.38),inset_0_1px_0_rgba(255,255,255,.3)] hover:brightness-110"
       : "bg-white/5 border border-white/10 text-white/35"
   }`}
 >
@@ -2619,9 +2641,9 @@ useEffect(() => {
 
                 setShowOnlineSoon(true);
               }}
-              className={`mt-4 w-[240px] h-[58px] rounded-full border font-black tracking-[0.2em] transition ${
+              className={`mt-3 h-[58px] w-full max-w-[310px] rounded-2xl border font-black tracking-[0.2em] transition ${
                 baseEnergyActive
-                  ? "border-[#0052FF]/50 text-[#0052FF] hover:bg-[#0052FF]/10"
+                  ? "border-blue-400/45 bg-blue-500/5 text-[#64a0ff] shadow-[inset_0_1px_0_rgba(255,255,255,.06)] hover:bg-[#0052FF]/15"
                   : "border-white/10 text-white/35"
               }`}
             >
@@ -2630,7 +2652,7 @@ useEffect(() => {
 
             <button
               onClick={() => setShowHowToPlay(true)}
-              className="mt-4 w-[240px] h-[58px] rounded-full border border-white/15 text-white/70 font-black tracking-[0.2em] hover:bg-white/10 transition"
+              className="mt-3 h-[58px] w-full max-w-[310px] rounded-2xl border border-white/15 bg-white/[.025] font-black tracking-[0.2em] text-white/65 transition hover:border-cyan-200/25 hover:bg-white/[.07]"
             >
               HOW TO PLAY
             </button>
@@ -2638,9 +2660,9 @@ useEffect(() => {
             <button
               onClick={handleActivateBaseEnergy}
               disabled={baseEnergyLoading || baseEnergyActive}
-              className={`mt-4 w-[240px] h-[58px] rounded-full border font-black tracking-[0.13em] transition ${
+              className={`mt-3 h-[58px] w-full max-w-[310px] rounded-2xl border font-black tracking-[0.13em] transition ${
                 baseEnergyActive
-                  ? "border-emerald-400/40 text-emerald-300 bg-emerald-400/10"
+                  ? "border-emerald-400/35 text-emerald-300 bg-emerald-400/[.08] shadow-[0_0_24px_rgba(52,211,153,.08)]"
                   : "border-[#0052FF]/60 text-white bg-[#0052FF]/15 hover:bg-[#0052FF]/25"
               }`}
             >
@@ -2657,6 +2679,7 @@ useEffect(() => {
               </p>
             )}
           </div>
+        </div>
         </div>
       )}
 

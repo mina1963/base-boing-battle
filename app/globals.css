@@ -97,3 +97,18 @@ body {
     transform: translateY(0) scale(1);
   }
 }
+
+@keyframes menuGridDrift {
+  from { transform: perspective(700px) rotateX(58deg) scale(1.25) translateY(0); }
+  to { transform: perspective(700px) rotateX(58deg) scale(1.25) translateY(48px); }
+}
+
+@keyframes menuCorePulse {
+  0%, 100% { opacity: 0.55; transform: scale(0.96); }
+  50% { opacity: 1; transform: scale(1.04); }
+}
+
+@keyframes menuStarFloat {
+  0%, 100% { transform: translateY(0) scale(0.8); filter: brightness(0.8); }
+  50% { transform: translateY(-14px) scale(1.25); filter: brightness(1.5); }
+}
