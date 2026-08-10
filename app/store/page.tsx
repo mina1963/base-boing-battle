@@ -2322,9 +2322,9 @@ export default function MobilePage() {
   #menuBtn:before { content:"‹"; display:inline-grid; place-items:center; width:16px; height:16px; margin-right:4px; border:1px solid rgba(111,227,255,.3); border-radius:50%; color:#7beaff; }
   #restartBtn:after { content:"↻"; display:inline-grid; place-items:center; width:16px; height:16px; margin-left:4px; border:1px solid rgba(111,227,255,.3); border-radius:50%; color:#7beaff; }
   #scoreHud { min-width:0; display:grid !important; grid-template-columns:minmax(0,1fr) 22px 6px 22px minmax(0,1fr); align-items:center; gap:6px; padding:0 10px !important; border-color:rgba(99,199,255,.62) !important; background:radial-gradient(circle at 50% 0%,rgba(0,112,255,.3),transparent 58%),linear-gradient(180deg,rgba(6,34,82,.97),rgba(0,6,22,.94)) !important; }
-  .scoreName { min-width:0; overflow:hidden; color:#ffd8dd; font-size:9px; font-weight:1000; letter-spacing:.08em; text-overflow:ellipsis; white-space:nowrap; text-shadow:0 0 10px rgba(255,70,91,.58); }
+  .scoreName { min-width:0; overflow:hidden; color:#b8f7ff; font-size:9px; font-weight:1000; letter-spacing:.08em; text-overflow:ellipsis; white-space:nowrap; text-shadow:0 0 11px rgba(49,220,255,.68); }
   .scoreName:first-child { text-align:right; }
-  .scoreName:last-child { text-align:left; color:#b8f7ff; text-shadow:0 0 11px rgba(49,220,255,.68); }
+  .scoreName:last-child { text-align:left; color:#ffd8dd; text-shadow:0 0 10px rgba(255,70,91,.58); }
   .scoreNumber { color:white; font-size:19px; line-height:1; font-weight:1000; text-shadow:0 0 16px rgba(115,224,255,.85); }
   .scoreNumber.rival { color:#ff7d89; text-shadow:0 0 16px rgba(255,65,85,.72); }
   .scoreDivider { width:4px; height:4px; border:1px solid #8cecff; transform:rotate(45deg); box-shadow:0 0 8px #22d3ee; }
@@ -2738,18 +2738,18 @@ export default function MobilePage() {
       <div id="hudTop">
         <button id="menuBtn" class="pill">MENU</button>
         <div id="scoreHud" class="pill" aria-label="Match score">
-          <span id="rivalScoreName" class="scoreName">AI</span>
-          <strong id="rivalScoreValue" class="scoreNumber rival">0</strong>
-          <i class="scoreDivider"></i>
-          <strong id="playerScoreValue" class="scoreNumber">0</strong>
           <span id="playerScoreName" class="scoreName">YOU</span>
+          <strong id="playerScoreValue" class="scoreNumber">0</strong>
+          <i class="scoreDivider"></i>
+          <strong id="rivalScoreValue" class="scoreNumber rival">0</strong>
+          <span id="rivalScoreName" class="scoreName">AI</span>
         </div>
         <button id="restartBtn" class="pill">RESTART</button>
       </div>
       <div id="overlayText"></div>
       <div id="resultPanel">
         <div id="resultTitle">YOU WIN</div>
-        <div id="resultScore" class="sub">AI 0 ◇ 0 YOU</div>
+        <div id="resultScore" class="sub">YOU 0 ◇ 0 AI</div>
         <button id="playAgainBtn" class="btn">PLAY AGAIN</button>
         <div style="height:10px"></div>
         <button id="resultMenuBtn" class="btn secondary">MAIN MENU</button>
@@ -2763,7 +2763,7 @@ export default function MobilePage() {
   var arena='base', difficulty='normal', socketRegion='EU', mode='ai';
   var canvas, ctx, raf=0, arenaPaint=null;
   var ball, lines, trail, sparks, score, energy, rallyElapsedSeconds=0, started=false, paused=false, drawing=null, goalLocked=false;
-  var MAX_ACTIVE_LINES_PER_SIDE=2;
+  var MAX_ACTIVE_LINES_PER_SIDE=2, MAX_PLAYER_LINE_LENGTH=160, MAX_AI_LINE_LENGTH=120;
   var frame=0, lastFrameAt=Date.now(), lastDtScale=1, audioUnlocked=false, soundEnabled=true, lastWallSound=0, lastOnlineScoreTotal=null, lastOnlineRoundKey=null, onlineCountdownTimer=null, onlineBattleTimer=null, onlineRoomClosed=false, onlineServerPlaying=false, activeAudioContexts=[];
   var socket=null, socketReady=false, isHost=false, roleKnown=false, roomCode=null, mobileId='mobile_'+Math.random().toString(16).slice(2,10), onlineTarget={x:200,y:350,vx:1.2,vy:1.8}, onlineStateAt=Date.now();
   var onlineStartState=null;
@@ -2918,13 +2918,13 @@ export default function MobilePage() {
   }
   function updateScoreHud(){
     if(!$('scoreHud')||!score) return;
-    var left = mode==='online' ? displayName(rivalName) : 'AI';
-    var right = displayName(playerName);
-    if($('rivalScoreName')) $('rivalScoreName').textContent=left;
-    if($('rivalScoreValue')) $('rivalScoreValue').textContent=String(score.ai);
+    var left = displayName(playerName);
+    var right = mode==='online' ? displayName(rivalName) : 'AI';
+    if($('playerScoreName')) $('playerScoreName').textContent=left;
     if($('playerScoreValue')) $('playerScoreValue').textContent=String(score.player);
-    if($('playerScoreName')) $('playerScoreName').textContent=right;
-    $('scoreHud').setAttribute('aria-label',left+' '+score.ai+' to '+score.player+' '+right);
+    if($('rivalScoreValue')) $('rivalScoreValue').textContent=String(score.ai);
+    if($('rivalScoreName')) $('rivalScoreName').textContent=right;
+    $('scoreHud').setAttribute('aria-label',left+' '+score.player+' to '+score.ai+' '+right);
   }
   function setMatchStatus(v){ var el=$('matchStatus'); if(el) el.textContent=v; }
   function setRoomCodeDisplay(code){
@@ -3949,7 +3949,7 @@ else next='BATTLE!';
       var youWin=(winner==='host'&&isHost)||(winner==='guest'&&!isHost);
       $('resultTitle').textContent=youWin?'YOU WIN':'RIVAL WINS';
       $('resultTitle').style.color=youWin?theme().main:'#ef4444';
-      $('resultScore').textContent=displayName(rivalName)+' '+score.ai+' ◇ '+score.player+' '+displayName(playerName);
+      $('resultScore').textContent=displayName(playerName)+' '+score.player+' ◇ '+score.ai+' '+displayName(rivalName);
       $('resultPanel').classList.add('active');
     }
   }
@@ -4102,13 +4102,14 @@ else next='BATTLE!';
   }
   function addLine(start,end,owner){
     var dx=end.x-start.x, dy=end.y-start.y, len=Math.sqrt(dx*dx+dy*dy)||1;
-    var max=160, l=Math.min(max,len), a=Math.atan2(dy,dx);
+    var max=owner==='ai'?MAX_AI_LINE_LENGTH:MAX_PLAYER_LINE_LENGTH, l=Math.min(max,len), a=Math.atan2(dy,dx);
     var count=0;
     lines=lines.filter(function(line){
       if(line.owner===owner){ count++; return count<MAX_ACTIVE_LINES_PER_SIDE; }
       return true;
     });
-    var createdLine={x1:start.x,y1:start.y,x2:start.x+Math.cos(a)*l,y2:start.y+Math.sin(a)*l,life:50,owner:owner};
+    var sx=Math.max(22,Math.min(W-22,start.x)), sy=Math.max(22,Math.min(H-22,start.y));
+    var createdLine={x1:sx,y1:sy,x2:Math.max(22,Math.min(W-22,sx+Math.cos(a)*l)),y2:Math.max(22,Math.min(H-22,sy+Math.sin(a)*l)),life:50,owner:owner};
     lines.push(createdLine);
     if(owner==='player') energy=Math.max(0,energy-20);
     return createdLine;
@@ -4140,7 +4141,7 @@ else next='BATTLE!';
       $('resultTitle').textContent=score.player>=7?displayName(playerName)+' WINS':'AI WINS';
       $('resultTitle').style.color=score.player>=7?theme().main:'#ef4444';
       $('resultTitle').style.textShadow='0 0 26px '+(score.player>=7?theme().main:'#ef4444');
-      $('resultScore').textContent='AI '+score.ai+' ◇ '+score.player+' '+displayName(playerName);
+      $('resultScore').textContent=displayName(playerName)+' '+score.player+' ◇ '+score.ai+' AI';
       $('resultPanel').classList.add('active');
       return;
     }

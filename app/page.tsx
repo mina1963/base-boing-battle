@@ -1136,6 +1136,7 @@ const socket = io(
     const W = 400;
     const H = 700;
     const MAX_LINE_LENGTH = 160;
+    const MAX_AI_LINE_LENGTH = 120;
     const MAX_ACTIVE_LINES_PER_SIDE = 2;
 
     const baseBackground = ctx.createLinearGradient(0, 0, 0, H);
@@ -1185,12 +1186,13 @@ const socket = io(
 
     const limitLine = (
       start: { x: number; y: number },
-      end: { x: number; y: number }
+      end: { x: number; y: number },
+      maxLength = MAX_LINE_LENGTH
     ) => {
       const dx = end.x - start.x;
       const dy = end.y - start.y;
       const length = Math.hypot(dx, dy);
-      const limitedLength = Math.min(length, MAX_LINE_LENGTH);
+      const limitedLength = Math.min(length, maxLength);
       const angle = Math.atan2(dy, dx);
 
       return {
@@ -1701,13 +1703,11 @@ const activeArena = arenaRef.current;
 
       const score = scoreRef.current;
 
-      const leftName = gameModeRef.current === "online"
+      const leftName = hudName(playerNameRef.current);
+      const rightName = gameModeRef.current === "online"
         ? hudName(rivalNameRef.current)
         : "AI";
-      const rightName = gameModeRef.current === "online"
-        ? hudName(playerNameRef.current)
-        : "YOU";
-      const scoreText = `${leftName} ${score.ai}   ◇   ${score.player} ${rightName}`;
+      const scoreText = `${leftName} ${score.player}   ◇   ${score.ai} ${rightName}`;
       const hudFontSize = scoreText.length > 34 ? 13 : scoreText.length > 28 ? 15 : 20;
 
       ctx.fillStyle = "rgba(255,255,255,0.95)";
@@ -1814,11 +1814,24 @@ aiElapsedFrames += dtScale;
     }
   }
 
+  const aiStart = {
+    x: Math.max(22, Math.min(W - 22, ball.x + aiError - 55)),
+    y: Math.min(aiY1, H / 2 - 25),
+  };
+  const aiEnd = limitLine(
+    aiStart,
+    {
+      x: Math.max(22, Math.min(W - 22, ball.x + aiError + 55)),
+      y: Math.min(aiY2, H / 2 - 25),
+    },
+    MAX_AI_LINE_LENGTH
+  );
+
   linesRef.current.push({
-    x1: ball.x + aiError - 55,
-    y1: Math.min(aiY1, H / 2 - 25),
-    x2: ball.x + aiError + 55,
-    y2: Math.min(aiY2, H / 2 - 25),
+    x1: aiStart.x,
+    y1: aiStart.y,
+    x2: aiEnd.x,
+    y2: aiEnd.y,
     life: 55,
     owner: "ai",
   });
