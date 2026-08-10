@@ -2313,6 +2313,27 @@ export default function MobilePage() {
     letter-spacing:.24em !important;
     backdrop-filter:blur(8px);
   }
+  #gameWrap { background:radial-gradient(circle at 50% 48%,rgba(0,82,255,.16),transparent 42%),#01030a !important; }
+  #gameWrap:before { content:""; position:absolute; inset:0; z-index:1; pointer-events:none; background:linear-gradient(90deg,rgba(0,0,0,.58),transparent 11%,transparent 89%,rgba(0,0,0,.58)); }
+  #gameCanvas { position:relative; z-index:2; filter:saturate(1.12) contrast(1.04); }
+  #hudTop { z-index:8; }
+  #hudTop .pill { min-height:48px; border-color:rgba(111,229,255,.42) !important; background:radial-gradient(circle at 50% 0%,rgba(33,123,255,.22),transparent 62%),linear-gradient(180deg,rgba(5,25,62,.94),rgba(0,5,17,.9)) !important; box-shadow:0 12px 34px rgba(0,4,20,.62),inset 0 1px 0 rgba(255,255,255,.14),inset 0 -1px 0 rgba(0,82,255,.28),0 0 20px rgba(0,129,255,.14) !important; }
+  #menuBtn,#restartBtn { width:76px; padding:0 8px !important; color:#dff8ff !important; font-size:8px !important; }
+  #menuBtn:before { content:"‹"; display:inline-grid; place-items:center; width:16px; height:16px; margin-right:4px; border:1px solid rgba(111,227,255,.3); border-radius:50%; color:#7beaff; }
+  #restartBtn:after { content:"↻"; display:inline-grid; place-items:center; width:16px; height:16px; margin-left:4px; border:1px solid rgba(111,227,255,.3); border-radius:50%; color:#7beaff; }
+  #scoreHud { min-width:0; display:grid !important; grid-template-columns:minmax(0,1fr) 22px 6px 22px minmax(0,1fr); align-items:center; gap:6px; padding:0 10px !important; border-color:rgba(99,199,255,.62) !important; background:radial-gradient(circle at 50% 0%,rgba(0,112,255,.3),transparent 58%),linear-gradient(180deg,rgba(6,34,82,.97),rgba(0,6,22,.94)) !important; }
+  .scoreName { min-width:0; overflow:hidden; color:rgba(213,242,255,.72); font-size:7px; font-weight:1000; letter-spacing:.13em; text-overflow:ellipsis; white-space:nowrap; }
+  .scoreName:first-child { text-align:right; }
+  .scoreName:last-child { text-align:left; color:#86efff; }
+  .scoreNumber { color:white; font-size:19px; line-height:1; font-weight:1000; text-shadow:0 0 16px rgba(115,224,255,.85); }
+  .scoreNumber.rival { color:#ff7d89; text-shadow:0 0 16px rgba(255,65,85,.72); }
+  .scoreDivider { width:4px; height:4px; border:1px solid #8cecff; transform:rotate(45deg); box-shadow:0 0 8px #22d3ee; }
+  #roundHint { z-index:7; top:calc(env(safe-area-inset-top) + 71px) !important; padding:5px 15px !important; border-color:rgba(103,215,255,.2) !important; background:linear-gradient(180deg,rgba(5,25,61,.76),rgba(0,4,16,.72)) !important; box-shadow:0 8px 20px rgba(0,0,0,.35),0 0 18px rgba(0,82,255,.1); color:rgba(206,241,255,.8) !important; }
+  #overlayText { z-index:7; background:linear-gradient(90deg,transparent,rgba(0,8,35,.5),transparent); padding:12px 0; text-shadow:0 0 10px white,0 0 34px rgba(0,82,255,.95); }
+  #resultPanel { z-index:12; padding:26px 20px 20px; border:1px solid rgba(103,221,255,.38); border-radius:30px; background:radial-gradient(circle at 50% 0%,rgba(0,82,255,.28),transparent 50%),linear-gradient(160deg,rgba(7,24,58,.97),rgba(0,3,13,.98)); box-shadow:0 30px 80px rgba(0,0,0,.72),0 0 42px rgba(0,119,255,.25),inset 0 1px 0 rgba(255,255,255,.14); backdrop-filter:blur(20px) saturate(1.35); }
+  #resultPanel:before { content:"MATCH COMPLETE"; display:block; margin-bottom:8px; color:#78eaff; font-size:7px; font-weight:1000; letter-spacing:.32em; text-align:center; }
+  #resultTitle { color:white; text-shadow:0 0 26px rgba(88,215,255,.72); }
+  #resultScore { margin:0 auto 20px; width:max-content; padding:8px 15px; border:1px solid rgba(255,255,255,.1); border-radius:999px; background:rgba(0,5,20,.56); color:rgba(221,244,255,.75); font-weight:900; letter-spacing:.14em; }
 
   /* Base-only energy control rendered by React above the legacy game shell. */
   .mobileEnergyCard {
@@ -2708,7 +2729,13 @@ export default function MobilePage() {
       <div id="roundHint">FIRST TO 7</div>
       <div id="hudTop">
         <button id="menuBtn" class="pill">MENU</button>
-        <div id="scoreHud" class="pill">AI 0 ◇ 0 YOU</div>
+        <div id="scoreHud" class="pill" aria-label="Match score">
+          <span id="rivalScoreName" class="scoreName">AI</span>
+          <strong id="rivalScoreValue" class="scoreNumber rival">0</strong>
+          <i class="scoreDivider"></i>
+          <strong id="playerScoreValue" class="scoreNumber">0</strong>
+          <span id="playerScoreName" class="scoreName">YOU</span>
+        </div>
         <button id="restartBtn" class="pill">RESTART</button>
       </div>
       <div id="overlayText"></div>
@@ -2885,7 +2912,11 @@ export default function MobilePage() {
     if(!$('scoreHud')||!score) return;
     var left = mode==='online' ? displayName(rivalName) : 'AI';
     var right = displayName(playerName);
-    $('scoreHud').textContent=left+' '+score.ai+' ◇ '+score.player+' '+right;
+    if($('rivalScoreName')) $('rivalScoreName').textContent=left;
+    if($('rivalScoreValue')) $('rivalScoreValue').textContent=String(score.ai);
+    if($('playerScoreValue')) $('playerScoreValue').textContent=String(score.player);
+    if($('playerScoreName')) $('playerScoreName').textContent=right;
+    $('scoreHud').setAttribute('aria-label',left+' '+score.ai+' to '+score.player+' '+right);
   }
   function setMatchStatus(v){ var el=$('matchStatus'); if(el) el.textContent=v; }
   function setRoomCodeDisplay(code){
@@ -4253,8 +4284,25 @@ else next='BATTLE!';
     if(ball.y<22) goal('player');
     if(ball.y>H-22) goal('ai');
   }
+  function drawPremiumFieldFx(){
+    var pulse=.28+Math.sin(performance.now()*.003)*.08;
+    ctx.save();
+    ctx.strokeStyle='rgba(210,244,255,.12)'; ctx.lineWidth=1;
+    ctx.strokeRect(30,30,W-60,H-60);
+    ctx.strokeStyle=theme().glow; ctx.globalAlpha=pulse; ctx.lineWidth=2; ctx.shadowColor=theme().main; ctx.shadowBlur=18;
+    ctx.beginPath(); ctx.moveTo(30,H/2); ctx.lineTo(W-30,H/2); ctx.stroke();
+    ctx.globalAlpha=.24; ctx.strokeRect(112,30,176,46); ctx.strokeRect(112,H-76,176,46);
+    ctx.globalAlpha=.18;
+    for(var c=0;c<4;c++){
+      var left=c%2===0, top=c<2, x=left?30:W-30, y=top?30:H-30, sx=left?1:-1, sy=top?1:-1;
+      ctx.beginPath(); ctx.moveTo(x,y+sy*22); ctx.lineTo(x,y); ctx.lineTo(x+sx*22,y); ctx.stroke();
+    }
+    var scanY=36+((performance.now()*.035)%(H-72));
+    ctx.globalAlpha=.08; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(34,scanY); ctx.lineTo(W-34,scanY); ctx.stroke();
+    ctx.restore();
+  }
   function render(){
-    drawBg(); physics();
+    drawBg(); drawPremiumFieldFx(); physics();
     if(score && (score.player===6 || score.ai===6)){
       ctx.save(); ctx.textAlign='center'; ctx.font=(score.player===6&&score.ai===6)?'bold 28px monospace':'bold 24px monospace'; ctx.fillStyle=theme().main; ctx.shadowColor=theme().main; ctx.shadowBlur=24;
       ctx.fillText((score.player===6&&score.ai===6)?'FINAL CLASH':(arena==='space'?'ORBIT POINT':arena==='temple'?'VOID POINT':arena==='base'?'CORE POINT':'MATCH POINT'), W/2, H/2-95); ctx.restore();
@@ -4272,13 +4320,21 @@ else next='BATTLE!';
     }).filter(function(s){return s.life>0;});
 
     lines.forEach(function(l){ var a=Math.max(l.life/42,.08); ctx.beginPath(); ctx.moveTo(l.x1,l.y1); ctx.lineTo(l.x2,l.y2); ctx.lineCap='round'; ctx.lineWidth=10; ctx.strokeStyle=l.owner==='player'?'rgba(0,82,255,'+a+')':'rgba(239,68,68,'+a+')'; ctx.shadowColor=l.owner==='player'?'#0052ff':'#ef4444'; ctx.shadowBlur=24; ctx.stroke(); ctx.shadowBlur=0; });
-    trail.forEach(function(p,i){ var a=i/trail.length; ctx.beginPath(); ctx.arc(p.x,p.y,ball.r*a*1.5,0,Math.PI*2); ctx.fillStyle='rgba(0,82,255,'+(a*.26)+')'; ctx.fill(); });
+    trail.forEach(function(p,i){ var a=i/trail.length; ctx.beginPath(); ctx.arc(p.x,p.y,1+ball.r*a*1.45,0,Math.PI*2); ctx.fillStyle=theme().glow.replace('.95',String(a*.3)); ctx.fill(); });
     sparks.forEach(function(s){ var a=s.life/22; ctx.beginPath(); ctx.arc(s.x,s.y,2+a*3,0,Math.PI*2); ctx.fillStyle=s.color==='#ef4444'?'rgba(239,68,68,'+a+')':'rgba(0,82,255,'+a+')'; ctx.shadowColor=s.color; ctx.shadowBlur=14; ctx.fill(); ctx.shadowBlur=0; });
 
-    ctx.beginPath(); ctx.arc(ball.x,ball.y,ball.r+8,0,Math.PI*2); ctx.fillStyle='rgba(0,82,255,.18)'; ctx.fill();
-    ctx.beginPath(); ctx.arc(ball.x,ball.y,ball.r,0,Math.PI*2); ctx.fillStyle='white'; ctx.shadowColor=theme().main; ctx.shadowBlur=26; ctx.fill(); ctx.shadowBlur=0;
-    ctx.fillStyle='rgba(255,255,255,.12)'; ctx.fillRect(120,72,160,8); ctx.fillStyle='#ef4444'; ctx.fillRect(120,72,160*energy/100,8);
-    ctx.fillStyle='rgba(255,255,255,.55)'; ctx.font='10px monospace'; ctx.textAlign='center'; ctx.fillText('ENERGY',W/2,96);
+    var ballPulse=1+Math.sin(performance.now()*.012)*.08;
+    ctx.beginPath(); ctx.arc(ball.x,ball.y,(ball.r+12)*ballPulse,0,Math.PI*2); ctx.fillStyle=theme().glow.replace('.95','.11'); ctx.fill();
+    ctx.beginPath(); ctx.arc(ball.x,ball.y,ball.r+5,0,Math.PI*2); ctx.strokeStyle=theme().main; ctx.globalAlpha=.36; ctx.lineWidth=1.5; ctx.shadowColor=theme().main; ctx.shadowBlur=18; ctx.stroke(); ctx.globalAlpha=1;
+    ctx.beginPath(); ctx.arc(ball.x,ball.y,ball.r+1.5,0,Math.PI*2); ctx.fillStyle='#dffbff'; ctx.shadowColor=theme().main; ctx.shadowBlur=30; ctx.fill(); ctx.shadowBlur=0;
+    ctx.beginPath(); ctx.arc(ball.x-2.6,ball.y-3,2.4,0,Math.PI*2); ctx.fillStyle='white'; ctx.fill();
+    ctx.beginPath(); ctx.arc(ball.x+2.4,ball.y+2.8,2.8,0,Math.PI*2); ctx.fillStyle=theme().main; ctx.globalAlpha=.34; ctx.fill(); ctx.globalAlpha=1;
+
+    var energyWidth=174, energyX=(W-energyWidth)/2, energyY=88, filled=Math.max(0,energyWidth*energy/100);
+    ctx.fillStyle='rgba(0,4,18,.78)'; ctx.shadowColor='rgba(0,0,0,.8)'; ctx.shadowBlur=12; ctx.fillRect(energyX-3,energyY-3,energyWidth+6,10); ctx.shadowBlur=0;
+    ctx.strokeStyle='rgba(150,229,255,.25)'; ctx.lineWidth=1; ctx.strokeRect(energyX-2.5,energyY-2.5,energyWidth+5,9);
+    ctx.fillStyle=energy<28?'#ff465b':energy<58?'#ffb829':theme().main; ctx.shadowColor=ctx.fillStyle; ctx.shadowBlur=14; ctx.fillRect(energyX,energyY,filled,4); ctx.shadowBlur=0;
+    ctx.fillStyle='rgba(215,245,255,.7)'; ctx.font='bold 7px monospace'; ctx.textAlign='center'; ctx.fillText('ENERGY  '+Math.round(energy)+'%',W/2,106);
   }
   function loop(){
     if(ctx && !document.hidden && $('gameScreen') && $('gameScreen').classList.contains('active')) render();
