@@ -297,6 +297,7 @@ const [onlineStatus, setOnlineStatus] =
 const [playAgainWaiting, setPlayAgainWaiting] = useState(false);
 const [finalScore, setFinalScore] =
   useState<{ player: number; ai: number } | null>(null);
+const [hudScore, setHudScore] = useState({ player: 0, ai: 0 });
 const [opponentLeft, setOpponentLeft] = useState(false);
 const [matchmaking, setMatchmaking] = useState(false);
 const [matchFound, setMatchFound] = useState(false);
@@ -399,11 +400,6 @@ const cleanUsername = (value: string) =>
     .replace(/[^a-zA-Z0-9_]/g, "")
     .slice(0, 10)
     .toUpperCase();
-
-const hudName = (value: string) => {
-  const clean = value || "PLAYER";
-  return clean.length > 10 ? clean.slice(0, 10) : clean;
-};
 
 const scoreAnnouncementName = (value: string) => {
   const clean = value || "PLAYER";
@@ -641,6 +637,10 @@ const startCountdown = (startAtMs: number) => {
       scoreRef.current.player = guestScore;
       scoreRef.current.ai = hostScore;
     }
+    setHudScore({
+      player: scoreRef.current.player,
+      ai: scoreRef.current.ai,
+    });
 
     const newScoreTotal = scoreRef.current.player + scoreRef.current.ai;
 
@@ -856,6 +856,7 @@ const socket = io(
     scoreRef.current.message = "";
     scoreRef.current.messageLife = 0;
     energyRef.current.value = 100;
+    setHudScore({ player: 0, ai: 0 });
 
     ballRef.current.x = 200;
     ballRef.current.y = 350;
@@ -1704,18 +1705,6 @@ const activeArena = arenaRef.current;
 
       const score = scoreRef.current;
 
-      const leftName = hudName(playerNameRef.current);
-      const rightName = gameModeRef.current === "online"
-        ? hudName(rivalNameRef.current)
-        : "AI";
-      const scoreText = `${leftName} ${score.player}   ◇   ${score.ai} ${rightName}`;
-      const hudFontSize = scoreText.length > 34 ? 13 : scoreText.length > 28 ? 15 : 20;
-
-      ctx.fillStyle = "rgba(255,255,255,0.95)";
-      ctx.font = `bold ${hudFontSize}px monospace`;
-      ctx.textAlign = "center";
-      ctx.fillText(scoreText, W / 2, 50);
-
       ctx.fillStyle = "rgba(0,82,255,0.8)";
       ctx.font = "bold 12px monospace";
       ctx.fillText("FIRST TO 7", W / 2, 68);
@@ -2005,6 +1994,7 @@ if (
 
   goalLockRef.current = true;
   score.player++;
+  setHudScore({ player: score.player, ai: score.ai });
   energyRef.current.value = 100;
 
 
@@ -2056,6 +2046,7 @@ if (
 
   goalLockRef.current = true;
   score.ai++;
+  setHudScore({ player: score.player, ai: score.ai });
   energyRef.current.value = 100;
 
 if (score.ai >= 7) {
@@ -2244,6 +2235,7 @@ useEffect(() => {
     scoreRef.current.message = "";
     scoreRef.current.messageLife = 0;
     energyRef.current.value = 100;
+    setHudScore({ player: 0, ai: 0 });
 
     ballRef.current.x = 200;
     ballRef.current.y = 350;
@@ -2312,6 +2304,7 @@ useEffect(() => {
     scoreRef.current.message = "";
     scoreRef.current.messageLife = 0;
     energyRef.current.value = 100;
+    setHudScore({ player: 0, ai: 0 });
 
     linesRef.current = [];
     trailRef.current = [];
@@ -3137,6 +3130,40 @@ socketRef.current?.emit("create-room", {
             </>
           )}
 
+          <div className="pointer-events-none absolute inset-x-2 top-2 z-30 grid grid-cols-[76px_minmax(0,1fr)_82px] items-center gap-2 sm:inset-x-3 sm:top-3">
+            <button
+              type="button"
+              onClick={goMainMenu}
+              className="pointer-events-auto h-11 rounded-2xl border border-cyan-300/45 bg-[#031022]/95 text-[9px] font-black tracking-[0.12em] text-cyan-100 shadow-[0_0_18px_rgba(34,211,238,0.2)] transition hover:border-cyan-200 hover:bg-[#06203a]"
+            >
+              ‹ MENU
+            </button>
+
+            <div className="min-w-0 h-11 rounded-2xl border border-cyan-300/45 bg-[linear-gradient(180deg,rgba(5,36,78,.97),rgba(0,8,24,.96))] px-2 shadow-[0_0_20px_rgba(34,211,238,0.18)]">
+              <div className="grid h-full grid-cols-[minmax(0,1fr)_24px_8px_24px_minmax(0,1fr)] items-center gap-1">
+                <span className="truncate text-right text-[9px] font-black tracking-[0.08em] text-cyan-100">
+                  {playerDisplayName || "YOU"}
+                </span>
+                <strong className="text-center text-lg font-black text-white">{hudScore.player}</strong>
+                <span className="mx-auto h-1.5 w-1.5 rotate-45 border border-cyan-200 shadow-[0_0_8px_#22d3ee]" />
+                <strong className="text-center text-lg font-black text-rose-300">{hudScore.ai}</strong>
+                <span className="truncate text-left text-[9px] font-black tracking-[0.08em] text-rose-200">
+                  {gameMode === "online" ? rivalDisplayName || "RIVAL" : "AI"}
+                </span>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={startGame}
+              disabled={gameMode === "online"}
+              title={gameMode === "online" ? "Online matches cannot be restarted by one player" : "Restart match"}
+              className="pointer-events-auto h-11 rounded-2xl border border-cyan-300/45 bg-[#031022]/95 text-[9px] font-black tracking-[0.1em] text-cyan-100 shadow-[0_0_18px_rgba(34,211,238,0.2)] transition hover:border-cyan-200 hover:bg-[#06203a] disabled:cursor-not-allowed disabled:opacity-45"
+            >
+              RESTART ↻
+            </button>
+          </div>
+
           <canvas
             ref={canvasRef}
             width={400}
@@ -3468,7 +3495,7 @@ socketRef.current?.emit("create-room", {
           <h1 className="text-4xl font-black text-white mb-2">{winner}</h1>
 
           <div className="mb-3 max-w-[90vw] text-center text-white/80 text-lg font-black tracking-[0.08em]">
-            {gameMode === "online" ? rivalDisplayName : "AI"} {finalScore?.ai ?? 0} ◇ {finalScore?.player ?? 0} {gameMode === "online" ? playerDisplayName : "YOU"}
+            {playerDisplayName || "YOU"} {finalScore?.player ?? 0} ◇ {finalScore?.ai ?? 0} {gameMode === "online" ? rivalDisplayName || "RIVAL" : "AI"}
           </div>
 
           <p className="mb-8 text-[#0052FF] text-xs font-black tracking-[0.35em]">
