@@ -2619,15 +2619,15 @@ export default function MobilePage() {
       <div class="artSubTitle">SETTINGS</div>
 
       <div class="artSettingsPanel">
-        <div class="artSettingsLabel">REGION</div>
+        <div class="artSettingsLabel" id="languageLabel">LANGUAGE</div>
         <div class="artTwoGrid">
-          <button class="region selected" data-region="EU"><strong>EU</strong><span>FRANKFURT</span></button>
-          <button class="region" data-region="US"><strong>US</strong><span>VIRGINIA</span></button>
+          <button id="languageEnglishBtn" class="toggleBtn on">ENGLISH</button>
+          <button id="languageTurkishBtn" class="toggleBtn">TÜRKÇE</button>
         </div>
       </div>
 
       <div class="artSettingsPanel">
-        <div class="artSettingsLabel">SOUND</div>
+        <div class="artSettingsLabel" id="soundLabel">SOUND</div>
         <div class="artTwoGrid">
           <button id="soundToggleBtn" class="toggleBtn on">ON</button>
           <button id="soundOffBtn" class="toggleBtn">OFF</button>
@@ -2769,7 +2769,7 @@ export default function MobilePage() {
 <script>
 (function(){
   var W=400,H=700;
-  var arena='base', difficulty='normal', socketRegion='EU', mode='ai';
+  var arena='base', difficulty='normal', socketRegion=detectClosestSocketRegion(), mode='ai';
   var canvas, ctx, raf=0, arenaPaint=null;
   var ball, lines, trail, sparks, score, energy, rallyElapsedSeconds=0, started=false, paused=false, drawing=null, goalLocked=false;
   var MAX_ACTIVE_LINES_PER_SIDE=2, MAX_AI_ACTIVE_LINES=1, MAX_PLAYER_LINE_LENGTH=160, MAX_AI_LINE_LENGTH=120;
@@ -2786,8 +2786,66 @@ export default function MobilePage() {
   var onlineArenaVoteMatchId=null;
   var playerName='PLAYER', rivalName='RIVAL', pendingMode='ai';
   var usernameAfterSave=null;
+  var uiLanguage=loadLanguage();
   var SOCKET_EU='https://base-boing-battle-1.onrender.com';
   var SOCKET_US='https://base-boing-battle-usa.onrender.com';
+  function detectClosestSocketRegion(){
+    try{
+      var zone=(Intl.DateTimeFormat().resolvedOptions().timeZone||'');
+      var locale=(navigator.language||'');
+      var code=(locale.split('-')[1]||'').toUpperCase();
+      if(zone.indexOf('America/')===0 || zone.indexOf('Pacific/')===0 || ['US','CA','MX','BR','AR','CL','CO','PE'].indexOf(code)!==-1) return 'US';
+    }catch(e){}
+    return 'EU';
+  }
+  function loadLanguage(){
+    try{ return localStorage.getItem('bbb_mobile_language')==='tr'?'tr':'en'; }catch(e){ return 'en'; }
+  }
+  function setLanguage(language){
+    uiLanguage=language==='tr'?'tr':'en';
+    try{ localStorage.setItem('bbb_mobile_language',uiLanguage); }catch(e){}
+    applyLanguage();
+  }
+  function lang(en,tr){ return uiLanguage==='tr'?tr:en; }
+  function setUiText(selector,en,tr){ var el=document.querySelector(selector); if(el) el.textContent=lang(en,tr); }
+  function setUiHtml(selector,en,tr){ var el=document.querySelector(selector); if(el) el.innerHTML=lang(en,tr); }
+  function applyLanguage(){
+    document.documentElement.lang=uiLanguage;
+    setUiText('#settingsScreen .artSubTitle','SETTINGS','AYARLAR');
+    setUiText('#languageLabel','LANGUAGE','DİL');
+    setUiText('#soundLabel','SOUND','SES');
+    setUiText('#soundToggleBtn','ON','AÇIK'); setUiText('#soundOffBtn','OFF','KAPALI');
+    setUiText('#settingsBackBtn','BACK','GERİ');
+    setUiText('#modeScreen .artSubTitle','PLAY','OYNA');
+    setUiText('#modeAiBtn strong','VS AI','YAPAY ZEKA'); setUiText('#modeAiBtn span','CHOOSE ARENA + DIFFICULTY','ARENA + ZORLUK SEÇ');
+    setUiText('#modeOnlineBtn strong','1V1 ONLINE','1V1 ÇEVRİMİÇİ'); setUiText('#modeOnlineBtn span','RANDOM MATCHMAKING','RASTGELE EŞLEŞME');
+    setUiText('#modeCreateBtn strong','CREATE ROOM','ODA OLUŞTUR'); setUiText('#modeCreateBtn span','PRIVATE ROOM WITH CODE','KODLU ÖZEL ODA');
+    setUiText('#modeJoinBtn strong','JOIN ROOM','ODAYA KATIL'); setUiText('#modeJoinBtn span','ENTER FRIEND ROOM CODE','ARKADAŞININ ODA KODUNU GİR');
+    setUiText('#modeBackBtn','BACK','GERİ');
+    setUiText('#difficultyScreen .premiumDiffTitle','SELECT\nDIFFICULTY','ZORLUK\nSEÇ');
+    setUiText('[data-difficulty="easy"] strong','EASY','KOLAY'); setUiText('[data-difficulty="easy"] span','CHILL TRAINING MODE','RAHAT ANTRENMAN MODU');
+    setUiText('[data-difficulty="normal"] strong','NORMAL','NORMAL'); setUiText('[data-difficulty="normal"] span','BALANCED ARCADE BATTLE','DENGELİ ARCADE SAVAŞI');
+    setUiText('[data-difficulty="hard"] strong','HARD','ZOR'); setUiText('[data-difficulty="hard"] span','FAST REFLEX CHALLENGE','HIZLI REFLEKS MÜCADELESİ');
+    setUiText('#startAiBtn','START MATCH','MAÇI BAŞLAT'); setUiText('#difficultyBackBtn','BACK','GERİ');
+    setUiText('#joinScreen .titleBadge','JOIN ROOM','ODAYA KATIL'); setUiText('#joinScreen .flowTitle','ENTER\nCODE','KODU\nGİR');
+    setUiText('#joinRoomBtn','JOIN ROOM','ODAYA KATIL'); setUiText('#joinBackBtn','BACK','GERİ');
+    setUiText('#howScreen h1','HOW TO PLAY','NASIL OYNANIR');
+    setUiText('#howScreen .card','Draw lines only on your half of the arena. Deflect the ball past the AI. Each line costs energy. First to 7 wins.','Sadece kendi yarı alanında çizgi çiz. Topu rakibin kalesine yönlendir. Her çizgi enerji harcar. İlk 7 sayıya ulaşan kazanır.');
+    setUiText('#backHowBtn','GOT IT','ANLADIM'); setUiText('#cancelMatchBtn','CANCEL','İPTAL');
+    setUiText('#menuBtn','MENU','MENÜ'); setUiText('#restartBtn','RESTART','YENİDEN'); setUiText('#roundHint','FIRST TO 7','İLK 7 KAZANIR');
+    setUiText('#playAgainBtn','PLAY AGAIN','TEKRAR OYNA'); setUiText('#resultMenuBtn','MAIN MENU','ANA MENÜ'); setUiText('.resultLabel','BATTLE REPORT','MAÇ RAPORU');
+    setUiText('#usernameModal .usernameModalTitle','USERNAME','OYUNCU ADI'); setUiText('#usernameModal .usernameModalSub','CHOOSE YOUR PLAYER NAME','OYUNCU ADINI SEÇ');
+    setUiText('#saveNameBtn','SAVE','KAYDET'); setUiText('#usernameCancelBtn','CANCEL','İPTAL');
+    setUiHtml('#storePlayBtn','PLAY VS AI<small>INSTANT MATCH</small>','YAPAY ZEKAYA KARŞI<small>HEMEN OYNA</small>');
+    setUiText('#storeOnlineBtn','ONLINE 1V1','ÇEVRİMİÇİ 1V1'); setUiText('#storeCreateBtn','CREATE ROOM','ODA OLUŞTUR'); setUiText('#storeJoinBtn','JOIN ROOM','ODAYA KATIL');
+    setUiText('.storeArenaHead strong','ARENAS','ARENALAR'); setUiText('.storeArenaHead span','4 STADIUMS','4 STADYUM');
+    setUiText('#storePlayNav span','PLAY','OYNA'); setUiText('#storeProfileNav span','PROFILE','PROFİL'); setUiText('#storeSettingsNav span','SETTINGS','AYARLAR'); setUiText('#storeFeedbackNav span','FEEDBACK','GERİ BİLDİRİM');
+    setUiText('.feedbackKicker','PLAYER SUPPORT','OYUNCU DESTEĞİ'); setUiText('.feedbackTitle','SEND FEEDBACK','GERİ BİLDİRİM GÖNDER');
+    setUiText('.feedbackSub','REPORT A BUG, SHARE AN IDEA OR TELL US WHAT THE GAME IS MISSING.','HATA BİLDİR, FİKRİNİ PAYLAŞ VEYA OYUNDA EKSİK OLANI BİZE ANLAT.');
+    setUiText('#feedbackCloseBtn','CANCEL','İPTAL'); setUiText('#feedbackSendBtn','SEND MESSAGE','MESAJ GÖNDER');
+    var enBtn=$('languageEnglishBtn'),trBtn=$('languageTurkishBtn');
+    if(enBtn) enBtn.classList.toggle('on',uiLanguage==='en'); if(trBtn) trBtn.classList.toggle('on',uiLanguage==='tr');
+  }
   function warmSocketRegion(region){
     var url=region==='US'?SOCKET_US:SOCKET_EU;
     try{ fetch(url+'/health',{mode:'cors',cache:'no-store'}).catch(function(){}); }catch(e){}
@@ -3925,8 +3983,8 @@ else next='BATTLE!';
     updateScoreHud();
     var totalScore=score.player+score.ai;
     if(lastOnlineScoreTotal!==null && totalScore>lastOnlineScoreTotal){
-      if(score.player>prevPlayer) setOverlay(displayName(playerName)+' SCORES');
-      else if(score.ai>prevAi) setOverlay(displayName(rivalName)+' SCORES');
+      if(score.player>prevPlayer) setOverlay(displayName(playerName)+lang(' SCORES',' SAYI ALDI'));
+      else if(score.ai>prevAi) setOverlay(displayName(rivalName)+lang(' SCORES',' SAYI ALDI'));
       energy=100;
       rallyElapsedSeconds=0;
       flash(); playSound('goal');
@@ -3956,7 +4014,7 @@ else next='BATTLE!';
       onlineServerPlaying=false;
       started=false; paused=true;
       var youWin=(winner==='host'&&isHost)||(winner==='guest'&&!isHost);
-      $('resultTitle').textContent=youWin?'YOU WIN':'RIVAL WINS';
+      $('resultTitle').textContent=youWin?lang('YOU WIN','KAZANDIN'):lang('RIVAL WINS','RAKİP KAZANDI');
       $('resultTitle').style.color=youWin?theme().main:'#ef4444';
       $('resultScore').textContent=displayName(playerName)+' '+score.player+' ◇ '+score.ai+' '+displayName(rivalName);
       $('resultPanel').classList.add('active');
@@ -4000,13 +4058,13 @@ else next='BATTLE!';
       lastOnlineScoreTotal=null;
       lastOnlineRoundKey=null;
     }catch(e){}
-    setOverlay('OPPONENT LEFT');
+    setOverlay(lang('OPPONENT LEFT','RAKİP AYRILDI'));
     setMatchStatus('Rakibin oyundan çıktı. Ana menüye dönebilirsin.');
     if($('resultPanel')){
-      $('resultTitle').textContent='OPPONENT LEFT';
+      $('resultTitle').textContent=lang('OPPONENT LEFT','RAKİP AYRILDI');
       $('resultTitle').style.color='#ef4444';
       $('resultTitle').style.textShadow='0 0 26px #ef4444';
-      if($('resultScore')) $('resultScore').textContent='MATCH ENDED';
+      if($('resultScore')) $('resultScore').textContent=lang('MATCH ENDED','MAÇ SONA ERDİ');
       if($('playAgainBtn')) $('playAgainBtn').style.display='none';
       if($('resultMenuBtn')) $('resultMenuBtn').textContent='MAIN MENU';
       $('resultPanel').classList.add('active');
@@ -4147,14 +4205,14 @@ else next='BATTLE!';
     var text=$('overlayText');
     if(score.player>=7 || score.ai>=7){
       text.textContent='';
-      $('resultTitle').textContent=score.player>=7?displayName(playerName)+' WINS':'AI WINS';
+      $('resultTitle').textContent=score.player>=7?displayName(playerName)+lang(' WINS',' KAZANDI'):lang('AI WINS','YAPAY ZEKA KAZANDI');
       $('resultTitle').style.color=score.player>=7?theme().main:'#ef4444';
       $('resultTitle').style.textShadow='0 0 26px '+(score.player>=7?theme().main:'#ef4444');
       $('resultScore').textContent=displayName(playerName)+' '+score.player+' ◇ '+score.ai+' AI';
       $('resultPanel').classList.add('active');
       return;
     }
-    setOverlay(who==='player'?displayName(playerName)+' SCORES':'AI SCORES');
+    setOverlay(who==='player'?displayName(playerName)+lang(' SCORES',' SAYI ALDI'):lang('AI SCORES','YAPAY ZEKA SAYI ALDI'));
     setTimeout(function(){ resetBall(who==='player'?'down':'up'); countdown(3); },950);
   }
   function initArenaPaint(){
@@ -4381,8 +4439,10 @@ else next='BATTLE!';
   bindTap($('storeProfileTapArea'), function(){ openUsernameModal(); });
   bindTap($('storeProfileNav'), function(){ openUsernameModal(); });
   loadSound();
+  applyLanguage();
+  bindTap($('languageEnglishBtn'), function(){ setLanguage('en'); });
+  bindTap($('languageTurkishBtn'), function(){ setLanguage('tr'); });
 
-  document.querySelectorAll('.region').forEach(function(btn){ bindTap(btn,function(){ socketRegion=btn.getAttribute('data-region')||'EU'; warmSocketRegion(socketRegion); document.querySelectorAll('.region').forEach(function(b){b.classList.remove('selected')}); btn.classList.add('selected'); }); });
   bindTap($('cancelMatchBtn'), cancelOnlineSearch);
   bindTap($('copyRoomCodeBtn'), copyRoomCode);
   document.querySelectorAll('.arena').forEach(function(btn){ bindTap(btn,function(){ arena=btn.getAttribute('data-arena')||'classic'; document.querySelectorAll('.arena').forEach(function(b){b.classList.remove('selected')}); btn.classList.add('selected'); }); });
@@ -4419,7 +4479,7 @@ else next='BATTLE!';
   bindTap($('backHowBtn'), function(){ show('menuScreen'); });
   bindTap($('menuBtn'), function(){ $('overlayText').textContent=''; $('resultPanel').classList.remove('active'); leaveOnlineRoom(); show('menuScreen'); });
   bindTap($('restartBtn'), function(){ if(mode==='online'){ setOverlay('ONLINE RESTART DISABLED'); } else newMatch(); });
-  bindTap($('playAgainBtn'), function(){ if(mode==='online' && socket && roomCode){ $('resultPanel').classList.remove('active'); setOverlay('WAITING RIVAL'); try{ socket.emit('play-again-ready',{ roomCode:roomCode, role:isHost?'host':'guest', nextMatchNo:onlineMatchNo+1 }); }catch(e){} } else newMatch(); });
+  bindTap($('playAgainBtn'), function(){ if(mode==='online' && socket && roomCode){ $('resultPanel').classList.remove('active'); setOverlay(lang('WAITING RIVAL','RAKİP BEKLENİYOR')); try{ socket.emit('play-again-ready',{ roomCode:roomCode, role:isHost?'host':'guest', nextMatchNo:onlineMatchNo+1 }); }catch(e){} } else newMatch(); });
   bindTap($('resultMenuBtn'), function(){ $('resultPanel').classList.remove('active'); leaveOnlineRoom(); show('menuScreen'); });
   window.addEventListener('beforeunload', function(){ notifyLeavingOnline(); });
   window.addEventListener('pagehide', function(){ notifyLeavingOnline(); });

@@ -55,6 +55,28 @@ type Spark = {
 
 type Arena = "classic" | "base" | "space" | "temple" | "soccer";
 type SocketRegion = "EU" | "US";
+
+const detectClosestSocketRegion = (): SocketRegion => {
+  if (typeof window === "undefined") return "EU";
+
+  try {
+    const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || "";
+    const locale = navigator.language || "";
+    const regionCode = locale.split("-")[1]?.toUpperCase();
+
+    if (
+      timeZone.startsWith("America/") ||
+      timeZone.startsWith("Pacific/") ||
+      ["US", "CA", "MX", "BR", "AR", "CL", "CO", "PE"].includes(regionCode || "")
+    ) {
+      return "US";
+    }
+  } catch {
+    // EU is the safe fallback when browser locale data is unavailable.
+  }
+
+  return "EU";
+};
 type ServerGameState = {
   host_score?: unknown;
   hostScore?: unknown;
@@ -232,8 +254,7 @@ const { data: walletClient } = useWalletClient();
 const [baseEnergyActive, setBaseEnergyActive] = useState(false);
 const [baseEnergyLoading, setBaseEnergyLoading] = useState(false);
 const [baseEnergyStatus, setBaseEnergyStatus] = useState<string | null>(null);
-const [socketRegion, setSocketRegion] = useState<SocketRegion>("EU");
-const socketRegionRef = useRef<SocketRegion>("EU");
+const [socketRegion] = useState<SocketRegion>(detectClosestSocketRegion);
   const [showSplash, setShowSplash] = useState(true);
   const [screen, setScreen] = useState<"menu" | "game">("menu");
   const [winner, setWinner] = useState<string | null>(null);
@@ -428,10 +449,6 @@ useEffect(() => {
   rivalNameRef.current =
     gameModeRef.current === "online" ? rivalDisplayName || "RIVAL" : "AI";
 }, [playerDisplayName, rivalDisplayName]);
-
-useEffect(() => {
-  socketRegionRef.current = socketRegion;
-}, [socketRegion]);
 
 const getReadyUsername = () => {
   const finalName = cleanUsername(usernameInput);
@@ -2718,42 +2735,8 @@ useEffect(() => {
         BASE MULTIPLAYER
       </p>
 
-      <div className="mb-6 rounded-2xl border border-white/10 bg-black/30 p-3">
-        <p className="text-white/35 text-[10px] font-black tracking-[0.3em] mb-3">
-          REGION
-        </p>
-
-        <div className="grid grid-cols-2 gap-2">
-          {(["EU", "US"] as SocketRegion[]).map((region) => {
-            const selected = socketRegion === region;
-            const disabled = matchmaking || Boolean(roomCode) || screen === "game";
-
-            return (
-              <button
-                key={region}
-                type="button"
-                disabled={disabled}
-                onClick={() => {
-                  if (disabled) return;
-                  setSocketRegion(region);
-                  setOnlineStatus(null);
-                  setShowJoinRoom(false);
-                }}
-                className={`h-[42px] rounded-xl border text-[11px] font-black tracking-[0.22em] transition ${
-                  selected
-                    ? "border-[#0052FF] bg-[#0052FF] text-white shadow-[0_0_18px_rgba(0,82,255,0.35)]"
-                    : "border-white/10 bg-black/35 text-white/45 hover:border-[#0052FF]/50 hover:text-[#0052FF]"
-                } ${disabled ? "opacity-60" : ""}`}
-              >
-                {region === "EU" ? "EU" : "US"}
-              </button>
-            );
-          })}
-        </div>
-
-        <p className="mt-3 text-white/25 text-[9px] font-black tracking-[0.18em]">
-          {socketRegion === "EU" ? "FRANKFURT SERVER" : "OHIO SERVER"}
-        </p>
+      <div className="mb-6 rounded-2xl border border-cyan-300/15 bg-cyan-400/[.04] p-3 text-[9px] font-black tracking-[0.2em] text-cyan-200/55">
+        NETWORK ROUTING AUTOMATIC
       </div>
 
 <button
@@ -2959,7 +2942,7 @@ socketRef.current?.emit("create-room", {
     </div>
 
     <p className="mt-2 text-white/30 text-[10px] tracking-[0.25em]">
-      SHARE THIS CODE WITH A FRIEND ON {socketRegion}
+      SHARE THIS CODE WITH A FRIEND
     </p>
 <button
   onClick={() => {
