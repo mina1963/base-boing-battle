@@ -2829,12 +2829,12 @@ export default function MobilePage() {
     setUiText('#modeCreateBtn strong','CREATE ROOM','ODA OLUŞTUR'); setUiText('#modeCreateBtn span','PRIVATE ROOM WITH CODE','KODLU ÖZEL ODA');
     setUiText('#modeJoinBtn strong','JOIN ROOM','ODAYA KATIL'); setUiText('#modeJoinBtn span','ENTER FRIEND ROOM CODE','ARKADAŞININ ODA KODUNU GİR');
     setUiText('#modeBackBtn','BACK','GERİ');
-    setUiText('#difficultyScreen .premiumDiffTitle','SELECT\nDIFFICULTY','ZORLUK\nSEÇ');
+    setUiText('#difficultyScreen .premiumDiffTitle','SELECT\\nDIFFICULTY','ZORLUK\\nSEÇ');
     setUiText('[data-difficulty="easy"] strong','EASY','KOLAY'); setUiText('[data-difficulty="easy"] span','CHILL TRAINING MODE','RAHAT ANTRENMAN MODU');
     setUiText('[data-difficulty="normal"] strong','NORMAL','NORMAL'); setUiText('[data-difficulty="normal"] span','BALANCED ARCADE BATTLE','DENGELİ ARCADE SAVAŞI');
     setUiText('[data-difficulty="hard"] strong','HARD','ZOR'); setUiText('[data-difficulty="hard"] span','FAST REFLEX CHALLENGE','HIZLI REFLEKS MÜCADELESİ');
     setUiText('#startAiBtn','START MATCH','MAÇI BAŞLAT'); setUiText('#difficultyBackBtn','BACK','GERİ');
-    setUiText('#joinScreen .titleBadge','JOIN ROOM','ODAYA KATIL'); setUiText('#joinScreen .flowTitle','ENTER\nCODE','KODU\nGİR');
+    setUiText('#joinScreen .titleBadge','JOIN ROOM','ODAYA KATIL'); setUiText('#joinScreen .flowTitle','ENTER\\nCODE','KODU\\nGİR');
     setUiText('#joinRoomBtn','JOIN ROOM','ODAYA KATIL'); setUiText('#joinBackBtn','BACK','GERİ');
     setUiText('#howScreen h1','HOW TO PLAY','NASIL OYNANIR');
     setUiText('#howScreen .card','Draw lines only on your half of the arena. Deflect the ball past the AI. Each line costs energy. First to 7 wins.','Sadece kendi yarı alanında çizgi çiz. Topu rakibin kalesine yönlendir. Her çizgi enerji harcar. İlk 7 sayıya ulaşan kazanır.');
