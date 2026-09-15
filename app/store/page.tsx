@@ -1,4 +1,5 @@
 "use client";
+import { applyTestServer } from "../../lib/test-server.cjs";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -237,7 +238,7 @@ export default function MobilePage() {
     <main>
       <div
         dangerouslySetInnerHTML={{
-          __html: `
+          __html: applyTestServer(`
 <style>
   html, body {
     margin:0; padding:0; background:#020204; color:white; overflow:hidden;
@@ -2641,6 +2642,7 @@ export default function MobilePage() {
         </div>
       </div>
 
+      <a href="/privacy.html" style="display:block;text-align:center;color:#a5e8ff;padding:16px">Privacy / Gizlilik</a>
       <button id="settingsBackBtn" class="artBackBtn">BACK</button>
     </div>
   </section>
@@ -2773,6 +2775,7 @@ export default function MobilePage() {
     </div>
   </section>
 </div>
+<script src="/region-selector.js"></script>
 <script>
 (function(){
   var W=400,H=700;
@@ -3272,11 +3275,22 @@ else next='BATTLE!';
     ball={x:200,y:dir==='up'?525:175,r:8,vx:dir==='up'?1.25:-1.25,vy:dir==='up'?-1.85:1.85};
     lines=[]; trail=[]; sparks=[]; energy=100; rallyElapsedSeconds=0; drawing=null;
   }
+  var regionRequest=0;
   function ensureSocket(cb){
-    if(window.io){ connectSocket(cb); return; }
+    var request=++regionRequest;
+    function choose(){
+      setMatchStatus(lang('CHECKING CONNECTION...','BAĞLANTI ÖLÇÜLÜYOR...'));
+      var selection=window.BoingRegions?window.BoingRegions.selectRegion({EU:SOCKET_EU,US:SOCKET_US},socketRegion,window.io):Promise.resolve({region:socketRegion});
+      selection.then(function(result){
+        if(request!==regionRequest) return;
+        socketRegion=result.region;
+        connectSocket(cb);
+      }).catch(function(){ if(request===regionRequest) connectSocket(cb); });
+    }
+    if(window.io){ choose(); return; }
     var script=document.createElement('script');
     script.src='https://cdn.socket.io/4.8.1/socket.io.min.js';
-    script.onload=function(){ connectSocket(cb); };
+    script.onload=choose;
     script.onerror=function(){ setMatchStatus('SOCKET LOAD FAILED'); };
     document.head.appendChild(script);
   }
@@ -3411,8 +3425,26 @@ else next='BATTLE!';
       forceNew:true
     });
     socket.io.uri=url;
-    socket.on('connect',function(){ socketReady=true; if(roomCode){ setMatchStatus('JOINING ROOM '+roomCode+'...'); } else { setMatchStatus('CONNECTED • SEARCHING...'); } if(cb) cb(); });
-    socket.on('disconnect',function(){ socketReady=false; });
+    var hadOnlineDisconnect=false;
+    function pauseConnection(){
+      started=false; paused=true; onlineServerPlaying=false;
+      clearOnlineCountdown(); clearOnlineBattleTimer();
+      setOverlay(lang('RECONNECTING...','YENİDEN BAĞLANIYOR...'));
+    }
+    socket.on('connect',function(){
+      socketReady=true;
+      if(hadOnlineDisconnect && roomCode){
+        hadOnlineDisconnect=false;
+        if(!socket.recovered) opponentLeft();
+        return;
+      }
+      if(roomCode){ setMatchStatus('JOINING ROOM '+roomCode+'...'); } else { setMatchStatus('CONNECTED • SEARCHING...'); }
+      if(cb) cb();
+    });
+    socket.on('disconnect',function(reason){ socketReady=false; if(mode==='online' && roomCode && reason!=='io client disconnect'){ hadOnlineDisconnect=true; pauseConnection(); } });
+    socket.on('connection-paused',pauseConnection);
+    socket.on('connection-resumed',function(){ lines=[]; trail=[]; });
+    socket.io.on('reconnect_failed',function(){ if(hadOnlineDisconnect) opponentLeft(); });
 
     socket.on('arena-vote-start',function(data){
       data=data||{};
@@ -3686,8 +3718,10 @@ else next='BATTLE!';
       setMatchStatus('');
       scheduleOnlineStart(data.state||null,data.launchAt,data.serverNow);
     });
+    socket.on('line-removed',function(data){ if(data&&data.lineId) lines=lines.filter(function(line){return line.id!==data.lineId;}); });
     socket.on('line-hit',function(data){
       data=data||{};
+      if(data.lineId) lines=lines.filter(function(line){return line.id!==data.lineId;});
       var hitBall=data.ball||{};
       if(!ball || !Number.isFinite(Number(hitBall.x)) || !Number.isFinite(Number(hitBall.y))) return;
       var hitX=Number(hitBall.x);
@@ -3933,6 +3967,7 @@ else next='BATTLE!';
     });
   }
   function cancelOnlineSearch(){
+    regionRequest++;
     try{ if(socket) socket.emit('cancel-matchmaking',{ address:mobileId }); }catch(e){}
     try{
       if(socket){
@@ -4033,7 +4068,7 @@ else next='BATTLE!';
     var owner=line.owner||'';
     if((isHost && owner==='host')||(!isHost && owner==='guest')) return;
     var x1=Number(line.x1), y1=Number(line.y1), x2=Number(line.x2), y2=Number(line.y2);
-    lines.push({x1:x1,y1:isHost?y1:H-y1,x2:x2,y2:isHost?y2:H-y2,life:50,owner:'ai'});
+    lines.push({id:line.id,x1:x1,y1:isHost?y1:H-y1,x2:x2,y2:isHost?y2:H-y2,life:50,owner:'ai'});
   }
   function buildLeavePayload(){
     return { roomCode:roomCode, room_code:roomCode, code:roomCode, platform:'mobile', source:'mobile-page', role:isHost?'host':'guest', username:displayName(playerName), reason:'left-game' };
@@ -4084,6 +4119,7 @@ else next='BATTLE!';
     roleKnown=false;
   }
   function leaveOnlineRoom(){
+    regionRequest++;
     notifyLeavingOnline();
 
     started=false;
@@ -4197,7 +4233,14 @@ else next='BATTLE!';
       var createdLine=addLine(drawing,p,'player');
       if(mode==='online' && socket && roomCode){
         var sx=createdLine.x1, sy=createdLine.y1, ex=createdLine.x2, ey=createdLine.y2;
-        socket.emit('draw-line',{ roomCode:roomCode, line:{ owner:isHost?'host':'guest', x1:sx, y1:isHost?sy:H-sy, x2:ex, y2:isHost?ey:H-ey } });
+        socket.timeout(1500).emit('draw-line',{ roomCode:roomCode, line:{ owner:isHost?'host':'guest', x1:sx, y1:isHost?sy:H-sy, x2:ex, y2:isHost?ey:H-ey } },function(error,result){
+          if(lines.indexOf(createdLine)===-1) return;
+          if(!error&&result&&result.accepted) createdLine.id=result.lineId;
+          else {
+            lines=lines.filter(function(line){return line!==createdLine;});
+            if(!error&&result&&result.accepted===false) energy=Math.min(100,energy+20);
+          }
+        });
       }
       drawing=null;
     }
@@ -4619,7 +4662,7 @@ else next='BATTLE!';
   },0);
 })();
 </script>
-          `,
+          `, process.env.NEXT_PUBLIC_TEST_SOCKET_URL),
         }}
       />
     </main>

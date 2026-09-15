@@ -2,6 +2,10 @@ const express = require("express");
 const http = require("http");
 const cors = require("cors");
 const { Server } = require("socket.io");
+const { performance, monitorEventLoopDelay } = require("node:perf_hooks");
+const loopDelay = monitorEventLoopDelay({ resolution: 20 });
+loopDelay.enable();
+const physicsMetrics = { lastBatchMs: 0, maxBatchMs: 0, cappedBatches: 0 };
 
 const app = express();
 const configuredOrigins = String(process.env.ALLOWED_ORIGINS || "")
@@ -12,6 +16,8 @@ const defaultOrigins = [
   "https://www.baseboingbattle.online",
   "https://baseboingbattle.online",
   "http://localhost:3000",
+  "https://localhost", // Packaged Android app
+  "capacitor://localhost", // Packaged iOS app
 ];
 const allowedOrigins = new Set([...defaultOrigins, ...configuredOrigins]);
 const corsOrigin = (origin, callback) => {
@@ -35,12 +41,16 @@ app.get("/health", (_, res) => {
     connectedSockets: io.engine?.clientsCount || 0,
     activeRooms: rooms.size,
     waitingPlayers: waitingPlayers.length,
+    region: process.env.REGION || "unknown",
+    eventLoopP95Ms: Math.round(loopDelay.percentile(95) / 1e6),
+    physics: physicsMetrics,
   });
 });
 
 const server = http.createServer(app);
 
 const io = new Server(server, {
+  connectionStateRecovery: { maxDisconnectionDuration: 15_000, skipMiddlewares: false },
   cors: {
     origin: corsOrigin,
     methods: ["GET", "POST"],
@@ -67,6 +77,20 @@ const STATE_EMIT_MS = 1000 / 30;
 const MIN_LINE_LENGTH = 12;
 const MAX_LINE_LENGTH = 180;
 const DRAW_COOLDOWN_MS = 45;
+// Match the visible client playfield. Never silently move an accepted line.
+const normalizePlayerLine = (line, owner) => {
+  if (!line || typeof line !== "object") return null;
+  const coordinates = [line.x1, line.y1, line.x2, line.y2];
+  if (!coordinates.every((value) => typeof value === "number" && Number.isFinite(value))) return null;
+  const [x1, y1, x2, y2] = coordinates;
+  const length = Math.hypot(x2 - x1, y2 - y1);
+  if (length < MIN_LINE_LENGTH || length > MAX_LINE_LENGTH) return null;
+  const minY = owner === "host" ? GAME_H / 2 : 22;
+  const maxY = owner === "host" ? GAME_H - 22 : GAME_H / 2;
+  if (![x1, x2].every((x) => x >= 22 && x <= GAME_W - 22) ||
+      ![y1, y2].every((y) => y >= minY && y <= maxY)) return null;
+  return { owner, x1, y1, x2, y2, life: 45 };
+};
 const MATCH_SCREEN_LEAD_MS = 1500;
 const ARENA_VOTE_TIMEOUT_MS = 20_000;
 
@@ -271,6 +295,7 @@ const applyLineCollision = (ball, line, lineDx, lineDy, dist) => {
 };
 
 const tickRoomPhysics = (room, dtScale = 1) => {
+  if (room.reconnectTimer) return;
   if (room.state.phase === "countdown") {
     if (
       room.state.roundStartAt &&
@@ -303,12 +328,10 @@ const tickRoomPhysics = (room, dtScale = 1) => {
   const scaledVy = ball.vy * dtScale;
   const speedBeforeMove = Math.hypot(scaledVx, scaledVy);
   const steps = Math.max(1, Math.ceil(speedBeforeMove));
-  const stepVx = scaledVx / steps;
-  const stepVy = scaledVy / steps;
 
   for (let step = 0; step < steps; step++) {
-    ball.x += stepVx;
-    ball.y += stepVy;
+    ball.x += ball.vx * dtScale / steps;
+    ball.y += ball.vy * dtScale / steps;
 
     if (ball.x < 22) {
       ball.x = 22;
@@ -332,6 +355,7 @@ const tickRoomPhysics = (room, dtScale = 1) => {
         line.life = 0;
         hitLine = line;
         io.to(room.code).emit("line-hit", {
+          lineId: line.id,
           owner: line.owner,
           ball: {
             x: ball.x,
@@ -384,7 +408,8 @@ const tickRoomPhysics = (room, dtScale = 1) => {
   }
 };
 
-setInterval(() => {
+const physicsTimer = setInterval(() => {
+  const batchStart = performance.now();
   const now = Date.now();
 
   for (const room of rooms.values()) {
@@ -398,8 +423,12 @@ setInterval(() => {
       room.physicsAccumulator -= TICK_MS;
       steps += 1;
     }
+    if (room.physicsAccumulator >= TICK_MS) physicsMetrics.cappedBatches++;
   }
+  physicsMetrics.lastBatchMs = Math.round((performance.now() - batchStart) * 100) / 100;
+  physicsMetrics.maxBatchMs = Math.max(physicsMetrics.maxBatchMs, physicsMetrics.lastBatchMs);
 }, TICK_MS);
+physicsTimer.unref();
 
 const allowSocketEvent = (socket, eventName, limit, windowMs) => {
   const now = Date.now();
@@ -435,6 +464,7 @@ const cleanupRoomForSocket = (socket) => {
   const wasGuest = room.guestSocketId === socket.id;
 
   if (!wasHost && !wasGuest) return;
+  if (room.reconnectTimer) clearTimeout(room.reconnectTimer);
 
   socket.to(roomCode).emit("opponent-left", {
     roomCode,
@@ -473,6 +503,7 @@ const detachSocketFromCurrentRoom = (socket, { notifyOpponent = true } = {}) => 
   } catch (_) {}
 
   if (!oldRoom) return;
+  if (oldRoom.reconnectTimer) clearTimeout(oldRoom.reconnectTimer);
 
   const wasHost = oldRoom.hostSocketId === socket.id;
   const wasGuest = oldRoom.guestSocketId === socket.id;
@@ -709,6 +740,38 @@ const createMatchedRoom = ({ host, guest }) => {
 
 io.on("connection", (socket) => {
   console.log("CONNECTED:", socket.id);
+  const recoveredRoom = socket.recovered && rooms.get(socketRooms.get(socket.id));
+  if (socket.recovered && !recoveredRoom) socket.emit("opponent-left", { reason: "SESSION_EXPIRED" });
+  if (recoveredRoom?.reconnectTimer) {
+    const bothConnected = io.sockets.sockets.has(recoveredRoom.hostSocketId) && io.sockets.sockets.has(recoveredRoom.guestSocketId);
+    if (bothConnected) {
+      clearTimeout(recoveredRoom.reconnectTimer);
+      recoveredRoom.reconnectTimer = null;
+      if (recoveredRoom.state.roundStartAt) recoveredRoom.state.roundStartAt += Date.now() - recoveredRoom.disconnectedAt;
+      recoveredRoom.lastTickAt = Date.now();
+      recoveredRoom.physicsAccumulator = 0;
+      recoveredRoom.lines = [];
+      io.to(recoveredRoom.code).emit("connection-resumed");
+      emitStateToRoom(recoveredRoom);
+    } else socket.emit("connection-paused");
+  }
+  const objectEvents = new Set([
+    "create-room", "join-room", "find-match", "client-ready", "vote-arena",
+    "host-state", "round-reset", "draw-line", "play-again-ready", "leave-room",
+  ]);
+  socket.use(([event, payload], next) => {
+    const currentRoom = rooms.get(socketRooms.get(socket.id));
+    if (currentRoom?.reconnectTimer && ["draw-line", "round-reset", "host-state", "play-again-ready", "client-ready"].includes(event)) return;
+    if (objectEvents.has(event) && (!payload || typeof payload !== "object" || Array.isArray(payload))) {
+      socket.emit("request-error", { event, code: "INVALID_PAYLOAD" });
+      return;
+    }
+    next();
+  });
+  socket.on("region-ping", (ack) => {
+    if (typeof ack !== "function" || !allowSocketEvent(socket, "region-ping", 12, 10_000)) return;
+    ack({ region: process.env.REGION || "unknown", serverNow: Date.now() });
+  });
 
   socket.on("create-room", ({ roomCode, address, username } = {}, ack) => {
     if (!allowSocketEvent(socket, "create-room", 4, 10_000)) return;
@@ -932,9 +995,10 @@ io.on("connection", (socket) => {
     resetRound(room, direction || "down");
   });
 
-  socket.on("draw-line", ({ roomCode, line }) => {
+  socket.on("draw-line", ({ roomCode, line }, ack) => {
+    const reject = (reason) => { if (typeof ack === "function") ack({ accepted: false, reason }); };
     const room = getAuthorizedRoom(socket, roomCode);
-    if (!room) return;
+    if (!room) return reject("ROOM_NOT_FOUND");
 
     const owner =
       socket.id === room.hostSocketId
@@ -943,30 +1007,17 @@ io.on("connection", (socket) => {
         ? "guest"
         : null;
 
-    if (!owner) return;
-    if (room.state.phase !== "playing") return;
-    if (!line || typeof line !== "object") return;
+    if (!owner) return reject("NOT_A_PLAYER");
+    if (room.state.phase !== "playing") return reject("NOT_PLAYING");
+    if (!line || typeof line !== "object") return reject("INVALID_LINE");
 
     const now = Date.now();
-    if (now - room.lastDrawAt[owner] < DRAW_COOLDOWN_MS) return;
+    if (now - room.lastDrawAt[owner] < DRAW_COOLDOWN_MS) return reject("COOLDOWN");
 
-    const coordinates = [line.x1, line.y1, line.x2, line.y2].map(Number);
-    if (!coordinates.every(Number.isFinite)) return;
-
-    const [rawX1, rawY1, rawX2, rawY2] = coordinates;
-    const lineLength = Math.hypot(rawX2 - rawX1, rawY2 - rawY1);
-    if (lineLength < MIN_LINE_LENGTH || lineLength > MAX_LINE_LENGTH) return;
-
-    const BOTTOM_LINE_LIMIT = GAME_H - 45;
-
-    const safeLine = {
-      owner,
-      x1: Math.max(0, Math.min(GAME_W, rawX1)),
-      y1: Math.max(0, Math.min(BOTTOM_LINE_LIMIT, rawY1)),
-      x2: Math.max(0, Math.min(GAME_W, rawX2)),
-      y2: Math.max(0, Math.min(BOTTOM_LINE_LIMIT, rawY2)),
-      life: 45,
-    };
+    const safeLine = normalizePlayerLine(line, owner);
+    if (!safeLine) return reject("INVALID_LINE");
+    room.lineSequence = (room.lineSequence || 0) + 1;
+    safeLine.id = room.matchId + ":" + room.lineSequence;
 
     room.lastDrawAt[owner] = now;
 
@@ -974,12 +1025,16 @@ io.on("connection", (socket) => {
 
     if (ownerLines.length >= 2) {
       const firstIndex = room.lines.findIndex((l) => l.owner === owner);
-      if (firstIndex !== -1) room.lines.splice(firstIndex, 1);
+      if (firstIndex !== -1) {
+        const removed = room.lines.splice(firstIndex, 1)[0];
+        io.to(roomCode).emit("line-removed", { lineId: removed.id });
+      }
     }
 
     room.lines.push(safeLine);
 
     socket.to(roomCode).emit("remote-line", safeLine);
+    if (typeof ack === "function") ack({ accepted: true, lineId: safeLine.id });
   });
 
   socket.on("play-again-ready", ({ roomCode, role }) => {
@@ -1037,17 +1092,33 @@ io.on("connection", (socket) => {
     });
   });
 
-  socket.on("disconnect", () => {
+  socket.on("disconnect", (reason) => {
     console.log("DISCONNECTED:", socket.id);
 
     waitingPlayers = waitingPlayers.filter((p) => p.socketId !== socket.id);
 
+    const room = rooms.get(socketRooms.get(socket.id));
+    if (room && ["playing", "countdown"].includes(room.state.phase) &&
+        ["transport close", "transport error", "ping timeout"].includes(reason)) {
+      if (!room.reconnectTimer) {
+        room.disconnectedAt = Date.now();
+        room.reconnectTimer = setTimeout(() => {
+          room.reconnectTimer = null;
+          cleanupRoomForSocket(socket);
+        }, 15_000);
+        room.reconnectTimer.unref();
+      }
+      io.to(room.code).emit("connection-paused");
+      return;
+    }
     cleanupRoomForSocket(socket);
   });
 });
 
 const PORT = process.env.PORT || 4000;
 
-server.listen(PORT, () => {
+if (require.main === module) server.listen(PORT, () => {
   console.log(`SOCKET SERVER RUNNING ON ${PORT}`);
 });
+
+module.exports = { createRoomObject, tickRoomPhysics, normalizePlayerLine, server, io };

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useAccount, usePublicClient, useWalletClient } from "wagmi";
 import { useConnectModal } from "@rainbow-me/rainbowkit";
 import { io } from "socket.io-client";
+import { selectRegion } from "../public/region-selector";
 import { useRouter } from "next/navigation";
 
 
@@ -36,6 +37,7 @@ const ENERGY_ABI = [
 
 
 type Line = {
+  id?: string;
   x1: number;
   y1: number;
   x2: number;
@@ -254,7 +256,8 @@ const { data: walletClient } = useWalletClient();
 const [baseEnergyActive, setBaseEnergyActive] = useState(false);
 const [baseEnergyLoading, setBaseEnergyLoading] = useState(false);
 const [baseEnergyStatus, setBaseEnergyStatus] = useState<string | null>(null);
-const [socketRegion] = useState<SocketRegion>(detectClosestSocketRegion);
+const [socketRegion, setSocketRegion] = useState<SocketRegion>(detectClosestSocketRegion);
+const [regionDecisionReady, setRegionDecisionReady] = useState(false);
   const [showSplash, setShowSplash] = useState(true);
   const [screen, setScreen] = useState<"menu" | "game">("menu");
   const [winner, setWinner] = useState<string | null>(null);
@@ -874,13 +877,23 @@ useEffect(() => {
 }, [address, publicClient]);
 
 useEffect(() => {
+  let cancelled = false;
+  void selectRegion({EU: process.env.NEXT_PUBLIC_TEST_SOCKET_URL || process.env.NEXT_PUBLIC_SOCKET_URL_EU, US: process.env.NEXT_PUBLIC_TEST_SOCKET_URL || process.env.NEXT_PUBLIC_SOCKET_URL_US}, detectClosestSocketRegion(), io)
+    .then(result => { if (!cancelled) setSocketRegion(result.region === "US" ? "US" : "EU"); })
+    .catch(() => { /* Keep the initial region if probing is unavailable. */ })
+    .finally(() => { if (!cancelled) setRegionDecisionReady(true); });
+  return () => { cancelled = true; };
+}, []);
+
+useEffect(() => {
+if (!regionDecisionReady) return;
 const SOCKET_URL =
   socketRegion === "US"
     ? process.env.NEXT_PUBLIC_SOCKET_URL_US
     : process.env.NEXT_PUBLIC_SOCKET_URL_EU;
 
 const socket = io(
-  SOCKET_URL || process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:4000",
+  process.env.NEXT_PUBLIC_TEST_SOCKET_URL || SOCKET_URL || process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:4000",
   {
     transports: ["websocket", "polling"],
   }
@@ -931,13 +944,34 @@ const socket = io(
     setScreen("game");
   };
 
+  let hadOnlineDisconnect = false;
+  const pauseForConnection = () => {
+    clearCountdownTimers();
+    pauseRef.current = true;
+    gameStartedRef.current = false;
+    setGameStarted(false);
+    setCountdown("RECONNECTING...");
+  };
+  socket.on("connection-paused", pauseForConnection);
+  socket.on("connection-resumed", () => {
+    linesRef.current = [];
+    trailRef.current = [];
+    setCountdown(null);
+  });
   socket.on("connect", () => {
     console.log("SOCKET CONNECTED", socket.id);
+    if (hadOnlineDisconnect && !socket.recovered) handleOpponentLeft();
+    hadOnlineDisconnect = false;
   });
 
-  socket.on("disconnect", () => {
+  socket.on("disconnect", (reason) => {
     console.log("SOCKET DISCONNECTED");
+    if (roomIdRef.current && gameModeRef.current === "online" && reason !== "io client disconnect") {
+      hadOnlineDisconnect = true;
+      pauseForConnection();
+    }
   });
+  socket.io.on("reconnect_failed", () => { if (hadOnlineDisconnect) handleOpponentLeft(); });
 
   socket.on("room-created", ({ roomCode }) => {
     console.log("SOCKET ROOM CREATED", roomCode);
@@ -1047,7 +1081,11 @@ const socket = io(
     setShowArenaVote(false);
   });
 
-  socket.on("line-hit", ({ owner, ball: hitBall }) => {
+  socket.on("line-removed", ({ lineId }) => {
+    if (lineId) linesRef.current = linesRef.current.filter(line => line.id !== lineId);
+  });
+  socket.on("line-hit", ({ owner, ball: hitBall, lineId }) => {
+    if (lineId) linesRef.current = linesRef.current.filter(line => line.id !== lineId);
     if (!hitBall) return;
     const hitX = Number(hitBall.x);
     const rawY = Number(hitBall.y);
@@ -1089,6 +1127,7 @@ const socket = io(
     const remoteY2 = Number(line.y2);
 
     linesRef.current.push({
+      id: line.id,
       x1: remoteX1,
       y1: isHostRef.current ? remoteY1 : GAME_H - remoteY1,
       x2: remoteX2,
@@ -1150,7 +1189,7 @@ const socket = io(
     socket.off("opponent-disconnected");
     socket.disconnect();
   };
-}, [socketRegion]);
+}, [socketRegion, regionDecisionReady]);
 
 
   useEffect(() => {
@@ -1268,8 +1307,8 @@ const socket = io(
       const rect = canvas.getBoundingClientRect();
 
       return {
-        x: ((e.clientX - rect.left) / rect.width) * W,
-        y: ((e.clientY - rect.top) / rect.height) * H,
+        x: Math.max(22, Math.min(W - 22, ((e.clientX - rect.left) / rect.width) * W)),
+        y: Math.max(22, Math.min(H - 22, ((e.clientY - rect.top) / rect.height) * H)),
       };
     };
 
@@ -1314,20 +1353,23 @@ const socket = io(
       // CLIENT_INSTANT_LINE_PREDICTION
       // Çizgi oyuncunun kendi ekranında anında görünür.
       // Online modda fizik yine server authoritative kalır; bu sadece input hissini iyileştirir.
-      linesRef.current.push({
+      const predictionId = "pending:" + Date.now() + ":" + Math.random().toString(36).slice(2);
+      const predictedLine: Line = {
+        id: predictionId,
         x1: start.x,
         y1: start.y,
         x2: end.x,
         y2: end.y,
         life: 45,
         owner: "player",
-      });
+      };
+      linesRef.current.push(predictedLine);
 
 if (
   gameModeRef.current === "online" &&
   roomIdRef.current
 ) {
-  socketRef.current?.emit("draw-line", {
+  socketRef.current?.timeout(1500).emit("draw-line", {
     roomCode: roomIdRef.current,
     line: {
       owner: isHostRef.current ? "host" : "guest",
@@ -1336,6 +1378,14 @@ if (
       x2: end.x,
       y2: isHostRef.current ? end.y : H - end.y,
     },
+  }, (error: Error | null, result: { accepted?: boolean; lineId?: string } | undefined) => {
+    const visibleLine = linesRef.current.find(line => line.id === predictionId);
+    if (!visibleLine) return;
+    if (!error && result?.accepted) visibleLine.id = result.lineId;
+    else {
+      linesRef.current = linesRef.current.filter(line => line.id !== predictionId);
+      if (!error && result?.accepted === false) energyRef.current.value = Math.min(100, energyRef.current.value + 20);
+    }
   });
 }
 
@@ -2812,6 +2862,7 @@ useEffect(() => {
     const readyUsername = getReadyUsername();
     if (!readyUsername) return;
 
+    if (!regionDecisionReady) { setOnlineStatus("CHECKING CONNECTION..."); return; }
     if (matchmaking) return;
 
     setMatchmaking(true);
@@ -2873,6 +2924,7 @@ useEffect(() => {
       return;
     }
 
+    if (!regionDecisionReady) { setOnlineStatus("CHECKING CONNECTION..."); return; }
     const readyUsername = getReadyUsername();
     if (!readyUsername) return;
 
@@ -3015,6 +3067,7 @@ socketRef.current?.emit("create-room", {
 <button
   onClick={async () => {
     if (!joinCode || !address) return;
+    if (!regionDecisionReady) { setOnlineStatus("CHECKING CONNECTION..."); return; }
 
     const readyUsername = getReadyUsername();
     if (!readyUsername) return;
