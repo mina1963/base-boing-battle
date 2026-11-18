@@ -403,7 +403,7 @@ const hash = await walletClient.writeContract({
   functionName: "activateEnergy",
   account: address,
   dataSuffix:
-    "0x62635f6873616772376c620b0080218021802180218021802180218021",
+    "0x62635f326c6a3065796c370b0080218021802180218021802180218021",
 });
 
     setBaseEnergyStatus("ACTIVATING ENERGY...");
