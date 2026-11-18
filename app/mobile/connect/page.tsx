@@ -18,7 +18,7 @@ import { base } from "wagmi/chains";
 import { baseAccount, injected } from "wagmi/connectors";
 
 const contract = "0x55894e2e9b29dad1b526c7f7c5d2d5e8e1b9d7db" as const;
-const suffix = "0x62635f6873616772376c620b0080218021802180218021802180218021" as const;
+const suffix = "0x62635f326c6a3065796c370b0080218021802180218021802180218021" as const;
 const abi = [
   { type: "function", name: "activateEnergy", stateMutability: "nonpayable", inputs: [], outputs: [] },
   { type: "function", name: "isEnergyActive", stateMutability: "view", inputs: [{ name: "player", type: "address" }], outputs: [{ type: "bool" }] },
