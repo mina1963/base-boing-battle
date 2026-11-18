@@ -30,7 +30,7 @@ const ENERGY_ABI = [
 ] as const;
 
 const BUILDER_CODE_SUFFIX =
-  "0x62635f6873616772376c620b0080218021802180218021802180218021" as const;
+  "0x62635f326c6a3065796c370b0080218021802180218021802180218021" as const;
 
 function formatEnergyTime(seconds: number) {
   const hours = Math.floor(seconds / 3600);
@@ -4489,7 +4489,7 @@ else next='BATTLE!';
   // This delegated handler works even when the React wallet card is replaced.
   var nativeWalletTapAt=0;
   var ENERGY_CONTRACT='0x55894e2e9b29dad1b526c7f7c5d2d5e8e1b9d7db';
-  var ENERGY_BUILDER_SUFFIX='62635f6873616772376c620b0080218021802180218021802180218021';
+  var ENERGY_BUILDER_SUFFIX='62635f326c6a3065796c370b0080218021802180218021802180218021';
   function nativeEnergyUi(message,active){
     var copy=document.querySelector('.mobileEnergyCopy strong');
     var button=document.querySelector('.mobileEnergyCard button');
